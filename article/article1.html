@@ -1,23 +1,28 @@
 Set up a website with own domain name
 <br>
 <br>
-Rent a domain name from Google Domains (my choice at the time being).
-Other provider may or may not work, eg Tecent, Alibaba, GoDadd. Seems my website can be visited from China. 
+Rent a domain name, say yourdomain.net from Google Domains (my choice at the time being).
+Other provider may or may not work, eg Tecent, Alibaba, GoDaddy. Seems my website can be visited from China. 
 <br>
 <br>
 Set up your github repo. The name MUST be yourgitid.github.io 
 <br>
 echo hello > index.html
 <br>
-in repo setting, set Custom domain to www.example.net 
+<br>
+yourgitid.github.io --> Settings --> GitHub Pages <br>
+Custom domain:www.yourdomain.net
 <br>
 <br>
-Google domain --> Configure DNS -> Custom resource records <br>
+Google domain --> Configure DNS --> Custom resource records <br>
 Name:www
 <br>
 TYPE: CNAME
 <br>
 DATA:yourgitid.github.io
+<br>
+<br>
+curl www.yourdomain.net
 <br>
 <br>
 Congrats!
