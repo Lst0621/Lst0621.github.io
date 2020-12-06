@@ -4,8 +4,10 @@ var left_vec = [0.88, -0.2];
 var right_vec = [0.75, 0.35];
 var root = [350, 350];
 var main_branch = [0, -60];
-var limit = 11;
 var aspect_ratio = 0.15;
+var level_min = 0;
+var level_max = 14;
+var level = level_min;
 function add(x, y) {
     return [x[0] + y[0], x[1] + y[1]];
 }
@@ -45,4 +47,16 @@ function draw(start, dir, cnt, left) {
     context.lineTo(bottom_left[0], bottom_left[1]);
     context.fill();
 }
-fork(root, main_branch, limit, true);
+function draw_tree() {
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    fork(root, main_branch, level, true);
+    level_up();
+    setTimeout(draw_tree, 700);
+}
+function level_up() {
+    level = level + 1;
+    if (level == level_max) {
+        level = level_min;
+    }
+}
+draw_tree();

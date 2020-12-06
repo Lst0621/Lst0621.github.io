@@ -6,8 +6,10 @@ let left_vec: number[] = [0.88, -0.2]
 let right_vec: number[] = [0.75, 0.35]
 let root: number[] = [350, 350]
 let main_branch: number[] = [0, -60]
-let limit: number = 11
 let aspect_ratio: number = 0.15
+let level_min: number = 0
+let level_max: number = 14;
+let level: number = level_min
 
 function add(x: number[], y: number[]): number[] {
     return [x[0] + y[0], x[1] + y[1]]
@@ -55,5 +57,18 @@ function draw(start: number[], dir: number[], cnt: number, left: boolean) {
     context.fill()
 }
 
-fork(root, main_branch, limit, true)
+function draw_tree(){
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    fork(root, main_branch, level, true)
+    level_up()
+    setTimeout(draw_tree, 700)
+}
 
+function level_up(){
+    level = level + 1
+    if(level == level_max){
+        level = level_min
+    }
+}
+
+draw_tree()
