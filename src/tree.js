@@ -2,7 +2,7 @@ var canvas = document.getElementById('tree');
 var context = canvas.getContext("2d");
 var left_vec = [0.88, -0.26];
 var right_vec = [0.75, 0.4];
-var root = [400, 400];
+var root = [400, canvas.height - 100];
 var main_branch = [0, -60];
 var aspect_ratio = 0.15;
 var level_min = 0;
@@ -48,10 +48,12 @@ function draw(start, dir, cnt, left) {
     context.fill();
 }
 function draw_tree() {
-    context.clearRect(0, 0, canvas.width, canvas.height);
+    if (level == level_min) {
+        context.clearRect(0, 0, canvas.width, canvas.height);
+    }
     fork(root, main_branch, level, true);
     level_up();
-    setTimeout(draw_tree, 1000);
+    setTimeout(draw_tree, 800);
 }
 function level_up() {
     level = level + 1;

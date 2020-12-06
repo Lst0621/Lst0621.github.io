@@ -4,7 +4,7 @@ let context: CanvasRenderingContext2D = canvas.getContext("2d");
 
 let left_vec: number[] = [0.88, -0.26]
 let right_vec: number[] = [0.75, 0.4]
-let root: number[] = [400, 400]
+let root: number[] = [400, canvas.height - 100]
 let main_branch: number[] = [0, -60]
 let aspect_ratio: number = 0.15
 let level_min: number = 0
@@ -57,16 +57,18 @@ function draw(start: number[], dir: number[], cnt: number, left: boolean) {
     context.fill()
 }
 
-function draw_tree(){
-    context.clearRect(0, 0, canvas.width, canvas.height);
+function draw_tree() {
+    if (level == level_min) {
+        context.clearRect(0, 0, canvas.width, canvas.height);
+    }
     fork(root, main_branch, level, true)
     level_up()
-    setTimeout(draw_tree, 1000)
+    setTimeout(draw_tree, 800)
 }
 
-function level_up(){
+function level_up() {
     level = level + 1
-    if(level == level_max){
+    if (level == level_max) {
         level = level_min
     }
 }
