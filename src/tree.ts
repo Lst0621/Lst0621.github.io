@@ -2,14 +2,14 @@ let canvas: HTMLCanvasElement = document.getElementById('tree') as
     HTMLCanvasElement;
 let context: CanvasRenderingContext2D = canvas.getContext("2d");
 
-let left_vec: number[] = [0.88, -0.2]
-let right_vec: number[] = [0.75, 0.35]
-let root: number[] = [350, 350]
+let left_vec: number[] = [0.88, -0.26]
+let right_vec: number[] = [0.75, 0.4]
+let root: number[] = [400, 400]
 let main_branch: number[] = [0, -60]
 let aspect_ratio: number = 0.15
 let level_min: number = 0
-let level_max: number = 14;
-let level: number = level_min
+let level_max: number = 16;
+let level: number = 10
 
 function add(x: number[], y: number[]): number[] {
     return [x[0] + y[0], x[1] + y[1]]
@@ -61,7 +61,7 @@ function draw_tree(){
     context.clearRect(0, 0, canvas.width, canvas.height);
     fork(root, main_branch, level, true)
     level_up()
-    setTimeout(draw_tree, 700)
+    setTimeout(draw_tree, 1000)
 }
 
 function level_up(){
