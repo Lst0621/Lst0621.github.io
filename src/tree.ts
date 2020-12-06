@@ -2,7 +2,6 @@ let canvas: HTMLCanvasElement = document.getElementById('tree') as
     HTMLCanvasElement;
 let context: CanvasRenderingContext2D = canvas.getContext("2d");
 
-//let left_vec: number[] = [0.83, -0.2]
 let left_vec: number[] = [0.88, -0.2]
 let right_vec: number[] = [0.75, 0.35]
 let root: number[] = [350, 350]

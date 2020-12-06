@@ -1,5 +1,4 @@
 let dateTime = new Date()
-let month = dateTime.getMonth()
 let today: number = dateTime.getDate()
 let lastDayOfMonth: number = new Date(dateTime.getFullYear(), dateTime.getMonth() + 1, 0).getDate();
 dateTime.setDate(1)

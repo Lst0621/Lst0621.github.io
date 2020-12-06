@@ -1,5 +1,4 @@
 var dateTime = new Date();
-var month = dateTime.getMonth();
 var today = dateTime.getDate();
 var lastDayOfMonth = new Date(dateTime.getFullYear(), dateTime.getMonth() + 1, 0).getDate();
 dateTime.setDate(1);
