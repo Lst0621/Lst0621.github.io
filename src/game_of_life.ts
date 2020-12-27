@@ -3,13 +3,25 @@ let canvas: HTMLCanvasElement = document.getElementById('gol') as
 let context: CanvasRenderingContext2D = canvas.getContext("2d");
 let cells: Array<Array<number>> = []
 let len: number = 40
-let scale: number = 800 / len
+let width: number = canvas.width
+let scale: number = width / len
 let thres: number = 0.2
 let timeout: number = 100
 let to: number = 0
 
+enum StartMode {
+    Random,
+    Pulsar,
+    Gun
+}
 
-function init() {
+let start_mode: StartMode = StartMode.Random
+
+function set_start_mode(mode: StartMode) {
+    start_mode = mode
+}
+
+function clear() {
     cells = []
     for (let i: number = 0; i < len; i++) {
         cells.push(new Array<number>())
@@ -17,13 +29,70 @@ function init() {
             cells[i].push(0)
         }
     }
+}
 
+function random_start() {
     for (let i: number = 0; i < len; i++) {
         for (let j: number = 0; j < len; j++) {
             if (Math.random() < thres) {
                 cells[i][j] = 1
             }
         }
+    }
+}
+
+
+function start_with_pattern(pattern: Array<string>, offset: Array<number>) {
+    let coordinates: Array<Array<number>> = []
+    for (let i: number = 0; i < pattern.length; i++) {
+        let s: string = pattern[i]
+        for (let j: number = 0; j < s.length; j++) {
+            if (s.charAt(j) == 'O') {
+                coordinates.push([i, j])
+            }
+        }
+    }
+
+    for (let coord of coordinates) {
+        cells[coord[0] + offset[0]][coord[1] + offset[1]] = 1
+    }
+
+}
+
+function gun_start() {
+    let pattern: Array<string> = [
+        "........................O",
+        "......................O.O",
+        "............OO......OO............OO",
+        "...........O...O....OO............OO",
+        "OO........O.....O...OO",
+        "OO........O...O.OO....O.O",
+        "..........O.....O.......O",
+        "...........O...O",
+        "............OO"
+    ]
+
+    start_with_pattern(pattern, [10, 0])
+}
+
+function pulsar_start() {
+    let top_left: Array<Array<number>> = [
+        [0, 2], [0, 3], [0, 4],
+        [2, 0], [3, 0], [4, 0],
+        [5, 2], [5, 3], [5, 4],
+        [2, 5], [3, 5], [4, 5],
+    ]
+
+    let mid_point: number = len / 2
+    let offset: number = mid_point - 6
+    for (let i: number = 0; i < top_left.length; i++) {
+        let x: number = top_left[i][0] + offset
+        let y: number = top_left[i][1] + offset
+
+        cells[x][y] = 1
+        cells[2 * mid_point - x][2 * mid_point - y] = 1
+        cells[x][2 * mid_point - y] = 1
+        cells[2 * mid_point - x][y] = 1
     }
 }
 
@@ -42,7 +111,6 @@ function draw() {
             }
         }
     }
-    console.log(cnt)
 }
 
 function evolve() {
@@ -84,6 +152,21 @@ function loop() {
     draw()
     evolve()
     to = setTimeout(loop, timeout)
+}
+
+function init() {
+    clear()
+    switch (start_mode) {
+        case StartMode.Pulsar:
+            pulsar_start()
+            break
+        case StartMode.Gun:
+            gun_start()
+            break
+        case StartMode.Random:
+        default:
+            random_start()
+    }
 }
 
 function restart() {

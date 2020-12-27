@@ -11,10 +11,12 @@
 
 <body>
 <p align="center">
-<canvas id="gol" width="800" height="800"
+<canvas id="gol" width="600" height="600"
         style="border: 1px solid black;" >
-</canvas>
-    <button onclick="restart()">retry</button>
+</canvas><br>
+    <button onclick="set_start_mode(0);restart()">Random</button>
+    <button onclick="set_start_mode(1);restart()">Pulsar</button>
+    <button onclick="set_start_mode(2);restart()">Gun</button>
 </p>
 
 <script src="../src/game_of_life.js"></script>
