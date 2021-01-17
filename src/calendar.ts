@@ -36,6 +36,10 @@ for (let i = 1; i <= 7; i++) {
 
 let year: number = new Date().getFullYear()
 
+function update_year(delta : number){
+    year += delta
+}
+
 function get_image_url(year: number, month: number) {
     let dt: Date = new Date(year, month - 1, 1)
 
@@ -56,6 +60,8 @@ function update_image_by_name(image_name: string, image_url: string) {
 }
 
 function update_images() {
+    let title: HTMLHeadElement = (document.getElementById("calender_title") as HTMLHeadElement);
+    title.textContent = `Calendar ${year}`
     for (let month = 1; month <= 12; month++) {
         update_image_by_name(`calendar${month}`, get_image_url(year, month));
     }

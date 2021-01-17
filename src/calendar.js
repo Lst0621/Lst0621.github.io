@@ -31,6 +31,9 @@ for (var i = 1; i <= 7; i++) {
     }
 }
 var year = new Date().getFullYear();
+function update_year(delta) {
+    year += delta;
+}
 function get_image_url(year, month) {
     var dt = new Date(year, month - 1, 1);
     var month_str = month.toString();
@@ -46,6 +49,8 @@ function update_image_by_name(image_name, image_url) {
     image_element.src = image_url;
 }
 function update_images() {
+    var title = document.getElementById("calender_title");
+    title.textContent = "Calendar " + year;
     for (var month = 1; month <= 12; month++) {
         update_image_by_name("calendar" + month, get_image_url(year, month));
     }
