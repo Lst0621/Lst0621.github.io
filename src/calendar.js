@@ -30,3 +30,24 @@ for (var i = 1; i <= 7; i++) {
         cell.setAttribute("align", "center");
     }
 }
+var year = new Date().getFullYear();
+function get_image_url(year, month) {
+    var dt = new Date(year, month - 1, 1);
+    var month_str = month.toString();
+    if (month == 2) {
+        var lastDayOfMonth_1 = new Date(year, 2, 0).getDate();
+        month_str = "2-" + lastDayOfMonth_1;
+    }
+    var weekday = 1 + ((6 + dt.getDay()) % 7);
+    return "https://github.com/Lst0621/image/blob/master/calendar/calendar-" + month_str + "_" + weekday + ".jpg?raw=true";
+}
+function update_image_by_name(image_name, image_url) {
+    var image_element = document.getElementById(image_name);
+    image_element.src = image_url;
+}
+function update_images() {
+    for (var month = 1; month <= 12; month++) {
+        update_image_by_name("calendar" + month, get_image_url(year, month));
+    }
+}
+update_images();

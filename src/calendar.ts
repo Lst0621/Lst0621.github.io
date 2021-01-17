@@ -34,3 +34,31 @@ for (let i = 1; i <= 7; i++) {
     }
 }
 
+let year: number = new Date().getFullYear()
+
+function get_image_url(year: number, month: number) {
+    let dt: Date = new Date(year, month - 1, 1)
+
+    let month_str: string = month.toString()
+    if (month == 2) {
+        let lastDayOfMonth: number = new Date(year, 2, 0).getDate();
+        month_str = `2-${lastDayOfMonth}`
+    }
+
+    let weekday: number = 1 + ((6 + dt.getDay()) % 7)
+
+    return `https://github.com/Lst0621/image/blob/master/calendar/calendar-${month_str}_${weekday}.jpg?raw=true`
+}
+
+function update_image_by_name(image_name: string, image_url: string) {
+    let image_element: HTMLImageElement = (document.getElementById(image_name) as HTMLImageElement);
+    image_element.src = image_url;
+}
+
+function update_images() {
+    for (let month = 1; month <= 12; month++) {
+        update_image_by_name(`calendar${month}`, get_image_url(year, month));
+    }
+}
+
+update_images()
