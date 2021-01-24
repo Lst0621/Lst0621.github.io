@@ -1,38 +1,138 @@
 <head>
-    <title>Haojun Lu</title>
+    <title>Calendar</title>
     <link rel="icon" href="../img/flame1.png">
 </head>
 
-<h1 id="calender_title"; style="margin-top: 10;font-family: Courier;font-size: 18pt;font-weight:normal" align="center">
+
+<h1 style="margin-top: 10;font-size: 18pt;font-weight:normal;font-family: Courier;" align="center">
+    Edith "Ditha" Mose's Calendar
 </h1>
 
-<p align="center">
-	<button onclick="update_year(-1);update_images()">prev</button>
-	<button onclick="update_year(+1);update_images()">next</button>
-	<br>
-	<img id="calendar1" height="300px">
-	<img id="calendar2" height="300px">
-	<img id="calendar3" height="300px">
-	<img id="calendar4" height="300px">
-	<br>
-	<img id="calendar5" height="300px">
-	<img id="calendar6" height="300px">
-	<img id="calendar7" height="300px">
-	<img id="calendar8" height="300px">
-	<br>
-	<img id="calendar9" height="300px">
-	<img id="calendar10" height="300px">
-	<img id="calendar11" height="300px">
-	<img id="calendar12" height="300px">
-	<br>
-	<button onclick="update_year(-1);update_images()">prev</button>
-	<button onclick="update_year(+1);update_images()">next</button>
+
+<div class="calendar_current_month">
+    <img id="calendar0" ;>
+    <div class="calendar_table">
+        <table id="calendar_current_month_table" style="font-family: Courier";></table>
+    </div>
+</div>
+
+
+<p align="center" style="font-family: Courier;font-size: 9pt;">
+    <br>
+    <br>
+    This project is based on the 1911 calendar of Dita Moser, an Austrian Viennese Secessionist artist.
+    <br>
+    Each month is illustrated with images of the twelve main gods of Norse mythology.
+    <br>
+    <br>
 </p>
 
-<table id="demo"></table>
+<style>
+    .calendar_table {
+        display: none;
+    }
+
+    .calendar_current_month:hover .calendar_table {
+        display: block;
+        position: absolute;
+        max-width: 100%;
+        max-height: 100%;
+        top: 0;
+        left: 0;
+        overflow: auto;
+        opacity: 1;
+    }
+
+    .calendar_current_month {
+        display: block;
+        position: relative;
+        visibility: visible;
+        margin-left: auto;
+        margin-right: auto;
+        width: 30%
+    }
+
+    .calendar_current_month img {
+        max-width: 100%;
+        max-height: 100%;
+        visibility: visible;
+        opacity: 1;
+    }
+
+
+    .calendar_current_month:hover img {
+        visibility: hidden;
+        opacity: 0;
+        transition: visibility 1s linear, opacity 1s linear;
+    }
+
+    .change_year {
+        display: flex;
+        justify-content: center
+    }
+
+    .one_year_calendar {
+        background-color: black;
+        align-content: center;
+        margin: auto;
+    }
+
+    .button {
+        background: none;
+        border: none;
+        outline: none;
+        color: darkgray;
+        padding: 15px 32px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 16px;
+        margin: 12px 12px;
+        cursor: pointer;
+        font-family: Courier;
+    }
+
+</style>
+
+
+<div class="one_year_calendar">
+    <br>
+    <br>
+
+    <div class="change_year">
+        <button class="button" onclick="update_year(-1);update_images()">
+            <img src="../img/left.png" height="20px">
+        </button>
+
+        <p id="calender_title" ; style="font-family: Courier;font-size: 18pt;font-weight:normal;color:white" ;>
+        </p>
+        <button class="button" onclick="update_year(+1);update_images()">
+            <img src="../img/right.png" height="20px">
+        </button>
+    </div>
+
+    <p align="center">
+        <br><br>
+        <img id="calendar1" width="24%">
+        <img id="calendar2" width="24%">
+        <img id="calendar3" width="24%">
+        <img id="calendar4" width="24%">
+        <br>
+        <img id="calendar5" width="24%">
+        <img id="calendar6" width="24%">
+        <img id="calendar7" width="24%">
+        <img id="calendar8" width="24%">
+        <br>
+        <img id="calendar9" width="24%">
+        <img id="calendar10" width="24%">
+        <img id="calendar11" width="24%">
+        <img id="calendar12" width="24%">
+        <br>
+    </p>
+</div>
+
 <script src="../src/calendar.js"></script>
 
-
 <a href="../index.html">
-	Back
+    Back
 </a>
