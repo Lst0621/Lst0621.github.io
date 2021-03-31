@@ -28,5 +28,11 @@ function add_book_2020() {
     add_book(books_group, "From Mathematics to Generic Programming", "https://images-na.ssl-images-amazon.com/images/I/5194c6yZKcL.jpg", "978-0321942043");
     add_book(books_group, "C Programming Language", "https://images-na.ssl-images-amazon.com/images/I/411ejyE8obL.jpg", "978-0131103627");
 }
+function add_book_2021_03() {
+    var books_group = "books-2021-03";
+    add_book(books_group, "热风", "https://m.media-amazon.com/images/I/51LPAL5DpvL.jpg", "B00AA7KINW");
+    add_book(books_group, "Java Concurrency in Practice", "https://images-na.ssl-images-amazon.com/images/I/51ezEd0Lw6L.jpg", "978-0321349606");
+}
+add_book_2021_03();
 add_book_2021_01();
 add_book_2020();
