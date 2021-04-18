@@ -84,6 +84,17 @@ function add_book_2021_03(){
         "978-0321349606")
 }
 
+function add_book_2021_04() {
+    let books_group: string = "books-2021-04"
+
+    add_book(
+        books_group,
+        "The Crowd; study of the popular mind Kindle Edition",
+        "https://m.media-amazon.com/images/I/41cArCl9q2L.jpg",
+        "B004UJNFQI")
+}
+
+add_book_2021_04()
 add_book_2021_03()
 add_book_2021_01()
 add_book_2020()

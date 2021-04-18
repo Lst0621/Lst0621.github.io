@@ -33,6 +33,11 @@ function add_book_2021_03() {
     add_book(books_group, "热风", "https://m.media-amazon.com/images/I/51LPAL5DpvL.jpg", "B00AA7KINW");
     add_book(books_group, "Java Concurrency in Practice", "https://images-na.ssl-images-amazon.com/images/I/51ezEd0Lw6L.jpg", "978-0321349606");
 }
+function add_book_2021_04() {
+    var books_group = "books-2021-04";
+    add_book(books_group, "The Crowd; study of the popular mind Kindle Edition", "https://m.media-amazon.com/images/I/41cArCl9q2L.jpg", "B004UJNFQI");
+}
+add_book_2021_04();
 add_book_2021_03();
 add_book_2021_01();
 add_book_2020();
