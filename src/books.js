@@ -37,6 +37,12 @@ function add_book_2021_04() {
     var books_group = "books-2021-04";
     add_book(books_group, "The Crowd; study of the popular mind Kindle Edition", "https://m.media-amazon.com/images/I/41cArCl9q2L.jpg", "B004UJNFQI");
 }
+function add_book_2021_09() {
+    var books_group = "books-2021-09";
+    add_book(books_group, "Designing Data-Intensive Applications", "https://dataintensive.net/images/book-cover.png", "978-1449373320");
+    add_book(books_group, "不朽", "https://m.media-amazon.com/images/I/517SaCMzkDL.jpg", "B00BLYZQP8");
+}
+add_book_2021_09();
 add_book_2021_04();
 add_book_2021_03();
 add_book_2021_01();

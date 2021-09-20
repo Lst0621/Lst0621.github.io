@@ -94,6 +94,22 @@ function add_book_2021_04() {
         "B004UJNFQI")
 }
 
+function add_book_2021_09() {
+    let books_group: string = "books-2021-09"
+
+    add_book(
+        books_group,
+        "Designing Data-Intensive Applications",
+        "https://dataintensive.net/images/book-cover.png",
+        "978-1449373320")
+    add_book(
+        books_group,
+        "不朽",
+        "https://m.media-amazon.com/images/I/517SaCMzkDL.jpg",
+        "B00BLYZQP8")
+}
+
+add_book_2021_09()
 add_book_2021_04()
 add_book_2021_03()
 add_book_2021_01()
