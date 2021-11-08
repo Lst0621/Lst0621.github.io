@@ -1,4 +1,5 @@
 var canvas = document.getElementById('gol');
+var head_span = document.getElementById("head_span");
 var context = canvas.getContext("2d");
 var cells = [];
 var len = 40;
@@ -7,6 +8,8 @@ var scale = width / len;
 var thres = 0.2;
 var timeout = 100;
 var to = 0;
+var gen = 0;
+var live_cell = 0;
 var StartMode;
 (function (StartMode) {
     StartMode[StartMode["Random"] = 0] = "Random";
@@ -18,6 +21,7 @@ function set_start_mode(mode) {
     start_mode = mode;
 }
 function clear() {
+    gen = 0;
     cells = [];
     for (var i = 0; i < len; i++) {
         cells.push(new Array());
@@ -88,18 +92,20 @@ function draw() {
     for (var i = 0; i < len; i++) {
         for (var j = 0; j < len; j++) {
             if (cells[i][j] == 1) {
-                context.fillStyle = 'red';
-                context.fillRect(i * scale, j * scale, scale - 1, scale - 1);
+                context.fillStyle = '#FC9F4D';
+                context.fillRect(i * scale, j * scale, scale, scale);
                 cnt++;
             }
             else {
-                //context.fillStyle = 'white'
-                //context.fillRect(i * scale, j * scale, scale - 1, scale - 1);
+                context.fillStyle = '#FFBA84';
+                context.fillRect(i * scale, j * scale, scale, scale);
             }
         }
     }
+    live_cell = cnt;
 }
 function evolve() {
+    gen += 1;
     var next_cells = [];
     for (var i = 0; i < len; i++) {
         next_cells.push(new Array());
@@ -133,6 +139,7 @@ function evolve() {
 }
 function loop() {
     draw();
+    head_span.innerText = "Game of Life\ngen: " + gen + " cell: " + live_cell;
     evolve();
     to = setTimeout(loop, timeout);
 }

@@ -1,5 +1,6 @@
 let canvas: HTMLCanvasElement = document.getElementById('gol') as
     HTMLCanvasElement;
+let head_span: HTMLSpanElement =  document.getElementById("head_span") as HTMLSpanElement
 let context: CanvasRenderingContext2D = canvas.getContext("2d");
 let cells: Array<Array<number>> = []
 let len: number = 40
@@ -8,6 +9,8 @@ let scale: number = width / len
 let thres: number = 0.2
 let timeout: number = 100
 let to: number = 0
+let gen: number = 0
+let live_cell: number = 0
 
 enum StartMode {
     Random,
@@ -22,6 +25,7 @@ function set_start_mode(mode: StartMode) {
 }
 
 function clear() {
+    gen = 0
     cells = []
     for (let i: number = 0; i < len; i++) {
         cells.push(new Array<number>())
@@ -102,18 +106,20 @@ function draw() {
     for (let i: number = 0; i < len; i++) {
         for (let j: number = 0; j < len; j++) {
             if (cells[i][j] == 1) {
-                context.fillStyle = 'red';
-                context.fillRect(i * scale, j * scale, scale - 1, scale - 1);
+                context.fillStyle = '#FC9F4D';
+                context.fillRect(i * scale, j * scale, scale, scale);
                 cnt++
             } else {
-                //context.fillStyle = 'white'
-                //context.fillRect(i * scale, j * scale, scale - 1, scale - 1);
+                context.fillStyle = '#FFBA84'
+                context.fillRect(i * scale, j * scale, scale, scale );
             }
         }
     }
+    live_cell = cnt
 }
 
 function evolve() {
+    gen += 1
     let next_cells: Array<Array<number>> = []
     for (let i: number = 0; i < len; i++) {
         next_cells.push(new Array<number>())
@@ -150,6 +156,7 @@ function evolve() {
 
 function loop() {
     draw()
+    head_span.innerText = "Game of Life\ngen: " + gen + " cell: " + live_cell
     evolve()
     to = setTimeout(loop, timeout)
 }
