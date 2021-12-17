@@ -11,6 +11,7 @@ let timeout: number = 100
 let to: number = 0
 let gen: number = 0
 let live_cell: number = 0
+let void_cell: number = 0
 
 enum StartMode {
     Random,
@@ -118,20 +119,24 @@ function pulsar_start() {
 
 function draw() {
     context.clearRect(0, 0, canvas.width, canvas.height);
-    let cnt: number = 0
+    let live_cnt: number = 0
+    let void_cnt: number = 0
     for (let i: number = 0; i < len; i++) {
         for (let j: number = 0; j < len; j++) {
             if (cells[i][j] == 1) {
                 context.fillStyle = '#FC9F4D';
                 context.fillRect(i * scale, j * scale, scale, scale);
-                cnt++
+                live_cnt++
             } else {
                 context.fillStyle = '#FFBA84'
                 context.fillRect(i * scale, j * scale, scale, scale );
+                void_cnt++
             }
         }
     }
-    live_cell = cnt
+
+    live_cell = live_cnt
+    void_cell = void_cnt
 }
 
 function evolve() {
@@ -179,7 +184,7 @@ function evolve() {
 
 function loop() {
     draw()
-    head_span.innerText = "Game of Life\ngen: " + gen + " cell: " + live_cell
+    head_span.innerText = "Game of Life\ngen: " + gen + " active: " + live_cell + " void: " + void_cell
     evolve()
     to = setTimeout(loop, timeout)
 }

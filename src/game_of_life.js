@@ -10,6 +10,7 @@ var timeout = 100;
 var to = 0;
 var gen = 0;
 var live_cell = 0;
+var void_cell = 0;
 var StartMode;
 (function (StartMode) {
     StartMode[StartMode["Random"] = 0] = "Random";
@@ -102,21 +103,24 @@ function pulsar_start() {
 }
 function draw() {
     context.clearRect(0, 0, canvas.width, canvas.height);
-    var cnt = 0;
+    var live_cnt = 0;
+    var void_cnt = 0;
     for (var i = 0; i < len; i++) {
         for (var j = 0; j < len; j++) {
             if (cells[i][j] == 1) {
                 context.fillStyle = '#FC9F4D';
                 context.fillRect(i * scale, j * scale, scale, scale);
-                cnt++;
+                live_cnt++;
             }
             else {
                 context.fillStyle = '#FFBA84';
                 context.fillRect(i * scale, j * scale, scale, scale);
+                void_cnt++;
             }
         }
     }
-    live_cell = cnt;
+    live_cell = live_cnt;
+    void_cell = void_cnt;
 }
 function evolve() {
     gen += 1;
@@ -159,7 +163,7 @@ function evolve() {
 }
 function loop() {
     draw();
-    head_span.innerText = "Game of Life\ngen: " + gen + " cell: " + live_cell;
+    head_span.innerText = "Game of Life\ngen: " + gen + " active: " + live_cell + " void: " + void_cell;
     evolve();
     to = setTimeout(loop, timeout);
 }
