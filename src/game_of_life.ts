@@ -24,6 +24,22 @@ function set_start_mode(mode: StartMode) {
     start_mode = mode
 }
 
+let mouse_x: number = 0
+let mouse_y: number = 0
+let mouse_on_canvs: boolean = false
+
+canvas.addEventListener('mousemove', e => {
+    mouse_x = e.offsetX
+    mouse_y = e.offsetY
+    console.log(mouse_x, mouse_y)
+})
+canvas.addEventListener('mouseleave', e => {
+    mouse_on_canvs = false
+})
+canvas.addEventListener('mouseenter', e => {
+    mouse_on_canvs = true
+})
+
 function clear() {
     gen = 0
     cells = []
@@ -128,8 +144,15 @@ function evolve() {
         }
     }
 
+    let mouse_grid_x: number = Math.floor(mouse_x/scale)
+    let mouse_grid_y: number = Math.floor(mouse_y/scale)
     for (let i: number = 0; i < len; i++) {
         for (let j: number = 0; j < len; j++) {
+            if (mouse_on_canvs && i == mouse_grid_x && j == mouse_grid_y) {
+                next_cells[i][j] = 1
+                continue
+            }
+
             let sum: number = 0
             for (let dx of [-1, 0, 1]) {
                 for (let dy of [-1, 0, 1]) {

@@ -20,6 +20,20 @@ var start_mode = StartMode.Random;
 function set_start_mode(mode) {
     start_mode = mode;
 }
+var mouse_x = 0;
+var mouse_y = 0;
+var mouse_on_canvs = false;
+canvas.addEventListener('mousemove', function (e) {
+    mouse_x = e.offsetX;
+    mouse_y = e.offsetY;
+    console.log(mouse_x, mouse_y);
+});
+canvas.addEventListener('mouseleave', function (e) {
+    mouse_on_canvs = false;
+});
+canvas.addEventListener('mouseenter', function (e) {
+    mouse_on_canvs = true;
+});
 function clear() {
     gen = 0;
     cells = [];
@@ -113,8 +127,14 @@ function evolve() {
             next_cells[i].push(0);
         }
     }
+    var mouse_grid_x = Math.floor(mouse_x / scale);
+    var mouse_grid_y = Math.floor(mouse_y / scale);
     for (var i = 0; i < len; i++) {
         for (var j = 0; j < len; j++) {
+            if (mouse_on_canvs && i == mouse_grid_x && j == mouse_grid_y) {
+                next_cells[i][j] = 1;
+                continue;
+            }
             var sum = 0;
             for (var _i = 0, _a = [-1, 0, 1]; _i < _a.length; _i++) {
                 var dx = _a[_i];
