@@ -1,6 +1,7 @@
 var canvas = document.getElementById('gol');
 var head_span = document.getElementById("head_span");
 var context = canvas.getContext("2d");
+var activate_check = document.getElementById("activate");
 var cells = [];
 var len = 40;
 var width = canvas.width;
@@ -27,7 +28,7 @@ var mouse_on_canvs = false;
 canvas.addEventListener('mousemove', function (e) {
     mouse_x = e.offsetX;
     mouse_y = e.offsetY;
-    console.log(mouse_x, mouse_y);
+    // console.log(mouse_x, mouse_y)
 });
 canvas.addEventListener('mouseleave', function (e) {
     mouse_on_canvs = false;
@@ -133,9 +134,10 @@ function evolve() {
     }
     var mouse_grid_x = Math.floor(mouse_x / scale);
     var mouse_grid_y = Math.floor(mouse_y / scale);
+    var activate_checked = activate_check.checked;
     for (var i = 0; i < len; i++) {
         for (var j = 0; j < len; j++) {
-            if (mouse_on_canvs && i == mouse_grid_x && j == mouse_grid_y) {
+            if (activate_checked && mouse_on_canvs && i == mouse_grid_x && j == mouse_grid_y) {
                 next_cells[i][j] = 1;
                 continue;
             }

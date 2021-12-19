@@ -19,12 +19,17 @@
 
 <body>
 <p align="center">
-<canvas id="gol" width="600" height="600"
-        style="border: 1px solid black;" >
-</canvas><br>
+    <canvas id="gol" width="600" height="600"
+            style="border: 1px solid black;">
+    </canvas>
+    <br>
     <button onclick="set_start_mode(0);restart()">Random</button>
     <button onclick="set_start_mode(1);restart()">Pulsar</button>
     <button onclick="set_start_mode(2);restart()">Gun</button>
+    <br>
+    <input type="checkbox" id="activate">
+    <label for="activate">Allow the mouse to activate cells it points to</label>
+    <br>
 </p>
 
 <script src="../src/game_of_life.js"></script>

@@ -1,7 +1,8 @@
 let canvas: HTMLCanvasElement = document.getElementById('gol') as
     HTMLCanvasElement;
-let head_span: HTMLSpanElement =  document.getElementById("head_span") as HTMLSpanElement
+let head_span: HTMLSpanElement = document.getElementById("head_span") as HTMLSpanElement
 let context: CanvasRenderingContext2D = canvas.getContext("2d");
+let activate_check: HTMLInputElement = <HTMLInputElement>document.getElementById("activate");
 let cells: Array<Array<number>> = []
 let len: number = 40
 let width: number = canvas.width
@@ -32,7 +33,7 @@ let mouse_on_canvs: boolean = false
 canvas.addEventListener('mousemove', e => {
     mouse_x = e.offsetX
     mouse_y = e.offsetY
-    console.log(mouse_x, mouse_y)
+    // console.log(mouse_x, mouse_y)
 })
 canvas.addEventListener('mouseleave', e => {
     mouse_on_canvs = false
@@ -151,9 +152,10 @@ function evolve() {
 
     let mouse_grid_x: number = Math.floor(mouse_x/scale)
     let mouse_grid_y: number = Math.floor(mouse_y/scale)
+    let activate_checked: boolean = activate_check.checked
     for (let i: number = 0; i < len; i++) {
         for (let j: number = 0; j < len; j++) {
-            if (mouse_on_canvs && i == mouse_grid_x && j == mouse_grid_y) {
+            if (activate_checked && mouse_on_canvs && i == mouse_grid_x && j == mouse_grid_y) {
                 next_cells[i][j] = 1
                 continue
             }
