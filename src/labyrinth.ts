@@ -14,11 +14,18 @@ let grid_y: number = -1
 
 function init() {
     context.fillStyle = bg;
-    cells = []
+    let new_cells: Array<Array<number>> = []
     for (let i: number = 0; i < len; i++) {
-        cells.push(new Array<number>())
+        new_cells.push(new Array<number>())
         for (let j: number = 0; j < len; j++) {
-            cells[i].push(1)
+            new_cells[i].push(1)
+        }
+    }
+
+    cells = new_cells
+
+    for (let i: number = 0; i < len; i++) {
+        for (let j: number = 0; j < len; j++) {
             draw_diagonal(i, j)
         }
     }
@@ -67,6 +74,12 @@ canvas.addEventListener('mousemove', e => {
         }
     }
 )
+
+canvas.addEventListener('mousedown', e => {
+    if (e.button == 0) {
+        init()
+    }
+})
 
 canvas.addEventListener('mouseleave', e => {
     grid_x = -1

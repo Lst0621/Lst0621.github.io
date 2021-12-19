@@ -11,11 +11,16 @@ var grid_x = -1;
 var grid_y = -1;
 function init() {
     context.fillStyle = bg;
-    cells = [];
+    var new_cells = [];
     for (var i = 0; i < len; i++) {
-        cells.push(new Array());
+        new_cells.push(new Array());
         for (var j = 0; j < len; j++) {
-            cells[i].push(1);
+            new_cells[i].push(1);
+        }
+    }
+    cells = new_cells;
+    for (var i = 0; i < len; i++) {
+        for (var j = 0; j < len; j++) {
             draw_diagonal(i, j);
         }
     }
@@ -59,6 +64,11 @@ canvas.addEventListener('mousemove', function (e) {
                 draw_diagonal(grid_x + dx, grid_y + dy);
             }
         }
+    }
+});
+canvas.addEventListener('mousedown', function (e) {
+    if (e.button == 0) {
+        init();
     }
 });
 canvas.addEventListener('mouseleave', function (e) {
