@@ -1,30 +1,48 @@
 var canvas = document.getElementById('lab');
 var context = canvas.getContext("2d");
 var cells = [];
-var len = 20;
+var len = 16;
 var width = canvas.width;
 var scale = width / len;
+var bg = '#77428D';
+var fg = '#E03C8A';
+var mouse_on_canvas = false;
+var grid_x = -1;
+var grid_y = -1;
 function init() {
+    context.fillStyle = bg;
     cells = [];
     for (var i = 0; i < len; i++) {
         cells.push(new Array());
         for (var j = 0; j < len; j++) {
-            cells[i].push(0);
+            cells[i].push(1);
+            draw_diagonal(i, j);
         }
     }
 }
-init();
-for (var i = 0; i < len; i++) {
-    for (var j = 0; j < len; j++) {
-        context.beginPath();
-        context.moveTo(i * scale, j * scale);
-        context.lineTo(i * scale + scale - 1, j * scale + scale - 1);
-        context.stroke();
-    }
+function coor_legal(x) {
+    return (x >= 0 && x < len);
 }
-var mouse_on_canvs = false;
-var grid_x = 0;
-var grid_y = 0;
+function draw_diagonal(x, y) {
+    if (!coor_legal(x) || !coor_legal(y)) {
+        return;
+    }
+    context.fillStyle = bg;
+    context.fillRect(x * scale, y * scale, scale, scale);
+    context.beginPath();
+    if (cells[x][y]) {
+        context.moveTo(x * scale, y * scale);
+        context.lineTo(x * scale + scale, y * scale + scale);
+    }
+    else {
+        context.moveTo(x * scale + scale, y * scale);
+        context.lineTo(x * scale, y * scale + scale);
+    }
+    context.strokeStyle = fg;
+    context.stroke();
+}
+init();
+var diffs = [-1, 0, 1];
 canvas.addEventListener('mousemove', function (e) {
     var mouse_x = e.offsetX;
     var mouse_y = e.offsetY;
@@ -34,25 +52,20 @@ canvas.addEventListener('mousemove', function (e) {
         grid_x = new_grid_x;
         grid_y = new_grid_y;
         cells[grid_x][grid_y] = 1 - cells[grid_x][grid_y];
-        context.fillStyle = '#ffffff';
-        context.fillRect(grid_x * scale, grid_y * scale, scale, scale);
-        context.beginPath();
-        if (cells[grid_x][grid_y] == 1) {
-            context.moveTo(grid_x * scale + scale - 1, grid_y * scale);
-            context.lineTo(grid_x * scale, grid_y * scale + scale - 1);
+        for (var _i = 0, diffs_1 = diffs; _i < diffs_1.length; _i++) {
+            var dx = diffs_1[_i];
+            for (var _a = 0, diffs_2 = diffs; _a < diffs_2.length; _a++) {
+                var dy = diffs_2[_a];
+                draw_diagonal(grid_x + dx, grid_y + dy);
+            }
         }
-        else {
-            context.moveTo(grid_x * scale, grid_y * scale);
-            context.lineTo(grid_x * scale + scale - 1, grid_y * scale + scale - 1);
-        }
-        context.strokeStyle = '#000000';
-        context.stroke();
     }
 });
 canvas.addEventListener('mouseleave', function (e) {
     grid_x = -1;
     grid_y = -1;
+    mouse_on_canvas = false;
 });
 canvas.addEventListener('mouseenter', function (e) {
-    mouse_on_canvs = true;
+    mouse_on_canvas = true;
 });
