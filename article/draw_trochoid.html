@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Trochoid</title>
+    <link rel="icon" href="../img/flame1.png">
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-9BLVHLETMC"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-9BLVHLETMC');
+    </script>
+</head>
+
+<h1 style="margin-top: 10;" align="center">
+		<span id="head_span" style="font-size: 24pt">
+            Trochoid
+		</span><br>
+</h1>
+
+<body>
+<p align="center">
+    <canvas id="canvas1" width="600" height="600"
+            style="border: 1px solid black;">
+    </canvas>
+    <br>
+    <br>
+    <label for="r_R_ratio_a">r/R numerator</label>
+    <input type="number" id="r_R_ratio_a" name="r_R_ratio_a" >
+    <label for="r_R_ratio_b">r/R denominator</label>
+    <input type="number" id="r_R_ratio_b" name="r_R_ratio_b" >
+    <label for="d_R_ratio">d_R_ratio</label>
+    <input type=number step="0.01" id="d_R_ratio" name="d_R_ratio" >
+    <br>
+    <button onclick="update()">Update</button>
+</p>
+
+<script src="../src/draw_trochoid.js"></script>
+
+
+
+</body>
+</html>
