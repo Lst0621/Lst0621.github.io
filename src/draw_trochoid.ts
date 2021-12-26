@@ -47,7 +47,8 @@ function get_dp(R: number, r: number, d: number, delta: number, round: number, c
 }
 
 function draw(R: number, r_R_ratio_a: number, r_R_ratio_b: number, d_R_ratio: number, delta: number) {
-    context.clearRect(0, 0, canvas.width, canvas.height);
+    context.fillStyle = "#000000";
+    context.fillRect(0, 0, canvas.width, canvas.height);
     console.log("draw ", R, r_R_ratio_a, r_R_ratio_b, d_R_ratio)
     let r_R_ratio: number = r_R_ratio_a / r_R_ratio_b
     let round: number = r_R_ratio_b / gcd(r_R_ratio_a, r_R_ratio_b)
@@ -62,6 +63,7 @@ function draw(R: number, r_R_ratio_a: number, r_R_ratio_b: number, d_R_ratio: nu
         let y_start: number = cords[1][i]
         let x_end: number = cords[0][i + 1]
         let y_end: number = cords[1][i + 1]
+        context.strokeStyle = "#856f45"
         context.beginPath();
         context.moveTo(half_width + x_start, half_width + y_start);
         context.lineTo(half_width + x_end, half_width + y_end);

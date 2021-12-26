@@ -37,7 +37,8 @@ function get_dp(R, r, d, delta, round, count) {
     return coordinates;
 }
 function draw(R, r_R_ratio_a, r_R_ratio_b, d_R_ratio, delta) {
-    context.clearRect(0, 0, canvas.width, canvas.height);
+    context.fillStyle = "#000000";
+    context.fillRect(0, 0, canvas.width, canvas.height);
     console.log("draw ", R, r_R_ratio_a, r_R_ratio_b, d_R_ratio);
     var r_R_ratio = r_R_ratio_a / r_R_ratio_b;
     var round = r_R_ratio_b / gcd(r_R_ratio_a, r_R_ratio_b);
@@ -52,6 +53,7 @@ function draw(R, r_R_ratio_a, r_R_ratio_b, d_R_ratio, delta) {
         var y_start = cords[1][i];
         var x_end = cords[0][i + 1];
         var y_end = cords[1][i + 1];
+        context.strokeStyle = "#856f45";
         context.beginPath();
         context.moveTo(half_width + x_start, half_width + y_start);
         context.lineTo(half_width + x_end, half_width + y_end);
