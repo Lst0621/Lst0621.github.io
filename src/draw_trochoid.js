@@ -1,6 +1,7 @@
 var canvas = document.getElementById('canvas1');
 var context = canvas.getContext("2d");
 var clear_prev = document.getElementById("clear_prev");
+var count_per_round = get_int("count_per_round");
 var width = canvas.width;
 var half_width = width / 2;
 function gcd(a, b) {
@@ -51,7 +52,6 @@ function draw(R, r_R_ratio_a, r_R_ratio_b, d_R_ratio, delta) {
     console.log("round " + round);
     var r = R * r_R_ratio;
     var d = R * d_R_ratio;
-    var count_per_round = 100;
     var total_count = count_per_round * round;
     var cords = get_dp(R, r, d, delta, round, total_count);
     for (var i = 0; i + 1 < total_count; i++) {
@@ -77,8 +77,10 @@ function update() {
     var r_R_ratio_a = get_int("r_R_ratio_a");
     var r_R_ratio_b = get_int("r_R_ratio_b");
     var d_R_ratio = get_float("d_R_ratio");
-    draw(R, r_R_ratio_a, r_R_ratio_b, d_R_ratio, 0);
+    var rotate = get_float("rotate");
+    count_per_round = get_int("count_per_round");
+    draw(R, r_R_ratio_a, r_R_ratio_b, d_R_ratio, rotate / 360 * 2 * Math.PI);
 }
 context.fillStyle = "#000000";
 context.fillRect(0, 0, canvas.width, canvas.height);
-draw(100, 32, 100, 1, 0);
+update();

@@ -2,6 +2,7 @@ let canvas: HTMLCanvasElement = document.getElementById('canvas1') as
     HTMLCanvasElement;
 let context: CanvasRenderingContext2D = canvas.getContext("2d");
 let clear_prev: HTMLInputElement = <HTMLInputElement>document.getElementById("clear_prev");
+let count_per_round: number = get_int("count_per_round")
 
 let width: number = canvas.width
 let half_width: number = width / 2
@@ -60,7 +61,6 @@ function draw(R: number, r_R_ratio_a: number, r_R_ratio_b: number, d_R_ratio: nu
     console.log("round " + round)
     let r: number = R * r_R_ratio
     let d: number = R * d_R_ratio
-    let count_per_round: number = 100
     let total_count: number = count_per_round * round
     let cords: Array<Array<number>> = get_dp(R, r, d, delta, round, total_count)
     for (let i = 0; i + 1 < total_count; i++) {
@@ -89,10 +89,12 @@ function update() {
     let r_R_ratio_a: number = get_int("r_R_ratio_a")
     let r_R_ratio_b: number = get_int("r_R_ratio_b")
     let d_R_ratio: number = get_float("d_R_ratio")
-    draw(R, r_R_ratio_a, r_R_ratio_b, d_R_ratio, 0)
+    let rotate: number = get_float("rotate")
+    count_per_round = get_int("count_per_round")
+    draw(R, r_R_ratio_a, r_R_ratio_b, d_R_ratio, rotate / 360 * 2 * Math.PI)
 }
-
 
 context.fillStyle = "#000000";
 context.fillRect(0, 0, canvas.width, canvas.height);
-draw(100, 32, 100, 1, 0)
+
+update()
