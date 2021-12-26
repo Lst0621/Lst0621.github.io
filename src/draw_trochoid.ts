@@ -1,6 +1,7 @@
 let canvas: HTMLCanvasElement = document.getElementById('canvas1') as
     HTMLCanvasElement;
 let context: CanvasRenderingContext2D = canvas.getContext("2d");
+let clear_prev: HTMLInputElement = <HTMLInputElement>document.getElementById("clear_prev");
 
 let width: number = canvas.width
 let half_width: number = width / 2
@@ -47,9 +48,13 @@ function get_dp(R: number, r: number, d: number, delta: number, round: number, c
 }
 
 function draw(R: number, r_R_ratio_a: number, r_R_ratio_b: number, d_R_ratio: number, delta: number) {
-    context.fillStyle = "#000000";
-    context.fillRect(0, 0, canvas.width, canvas.height);
     console.log("draw ", R, r_R_ratio_a, r_R_ratio_b, d_R_ratio)
+    if (clear_prev.checked) {
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        console.log("clear")
+    } else {
+        console.log("keep previously drawn")
+    }
     let r_R_ratio: number = r_R_ratio_a / r_R_ratio_b
     let round: number = r_R_ratio_b / gcd(r_R_ratio_a, r_R_ratio_b)
     console.log("round " + round)
@@ -88,4 +93,6 @@ function update() {
 }
 
 
+context.fillStyle = "#000000";
+context.fillRect(0, 0, canvas.width, canvas.height);
 draw(100, 32, 100, 1, 0)

@@ -1,5 +1,6 @@
 var canvas = document.getElementById('canvas1');
 var context = canvas.getContext("2d");
+var clear_prev = document.getElementById("clear_prev");
 var width = canvas.width;
 var half_width = width / 2;
 function gcd(a, b) {
@@ -37,9 +38,14 @@ function get_dp(R, r, d, delta, round, count) {
     return coordinates;
 }
 function draw(R, r_R_ratio_a, r_R_ratio_b, d_R_ratio, delta) {
-    context.fillStyle = "#000000";
-    context.fillRect(0, 0, canvas.width, canvas.height);
     console.log("draw ", R, r_R_ratio_a, r_R_ratio_b, d_R_ratio);
+    if (clear_prev.checked) {
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        console.log("clear");
+    }
+    else {
+        console.log("keep previously drawn");
+    }
     var r_R_ratio = r_R_ratio_a / r_R_ratio_b;
     var round = r_R_ratio_b / gcd(r_R_ratio_a, r_R_ratio_b);
     console.log("round " + round);
@@ -73,4 +79,6 @@ function update() {
     var d_R_ratio = get_float("d_R_ratio");
     draw(R, r_R_ratio_a, r_R_ratio_b, d_R_ratio, 0);
 }
+context.fillStyle = "#000000";
+context.fillRect(0, 0, canvas.width, canvas.height);
 draw(100, 32, 100, 1, 0);
