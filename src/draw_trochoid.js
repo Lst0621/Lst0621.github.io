@@ -1,6 +1,9 @@
 var canvas = document.getElementById('canvas1');
 var context = canvas.getContext("2d");
-var clear_prev = document.getElementById("clear_prev");
+var clear_prev_element = document.getElementById("clear_prev");
+var animation_element = document.getElementById("animation");
+var animation = animation_element.checked;
+var clear_prev = clear_prev_element.checked;
 var count_per_round = get_int("count_per_round");
 var width = canvas.width;
 var half_width = width / 2;
@@ -111,14 +114,17 @@ function read_paras() {
     d_R_ratio = get_float("d_R_ratio");
     rotate = get_float("rotate");
     count_per_round = get_int("count_per_round");
+    animation = animation_element.checked;
+    clear_prev = clear_prev_element.checked;
 }
 function draw_once(theta) {
-    if (clear_prev.checked) {
+    var animation_enabled = clear_prev && animation;
+    if (animation_enabled) {
         clear_canvas();
         draw_animation(theta, rotate);
     }
     draw(R, r_R_ratio_a, r_R_ratio_b, d_R_ratio, rotate);
-    if (clear_prev.checked) {
+    if (animation_enabled) {
         var factor_1 = 20;
         call_back_id = setTimeout(function () {
             draw_once(theta + 2 * Math.PI / factor_1);
@@ -128,7 +134,7 @@ function draw_once(theta) {
 function update() {
     clearTimeout(call_back_id);
     read_paras();
-    if (clear_prev.checked) {
+    if (clear_prev) {
         console.log("clear");
         clear_canvas();
     }

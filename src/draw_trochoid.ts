@@ -1,7 +1,10 @@
 let canvas: HTMLCanvasElement = document.getElementById('canvas1') as
     HTMLCanvasElement;
 let context: CanvasRenderingContext2D = canvas.getContext("2d");
-let clear_prev: HTMLInputElement = <HTMLInputElement>document.getElementById("clear_prev");
+let clear_prev_element: HTMLInputElement = <HTMLInputElement>document.getElementById("clear_prev");
+let animation_element: HTMLInputElement = <HTMLInputElement>document.getElementById("animation");
+let animation: boolean = animation_element.checked
+let clear_prev: boolean = clear_prev_element.checked
 let count_per_round: number = get_int("count_per_round")
 
 let width: number = canvas.width
@@ -134,15 +137,18 @@ function read_paras() {
     d_R_ratio = get_float("d_R_ratio")
     rotate = get_float("rotate")
     count_per_round = get_int("count_per_round")
+    animation = animation_element.checked
+    clear_prev = clear_prev_element.checked
 }
 
 function draw_once(theta: number) {
-    if (clear_prev.checked) {
+    let animation_enabled: boolean = clear_prev && animation
+    if (animation_enabled) {
         clear_canvas()
         draw_animation(theta, rotate)
     }
     draw(R, r_R_ratio_a, r_R_ratio_b, d_R_ratio, rotate)
-    if (clear_prev.checked) {
+    if (animation_enabled) {
         let factor: number = 20
         call_back_id = setTimeout(function () {
             draw_once(theta + 2 * Math.PI / factor)
@@ -153,7 +159,7 @@ function draw_once(theta: number) {
 function update() {
     clearTimeout(call_back_id)
     read_paras()
-    if (clear_prev.checked) {
+    if (clear_prev) {
         console.log("clear")
         clear_canvas()
     } else {
