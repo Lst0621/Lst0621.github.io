@@ -51,7 +51,16 @@ function get_y(R: number, r: number, d: number, theta: number, delta: number) {
     return get_moving_circle_center_y(R, r, theta, delta) - d * Math.sin((R - r) / r * theta + delta)
 }
 
+let dp_map: { [key: string]: Array<Array<number>>; } = {}
+
 function get_dp(R: number, r: number, d: number, delta: number, round: number, count: number) {
+    let key: string = R.toString() + " " + r.toString() + " " + d.toString() +
+        " " + delta.toString() + " " + round.toString() + " " + count.toString()
+
+    if (key in dp_map) {
+        return dp_map[key]
+    }
+
     let dp_x: Array<number> = []
     let dp_y: Array<number> = []
     for (let i = 0; i < count; i++) {
@@ -59,9 +68,11 @@ function get_dp(R: number, r: number, d: number, delta: number, round: number, c
         dp_x.push(get_x(R, r, d, theta, delta))
         dp_y.push(get_y(R, r, d, theta, delta))
     }
+
     let coordinates: Array<Array<number>> = []
     coordinates.push(dp_x)
     coordinates.push(dp_y)
+    dp_map[key] = coordinates
     return coordinates
 }
 

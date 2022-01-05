@@ -39,7 +39,13 @@ function get_x(R, r, d, theta, delta) {
 function get_y(R, r, d, theta, delta) {
     return get_moving_circle_center_y(R, r, theta, delta) - d * Math.sin((R - r) / r * theta + delta);
 }
+var dp_map = {};
 function get_dp(R, r, d, delta, round, count) {
+    var key = R.toString() + " " + r.toString() + " " + d.toString() +
+        " " + delta.toString() + " " + round.toString() + " " + count.toString();
+    if (key in dp_map) {
+        return dp_map[key];
+    }
     var dp_x = [];
     var dp_y = [];
     for (var i = 0; i < count; i++) {
@@ -50,6 +56,7 @@ function get_dp(R, r, d, delta, round, count) {
     var coordinates = [];
     coordinates.push(dp_x);
     coordinates.push(dp_y);
+    dp_map[key] = coordinates;
     return coordinates;
 }
 function clear_canvas() {
