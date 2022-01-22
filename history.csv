@@ -19,7 +19,7 @@ img/flame1.png,2018-02-23
 img/flame2.png,2018-02-21
 img/left.png,2021-01-23
 img/right.png,2021-01-23
-index.html,2022-01-08
+index.html,2022-01-22
 src/books.js,2021-09-19
 src/books.ts,2021-09-19
 src/calendar.js,2021-01-23
@@ -32,6 +32,8 @@ src/game_of_life.js,2021-12-18
 src/game_of_life.ts,2021-12-18
 src/labyrinth.js,2021-12-18
 src/labyrinth.ts,2021-12-18
+src/last_modify.js,2022-01-22
+src/last_modify.ts,2022-01-22
 src/recursive_page.js,2021-12-24
 src/recursive_page.ts,2021-12-24
 src/tree.js,2020-12-05
