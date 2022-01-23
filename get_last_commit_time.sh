@@ -2,23 +2,32 @@
 
 echo "Getting last commit time of files tracked by git..."
 
-git checkout history
-git merge master --no-edit
+my_path=$(realpath "$0")
+my_dir=$(dirname "$my_path")
+workspace=$(dirname "$my_dir")
+history_repo=$workspace/website_history
 
-history_file="history.csv"
-rm -f "$history_file"
+history_file="history.csv.tmp"
+history_file_target="$history_repo"/history.csv
+
 git_files=$(git ls-tree -r master --name-only)
+
+set -x
+rm -f "$history_file"
+set +x
 for fn in $git_files
 do
     echo -n "$fn," >> $history_file
     git log -1 --format=%cs "$fn" >> $history_file
 done
 
-cat $history_file
+set -x
+mv $history_file "$history_file_target"
 
-git add $history_file
+cd "$history_repo" || return
+git status
+git --no-pager diff "$history_file_target"
+
+git add "$history_file_target"
 # this has no effect if nothing changed
 git commit -m "update history"
-
-git checkout master
-

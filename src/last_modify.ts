@@ -50,7 +50,7 @@ function get_last_modify(filenames: Array<string>, para_id: string) {
         fetch_last_modify_and_update_text(this.responseText, filenames, para_id)
     });
     let HISTORY_FILE_URL: string =
-        "https://raw.githubusercontent.com/Lst0621/Lst0621.github.io/history/history.csv"
+        "https://raw.githubusercontent.com/Lst0621/website_history/main/history.csv"
     req.open("GET", HISTORY_FILE_URL);
     req.send();
 }
