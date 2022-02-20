@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="viewport" content="width=device-width"/>
+    <meta charset="UTF-8">
+    <title>Leet 2183</title>
+    <link rel="icon" href="../../img/flame1.png">
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-9BLVHLETMC"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+
+        function gtag() {
+            dataLayer.push(arguments);
+        }
+
+        gtag('js', new Date());
+        gtag('config', 'G-9BLVHLETMC');
+    </script>
+
+    <style>
+        code { white-space: pre }
+    </style>
+</head>
+<body>
+<h1>LeetCode 2183 Count Array Pairs Divisible by K</h1>
+
+<h2>Problem</h2>
+Given a 0-indexed integer array nums of length n and an integer k, return the number of pairs (i, j) such that: <br>
+
+0 <= i < j <= n - 1 and <br>
+nums[i] * nums[j] is divisible by k. <br>
+<a href="https://leetcode.com/problems/count-array-pairs-divisible-by-k">Link</a>
+
+
+<h2>Thought Process</h2>
+For this question, what we actually care about is the remainder of numbers in nums divided by k rather than numbers themselves. This is because
+<br>
+Let
+<code>
+    num1 = a * k + b, 0 <= b < k
+    num2 = c * k + d, 0 <= d < k
+</code>
+Then
+<code>
+    num1 * num2 = (a * c) * (k * k) + (a * d + b * c) * k + b * d
+    num1 * num2 % k = b * d % k = (num1 % k) * (num2 % k) % k
+</code>
+<br>
+As a result, we should get the remainder for every number in the array, and get the frequency for each remainder.<br>
+<code>
+    unordered_map &lt;long long, long long> res_cnt;
+    for (int num : nums) {
+        res_cnt[num % k]++;
+    }
+</code>
+
+<br>
+After that, a brutal force solution will be iterating through all the remainder values in two for loops, check whether the product of remainders is a multiple of k. if so, we multiply the frequencies for these two remainders and add it to final results. We only add when remainder in inner loop is greater than or equal to remainder in outer loop for deduplication and if remainders are same, we will use <code>count * (count - 1) / 2</code> instead of <code>count * count</code>, because we are choosing two elements from same set rather than choosing one element from each set.<br>
+
+<code>
+    long long ret = 0;
+    for (auto const [num1, count1] : res_cnt) {
+        for (auto const [num2, count2] : res_cnt) {
+            if (num1 < num2) {
+                continue;
+            }
+            if (num1 * num2 % k != 0) {
+                continue;
+            }
+
+            if (num1 == num2) {
+                ret += count1 * (count1 - 1) / 2;
+            } else {
+                ret += count1 * count2;
+            }
+        }
+    }
+</code>
+
+<br>
+This solution, however, is not very efficient, with k*k complexity. We need to find alternative solution with reduced complexity.<br>
+For every remainder num1, we need to find all the non-zero remainders num2, such that num1 * num2 is a multiple of k. Previously we are iterating through all remainders, 0 to k-1, to find them, which is O(k) complexity for each num1. <br>
+
+Among all possible values of num2, there is the smallest one, and we call it num2_min. We can calculate num2_min with O(1) complexity by
+<code>
+    num2_min = k / gcd(num1, k)
+</code>
+And we note that all num2 must be a multiple of num2_min. (todo, add mathematical proof)
+
+eg
+<code>
+    num1 = 4
+    k = 20
+    num2_min = 5
+    num2 = 5,10,15
+</code>
+<code>
+    num1 = 12
+    k = 20
+    num2_min = 5
+    num2 = 5,10,15
+</code>
+In that case, we need to iterate only <code>k/num2_min</code> different remainders and calculate number of combinations.<br>
+Of course, any number, which is already a multiple of k, can be paired with any other number, and the product is still multiple of k. We will also add these pairs to final result.
+
+<h2>Code</h2>
+<script src="https://emgithub.com/embed.js?style=solarized-light&showBorder=on&showLineNumbers=on&showFileMeta=on&target=https://github.com/Lst0621/leet_cpp/blob/master/include/2183_count_array_pairs_divisible_by_k/count_array_pairs_divisible_by_k_solution.h"></script>
+
+<a href="https://github.com/Lst0621/leet_cpp/blob/master/test/2183_count_array_pairs_divisible_by_k/count_array_pairs_divisible_by_k_test.cpp">Test Case</a>
+
+</body>
+</html>
