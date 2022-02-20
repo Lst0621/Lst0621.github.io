@@ -24,23 +24,20 @@
 <p id="modify_time"></p>
 
 <h1>Problem</h1>
-Given a 0-indexed integer array nums of length n and an integer k, return the number of pairs (i, j) such that: <br>
-
-0 <= i < j <= n - 1 and <br>
-nums[i] * nums[j] is divisible by k. <br>
+Given a 0-indexed integer array nums of length n and an integer k, return the number of pairs (i, j) such that:
+<code>
+    0 <= i < j <= n - 1
+    nums[i] * nums[j] is divisible by k.
+</code>
 <a href="https://leetcode.com/problems/count-array-pairs-divisible-by-k">Link</a>
 
 
 <h1>Thought Process</h1>
 For this question, what we actually care about is the remainder of numbers in nums divided by k rather than numbers themselves. This is because
-<br>
-Let
 <code>
-    num1 = a * k + b, 0 <= b < k
-    num2 = c * k + d, 0 <= d < k
-</code>
-Then
-<code>
+    Let
+    num1 = a * k + b, 0 <= b < k , num2 = c * k + d, 0 <= d < k
+    Then
     num1 * num2 = (a * c) * (k * k) + (a * d + b * c) * k + b * d
     num1 * num2 % k = b * d % k = (num1 % k) * (num2 % k) % k
 </code>
@@ -54,7 +51,13 @@ As a result, we should get the remainder for every number in the array, and get 
 </code>
 
 <br>
-After that, a brutal force solution will be iterating through all the remainder values in two for loops, check whether the product of remainders is a multiple of k. if so, we multiply the frequencies for these two remainders and add it to final results. We only add when remainder in inner loop is greater than or equal to remainder in outer loop for deduplication and if remainders are same, we will use <code>count * (count - 1) / 2</code> instead of <code>count * count</code>, because we are choosing two elements from same set rather than choosing one element from each set.<br>
+After that, a brute force solution will be iterating through all the remainder values in two for loops, check whether
+the product of remainders is a multiple of k.
+If so, we multiply the frequencies for these two remainders and add it to final results.
+We only add when remainder in inner loop is greater than or equal to remainder in outer loop for deduplication and if
+remainders are same,
+we will use <code>count * (count - 1) / 2</code> instead of <code>count * count</code>,
+because we are choosing two elements from same set rather than choosing one element from each set.<br>
 
 <code>
     long long ret = 0;
@@ -63,6 +66,7 @@ After that, a brutal force solution will be iterating through all the remainder 
             if (num1 < num2) {
                 continue;
             }
+
             if (num1 * num2 % k != 0) {
                 continue;
             }
@@ -104,7 +108,7 @@ In that case, we need to iterate only <code>k/num2_min</code> different remainde
 Of course, any number, which is already a multiple of k, can be paired with any other number, and the product is still multiple of k. We will also add these pairs to final result.
 
 <h1>Code</h1>
-<script src="https://emgithub.com/embed.js?style=solarized-light&showBorder=on&showLineNumbers=on&showFileMeta=on&target=https://github.com/Lst0621/leet_cpp/blob/master/include/2183_count_array_pairs_divisible_by_k/count_array_pairs_divisible_by_k_solution.h"></script>
+<script src="https://emgithub.com/embed.js?style=atelier-lakeside-light&showBorder=on&showLineNumbers=on&showFileMeta=on&target=https://github.com/Lst0621/leet_cpp/blob/master/include/2183_count_array_pairs_divisible_by_k/count_array_pairs_divisible_by_k_solution.h"></script>
 
 <a href="https://github.com/Lst0621/leet_cpp/blob/master/test/2183_count_array_pairs_divisible_by_k/count_array_pairs_divisible_by_k_test.cpp">Test Case</a>
 
