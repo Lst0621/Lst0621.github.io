@@ -81,29 +81,42 @@ because we are choosing two elements from same set rather than choosing one elem
 </code>
 
 <br>
-This solution, however, is not very efficient, with k*k complexity. We need to find alternative solution with reduced complexity.<br>
-For every remainder num1, we need to find all the non-zero remainders num2, such that num1 * num2 is a multiple of k. Previously we are iterating through all remainders, 0 to k-1, to find them, which is O(k) complexity for each num1. <br>
-
-Among all possible values of num2, there is the smallest one, and we call it num2_min. We can calculate num2_min by
+This solution, however, is not very efficient, with k*k complexity. We need to find alternative solution with reduced
+complexity.<br>
+For every non-zero remainder <code>num1</code>, we need to find all the non-zero remainders <code>num2</code>,
+such that <code>num1 * num2 % k == 0</code>. Previously we are iterating through all remainders to find them, which is
+O(k) complexity for each <code>num1</code>.<br>
+Note among all possible values of <code>num2</code>, there is the smallest one, and we call it <code>num2_min</code>. We
+can calculate it by
 <code>
     num2_min = lcm(num1, k) / num1
 </code>
 This is obtained directly from the definition of lcm( Least Common Multiple). <br>
-We note that all num2 must be a multiple of num2_min. (todo, add mathematical proof)
+We note that all <code>num2</code> are multiples of <code>num2_min</code>.
 
 eg
 <code>
-    num1 = 4
-    k = 20
-    num2_min = 5
-    num2 = 5,10,15
+    num1 = 4, k = 20, num2_min = 5, num2 = 5,10,15
+    num1 = 12, k = 20, num2_min = 5, num2 = 5,10,15
 </code>
-<code>
-    num1 = 12
-    k = 20
-    num2_min = 5
-    num2 = 5,10,15
-</code>
+
+<br>
+We can prove this as follows.<br>
+Given
+<code>num1 * num2_min % k = 0, num1 * num2 % k = 0</code>
+let
+<code> num2 = a * num2_min + b, a,b are integers and 0 <= b < num2_min </code>
+then
+<code>num1 * (num2 - a * num2_min) % k = 0</code>
+that is
+<code>num1 * b % k = 0</code>
+since num2_min is already the smallest positive integer such that
+<code>num1 * num2 = 0</code> and considering
+<code>b < num2_min</code>
+we can conclude that
+<code>b = 0</code> !
+which means any <code>num2</code> is a multiple of <code>num2_min</code>.
+<br>
 In that case, we need to iterate only <code>k/num2_min</code> different remainders and calculate number of combinations.<br>
 Of course, any number, which is already a multiple of k, can be paired with any other number, and the product is still multiple of k. We will also add these pairs to final result.
 
