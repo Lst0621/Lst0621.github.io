@@ -1,0 +1,25 @@
+html {
+    background: aliceblue;
+    font-family: "Courier";
+}
+
+h1 {
+    font-size: 12pt;
+}
+
+p {
+    font-size: 12pt;
+}
+
+code {
+    white-space: pre
+}
+
+a {
+    font-size: 12pt;
+    color: black;
+}
+
+a:visited {
+    color: black;
+}

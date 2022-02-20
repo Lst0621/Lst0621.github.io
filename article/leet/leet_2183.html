@@ -4,6 +4,7 @@
     <meta name="viewport" content="width=device-width"/>
     <meta charset="UTF-8">
     <title>Leet 2183</title>
+    <link rel="stylesheet" href="../../css/leet.css">
     <link rel="icon" href="../../img/flame1.png">
     <!-- Global site tag (gtag.js) - Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-9BLVHLETMC"></script>
@@ -17,15 +18,11 @@
         gtag('js', new Date());
         gtag('config', 'G-9BLVHLETMC');
     </script>
-
-    <style>
-        code { white-space: pre }
-    </style>
 </head>
 <body>
 <h1>LeetCode 2183 Count Array Pairs Divisible by K</h1>
 
-<h2>Problem</h2>
+<h1>Problem</h1>
 Given a 0-indexed integer array nums of length n and an integer k, return the number of pairs (i, j) such that: <br>
 
 0 <= i < j <= n - 1 and <br>
@@ -33,7 +30,7 @@ nums[i] * nums[j] is divisible by k. <br>
 <a href="https://leetcode.com/problems/count-array-pairs-divisible-by-k">Link</a>
 
 
-<h2>Thought Process</h2>
+<h1>Thought Process</h1>
 For this question, what we actually care about is the remainder of numbers in nums divided by k rather than numbers themselves. This is because
 <br>
 Let
@@ -82,11 +79,12 @@ After that, a brutal force solution will be iterating through all the remainder 
 This solution, however, is not very efficient, with k*k complexity. We need to find alternative solution with reduced complexity.<br>
 For every remainder num1, we need to find all the non-zero remainders num2, such that num1 * num2 is a multiple of k. Previously we are iterating through all remainders, 0 to k-1, to find them, which is O(k) complexity for each num1. <br>
 
-Among all possible values of num2, there is the smallest one, and we call it num2_min. We can calculate num2_min with O(1) complexity by
+Among all possible values of num2, there is the smallest one, and we call it num2_min. We can calculate num2_min by
 <code>
-    num2_min = k / gcd(num1, k)
+    num2_min = lcm(num1, k) / num1
 </code>
-And we note that all num2 must be a multiple of num2_min. (todo, add mathematical proof)
+This is obtained directly from the definition of lcm( Least Common Multiple). <br>
+We note that all num2 must be a multiple of num2_min. (todo, add mathematical proof)
 
 eg
 <code>
@@ -104,7 +102,7 @@ eg
 In that case, we need to iterate only <code>k/num2_min</code> different remainders and calculate number of combinations.<br>
 Of course, any number, which is already a multiple of k, can be paired with any other number, and the product is still multiple of k. We will also add these pairs to final result.
 
-<h2>Code</h2>
+<h1>Code</h1>
 <script src="https://emgithub.com/embed.js?style=solarized-light&showBorder=on&showLineNumbers=on&showFileMeta=on&target=https://github.com/Lst0621/leet_cpp/blob/master/include/2183_count_array_pairs_divisible_by_k/count_array_pairs_divisible_by_k_solution.h"></script>
 
 <a href="https://github.com/Lst0621/leet_cpp/blob/master/test/2183_count_array_pairs_divisible_by_k/count_array_pairs_divisible_by_k_test.cpp">Test Case</a>
