@@ -42,6 +42,11 @@ function add_book_2021_09() {
     add_book(books_group, "Designing Data-Intensive Applications", "https://dataintensive.net/images/book-cover.png", "978-1449373320");
     add_book(books_group, "不朽", "https://m.media-amazon.com/images/I/517SaCMzkDL.jpg", "B00BLYZQP8");
 }
+function add_book_2022_03() {
+    var books_group = "books-2022-03";
+    add_book(books_group, "天朝的崩溃/鸦片战争再研究", "https://img1.baidu.com/it/u=1086739530,202871532&fm=253", "9787108050656");
+}
+add_book_2022_03();
 add_book_2021_09();
 add_book_2021_04();
 add_book_2021_03();

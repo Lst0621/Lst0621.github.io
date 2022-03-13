@@ -109,6 +109,17 @@ function add_book_2021_09() {
         "B00BLYZQP8")
 }
 
+function add_book_2022_03() {
+    let books_group: string = "books-2022-03"
+
+    add_book(
+        books_group,
+        "天朝的崩溃/鸦片战争再研究",
+        "https://img1.baidu.com/it/u=1086739530,202871532&fm=253",
+        "9787108050656")
+}
+
+add_book_2022_03()
 add_book_2021_09()
 add_book_2021_04()
 add_book_2021_03()
