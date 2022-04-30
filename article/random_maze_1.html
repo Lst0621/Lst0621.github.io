@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Random Maze 1</title>
+  <link rel="icon" href="../img/flame1.png">
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-9BLVHLETMC"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-9BLVHLETMC');
+  </script>
+</head>
+<body>
+
+<h1 style="margin-top: 10;" align="center">
+		<span id="head_span" style="font-size: 24pt">
+            Random Maze V1
+		</span><br>
+</h1>
+<p align="center">
+    <canvas id="maze1" width="800" height="800"
+            style="border: 1px solid black;">
+    </canvas>
+    <br>
+    <button onclick="restart()">Regenerate</button>
+</p>
+
+<script src="../src/maze_v1.js"></script>
+
+</body>
+</html>
