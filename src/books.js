@@ -50,7 +50,7 @@ function add_book_2022_03() {
 function add_book_2022_05() {
     var books_group = "books-2022-05";
     add_book(books_group, "Introduction to Calculus and Analysis, Vol. 1", "https://images-na.ssl-images-amazon.com/images/I/51RfQvDridL.jpg", "978-3540650584");
-    add_book(books_group, "Streaming Systems", "http://streamingsystems.net/static/images/figures/stsy_0001.png", "978-1491983874");
+    add_book(books_group, "Streaming Systems", "http://streamingsystems.net/static/images/streaming_systems_color_cover.png", "978-1491983874");
 }
 add_book_2022_05();
 add_book_2022_03();
