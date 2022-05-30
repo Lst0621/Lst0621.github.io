@@ -47,6 +47,12 @@ function add_book_2022_03() {
     add_book(books_group, "天朝的崩溃/鸦片战争再研究", "https://img1.baidu.com/it/u=1086739530,202871532&fm=253", "9787108050656");
     add_book(books_group, "乌合之众", "https://www.books.com.tw/img/CN1/148/91/CN11489143.jpg", "9787512714922");
 }
+function add_book_2022_05() {
+    var books_group = "books-2022-05";
+    add_book(books_group, "Introduction to Calculus and Analysis, Vol. 1", "https://images-na.ssl-images-amazon.com/images/I/51RfQvDridL.jpg", "978-3540650584");
+    add_book(books_group, "Streaming Systems", "http://streamingsystems.net/static/images/figures/stsy_0001.png", "978-1491983874");
+}
+add_book_2022_05();
 add_book_2022_03();
 add_book_2021_09();
 add_book_2021_04();
