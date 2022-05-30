@@ -136,7 +136,7 @@ function add_book_2022_05() {
     add_book(
         books_group,
         "Streaming Systems",
-        "http://streamingsystems.net/static/images/streaming_systems_color_cover.png",
+        "https://learning.oreilly.com/library/cover/9781491983867/1000w",
         "978-1491983874"
     )
 }
