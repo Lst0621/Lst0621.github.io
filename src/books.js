@@ -52,6 +52,12 @@ function add_book_2022_05() {
     add_book(books_group, "Introduction to Calculus and Analysis, Vol. 1", "https://images-na.ssl-images-amazon.com/images/I/51RfQvDridL.jpg", "978-3540650584");
     add_book(books_group, "Streaming Systems", "https://learning.oreilly.com/library/cover/9781491983867/1000w", "978-1491983874");
 }
+function add_book_2022_06() {
+    var books_group = "books-2022-06";
+    add_book(books_group, "魏晋南北朝史讲演录", "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1503250477i/36076009.jpg", "9787201139463");
+    add_book(books_group, "Data and Reality", "https://images-na.ssl-images-amazon.com/images/I/71oIGW7BrBL.jpg", "978-1935504214");
+}
+add_book_2022_06();
 add_book_2022_05();
 add_book_2022_03();
 add_book_2021_09();
