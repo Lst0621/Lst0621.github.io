@@ -158,6 +158,41 @@ function add_book_2022_06() {
     )
 }
 
+function add_book_2022_09() {
+    let books_group: string = "books-2022-09"
+
+    add_book(
+        books_group,
+        "Linear Algebra",
+        "https://pictures.abebooks.com/isbn/9780135367971-us.jpg",
+        "9780135367971"
+    )
+}
+
+function add_book_2022_10() {
+    let books_group: string = "books-2022-10"
+
+    add_book(
+        books_group,
+        "Applied Mathematics for Database Professionals",
+        "https://m.media-amazon.com/images/I/41iFKLYdZhL.jpg",
+        "978-1430211846"
+    )
+}
+
+function add_book_2022_12() {
+    let books_group: string = "books-2022-12"
+
+    add_book(
+        books_group,
+        "中国历史常识",
+        "https://easyreadfs.nosdn.127.net/cKaGzfz6csiWPZT9-eRbhQ==/8796093024978802418",
+        "9787517834793"
+    )
+}
+add_book_2022_12()
+add_book_2022_10()
+add_book_2022_09()
 add_book_2022_06()
 add_book_2022_05()
 add_book_2022_03()
