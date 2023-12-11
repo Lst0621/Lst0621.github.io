@@ -190,6 +190,107 @@ function add_book_2022_12() {
         "9787517834793"
     )
 }
+
+function add_book_2023() {
+    add_book(
+        "books-2023-01",
+        "The Foundations of Arithmetic: A Logico-Mathematical Enquiry into the Concept of Number",
+        "https://m.media-amazon.com/images/W/MEDIAX_792452-T1/images/I/51mVW605ekL._SL1360_.jpg",
+        "978-0810106055"
+    )
+    add_book(
+        "books-2023-02",
+        "生育制度",
+        "https://img10.360buyimg.com/n9/s540x540_jfs/t1/212058/30/23548/40013/636e72e0E13baadb2/1b5c63d36f342a75.jpg.avif",
+        "9787559651204"
+    )
+    add_book(
+        "books-2023-02",
+        "What Is the Name of This Book?: The Riddle of Dracula and Other Logical Puzzles",
+        "https://m.media-amazon.com/images/I/41MSBTWNIML.jpg",
+        "978-0486481982"
+    )
+    add_book(
+        "books-2023-03",
+        "乡土中国",
+        "https://img11.360buyimg.com/n9/s540x540_jfs/t1/149506/7/31988/34727/636e7237E489606bd/6664a256b77ac126.jpg.avif",
+        "9787559650627"
+    )
+    add_book(
+        "books-2023-04",
+        "乡土重建",
+        "https://img11.360buyimg.com/n9/s512x512_jfs/t1/6025/28/11826/88864/60b9b7a5Ee05bd2b1/eb9ea1400309f7c0.jpg",
+        "9787559650610"
+    )
+    add_book(
+        "books-2023-06",
+        "Introduction to the Theory of Computation",
+        "https://m.media-amazon.com/images/I/51FrXXE3j7L.jpg",
+        "978-1133187790"
+    )
+    add_book(
+        "books-2023-06",
+        "Mythical Man-Month, The: Essays on Software Engineering",
+        "https://m.media-amazon.com/images/W/MEDIAX_792452-T1/images/I/71fCJWIx4UL._SL1500_.jpg",
+        "978-0201835953"
+    )
+    add_book(
+        "books-2023-06",
+        "Phaedo",
+        "https://m.media-amazon.com/images/W/MEDIAX_792452-T1/images/I/418IqdCUAXL.jpg",
+        "B0082S2Z2S"
+    )
+    add_book(
+        "books-2023-07",
+        "Rich Dad Poor Dad: What the Rich Teach Their Kids About Money That the Poor and Middle Class Do Not!",
+        "https://m.media-amazon.com/images/W/MEDIAX_792452-T1/images/I/81BE7eeKzAL._SL1500_.jpg",
+        "978-1612681139"
+    )
+    add_book(
+        "books-2023-07",
+        "System Design Interview – An Insider's Guide: Volume 2",
+        "https://m.media-amazon.com/images/W/MEDIAX_792452-T1/images/I/51lJolln98L._SL1429_.jpg",
+        "978-1736049112"
+    )
+    add_book(
+        "books-2023-08",
+        "Compilers: Principles, Techniques, and Tools",
+        "https://m.media-amazon.com/images/W/MEDIAX_792452-T1/images/I/51L0qegzCgL.jpg",
+        "978-0321486813"
+    )
+    add_book(
+        "books-2023-09",
+        "A Book of Abstract Algebra: Second Edition",
+        "https://m.media-amazon.com/images/W/MEDIAX_792452-T1/images/I/71ixgrQG5yL.jpg",
+        "978-0486474175"
+    )
+    add_book(
+        "books-2023-09",
+        "Boolean Algebra and Its Applications",
+        "https://m.media-amazon.com/images/W/MEDIAX_792452-T1/images/I/81Lo-WmVpKL.jpg",
+        "978-0486477671"
+    )
+    add_book(
+        "books-2023-10",
+        "万历十五年",
+        "https://m.media-amazon.com/images/W/MEDIAX_792452-T1/images/I/71sA9gh1sNL.jpg",
+        "9787101156478"
+    )
+    add_book(
+        "books-2023-11",
+        "About Vectors",
+        "https://m.media-amazon.com/images/I/61OEjMyt5iL._SL1360_.jpg",
+        "978-0486604893"
+    )
+    add_book(
+        "books-2023-12",
+        "Introduction to Calculus and Analysis, Vol. II/1",
+        "https://m.media-amazon.com/images/W/MEDIAX_792452-T1/images/I/51idpycxw2L._SL1360_.jpg",
+        "978-3540665694"
+    )
+}
+
+add_book_2023()
 add_book_2022_12()
 add_book_2022_10()
 add_book_2022_09()
