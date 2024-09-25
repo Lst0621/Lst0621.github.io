@@ -171,6 +171,7 @@ function update_border() {
                 "yellow,orange,red,pink,yellow,green,blue,darkblue,purple,yellow,pink,red)"
             break
         case TopologyMode.Cylinder:
+            // TODO needs update
             canvas.style.borderImageSource =
                 "linear-gradient(yellow, blue)";
             break
@@ -186,7 +187,7 @@ function update_border() {
         default:
         case TopologyMode.Plain:
             canvas.style.borderImageSource =
-                "linear-gradient(lightgreen, lightgreen)";
+                "conic-gradient(red, orange,yellow,green,red)";
             break
     }
 }
