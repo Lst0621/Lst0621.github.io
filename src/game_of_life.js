@@ -233,6 +233,9 @@ function fetch_value(i, j) {
                 i = 0;
                 j = len - 1 - j;
             }
+            if (is_inside_canvas(i, j)) {
+                return cells[i][j];
+            }
             return 0;
         case TopologyMode.Plain:
         default:
