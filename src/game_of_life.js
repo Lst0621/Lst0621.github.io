@@ -18,9 +18,22 @@ var StartMode;
     StartMode[StartMode["Pulsar"] = 1] = "Pulsar";
     StartMode[StartMode["Gun"] = 2] = "Gun";
 })(StartMode || (StartMode = {}));
+// https://lavalle.pl/planning/node136.html
+var TopologyMode;
+(function (TopologyMode) {
+    TopologyMode[TopologyMode["Plain"] = 0] = "Plain";
+    TopologyMode[TopologyMode["Mobius"] = 1] = "Mobius";
+    TopologyMode[TopologyMode["Klein"] = 2] = "Klein";
+    TopologyMode[TopologyMode["Torus"] = 3] = "Torus";
+    TopologyMode[TopologyMode["Cylinder"] = 4] = "Cylinder";
+})(TopologyMode || (TopologyMode = {}));
 var start_mode = StartMode.Random;
+var topo_mode = TopologyMode.Plain;
 function set_start_mode(mode) {
     start_mode = mode;
+}
+function set_topology_mode(mode) {
+    topo_mode = mode;
 }
 var mouse_x = 0;
 var mouse_y = 0;
@@ -123,6 +136,90 @@ function draw() {
     live_cell = live_cnt;
     void_cell = void_cnt;
 }
+function is_inside_canvas(i, j) {
+    return (i >= 0 && i < len && j >= 0 && j < len);
+}
+function fetch_value(i, j) {
+    if (is_inside_canvas(i, j)) {
+        return cells[i][j];
+    }
+    switch (topo_mode) {
+        case TopologyMode.Cylinder:
+            if (i == -1) {
+                i = len - 1;
+            }
+            if (i == len) {
+                i = 0;
+            }
+            if (is_inside_canvas(i, j)) {
+                return cells[i][j];
+            }
+            return 0;
+        case TopologyMode.Mobius:
+            if (i == -1) {
+                i = len - 1;
+                j = len - 1 - j;
+            }
+            if (i == len) {
+                i = 0;
+                j = len - 1 - j;
+            }
+            if (is_inside_canvas(i, j)) {
+                return cells[i][j];
+            }
+            return 0;
+        case TopologyMode.Torus:
+            if (i == -1) {
+                i = len - 1;
+            }
+            if (i == len) {
+                i = 0;
+            }
+            if (j == -1) {
+                j = len - 1;
+            }
+            if (j == len) {
+                j = 0;
+            }
+            if (is_inside_canvas(i, j)) {
+                return cells[i][j];
+            }
+            return 0;
+        case TopologyMode.Klein:
+            if (j == -1) {
+                j = len - 1;
+            }
+            if (j == len) {
+                j = 0;
+            }
+            if (i == -1) {
+                i = len - 1;
+                j = len - 1 - j;
+            }
+            if (i == len) {
+                i = 0;
+                j = len - 1 - j;
+            }
+            return 0;
+        case TopologyMode.Plain:
+        default:
+            return 0;
+    }
+}
+function get_nb_count(i, j) {
+    var sum = 0;
+    for (var _i = 0, _a = [-1, 0, 1]; _i < _a.length; _i++) {
+        var dx = _a[_i];
+        for (var _b = 0, _c = [-1, 0, 1]; _b < _c.length; _b++) {
+            var dy = _c[_b];
+            if (dx == 0 && dy == 0) {
+                continue;
+            }
+            sum += fetch_value(i + dx, j + dy);
+        }
+    }
+    return sum;
+}
 function evolve() {
     gen += 1;
     var next_cells = [];
@@ -141,31 +238,19 @@ function evolve() {
                 next_cells[i][j] = 1;
                 continue;
             }
-            var sum = 0;
-            for (var _i = 0, _a = [-1, 0, 1]; _i < _a.length; _i++) {
-                var dx = _a[_i];
-                for (var _b = 0, _c = [-1, 0, 1]; _b < _c.length; _b++) {
-                    var dy = _c[_b];
-                    if (dx == 0 && dy == 0) {
-                        continue;
-                    }
-                    if (i + dx < 0 || i + dx == len || j + dy < 0 || j + dy == len) {
-                        continue;
-                    }
-                    sum += cells[i + dx][j + dy];
-                }
-            }
+            var sum = get_nb_count(i, j);
             if ((cells[i][j] == 1 && sum == 2) || sum == 3) {
                 next_cells[i][j] = 1;
             }
-            //console.log(i,j,cells[i][j], sum, next_cells[i][j])
         }
     }
     cells = next_cells;
 }
 function loop() {
     draw();
-    head_span.innerText = "Game of Life\ngen: " + gen + " active: " + live_cell + " void: " + void_cell;
+    head_span.innerText = "Game of Life\ngen: " + gen +
+        " active: " + live_cell + " void: " + void_cell + " topology: " +
+        TopologyMode[topo_mode];
     evolve();
     to = setTimeout(loop, timeout);
 }

@@ -20,10 +20,26 @@ enum StartMode {
     Gun
 }
 
+
+// https://lavalle.pl/planning/node136.html
+enum TopologyMode {
+    Plain,
+    Mobius,
+    Klein,
+    Torus,
+    Cylinder
+}
+
+
 let start_mode: StartMode = StartMode.Random
+let topo_mode: TopologyMode = TopologyMode.Plain
 
 function set_start_mode(mode: StartMode) {
     start_mode = mode
+}
+
+function set_topology_mode(mode: TopologyMode): void {
+    topo_mode =  mode
 }
 
 let mouse_x: number = 0
@@ -140,6 +156,93 @@ function draw() {
     void_cell = void_cnt
 }
 
+function is_inside_canvas(i: number, j: number): boolean {
+    return (i >= 0 && i < len && j >= 0 && j < len)
+}
+
+function fetch_value(i: number, j: number): number {
+    if (is_inside_canvas(i, j)) {
+        return cells[i][j]
+    }
+
+    switch (topo_mode) {
+        case TopologyMode.Cylinder:
+            if (i == -1) {
+                i = len - 1
+            }
+            if (i == len) {
+                i = 0
+            }
+            if (is_inside_canvas(i, j)) {
+                return cells[i][j]
+            }
+            return 0
+        case TopologyMode.Mobius:
+            if (i == -1) {
+                i = len - 1
+                j = len - 1 - j
+            }
+            if (i == len) {
+                i = 0
+                j = len - 1 - j
+            }
+            if (is_inside_canvas(i, j)) {
+                return cells[i][j]
+            }
+            return 0
+        case TopologyMode.Torus:
+            if (i == -1) {
+                i = len - 1
+            }
+            if (i == len) {
+                i = 0
+            }
+            if (j == -1) {
+                j = len - 1
+            }
+            if (j == len) {
+                j = 0
+            }
+            if (is_inside_canvas(i, j)) {
+                return cells[i][j]
+            }
+            return 0
+        case TopologyMode.Klein:
+            if (j == -1) {
+                j = len - 1
+            }
+            if (j == len) {
+                j = 0
+            }
+            if (i == -1) {
+                i = len - 1
+                j = len - 1 - j
+            }
+            if (i == len) {
+                i = 0
+                j = len - 1 - j
+            }
+            return 0
+        case TopologyMode.Plain:
+        default:
+            return 0;
+    }
+}
+
+function get_nb_count(i: number, j: number): number {
+    let sum = 0
+    for (let dx of [-1, 0, 1]) {
+        for (let dy of [-1, 0, 1]) {
+            if (dx == 0 && dy == 0) {
+                continue;
+            }
+
+            sum += fetch_value(i + dx, j + dy)
+        }
+    }
+    return sum
+}
+
 function evolve() {
     gen += 1
     let next_cells: Array<Array<number>> = []
@@ -150,8 +253,8 @@ function evolve() {
         }
     }
 
-    let mouse_grid_x: number = Math.floor(mouse_x/scale)
-    let mouse_grid_y: number = Math.floor(mouse_y/scale)
+    let mouse_grid_x: number = Math.floor(mouse_x / scale)
+    let mouse_grid_y: number = Math.floor(mouse_y / scale)
     let activate_checked: boolean = activate_check.checked
     for (let i: number = 0; i < len; i++) {
         for (let j: number = 0; j < len; j++) {
@@ -160,23 +263,10 @@ function evolve() {
                 continue
             }
 
-            let sum: number = 0
-            for (let dx of [-1, 0, 1]) {
-                for (let dy of [-1, 0, 1]) {
-                    if (dx == 0 && dy == 0) {
-                        continue;
-                    }
-                    if (i + dx < 0 || i + dx == len || j + dy < 0 || j + dy == len) {
-                        continue;
-                    }
-                    sum += cells[i + dx] [j + dy];
-                }
-            }
-
+            let sum: number = get_nb_count(i, j)
             if ((cells[i][j] == 1 && sum == 2) || sum == 3) {
                 next_cells[i][j] = 1
             }
-            //console.log(i,j,cells[i][j], sum, next_cells[i][j])
         }
     }
 
@@ -186,7 +276,9 @@ function evolve() {
 
 function loop() {
     draw()
-    head_span.innerText = "Game of Life\ngen: " + gen + " active: " + live_cell + " void: " + void_cell
+    head_span.innerText = "Game of Life\ngen: " + gen +
+        " active: " + live_cell + " void: " + void_cell + " topology: " +
+        TopologyMode[topo_mode]
     evolve()
     to = setTimeout(loop, timeout)
 }

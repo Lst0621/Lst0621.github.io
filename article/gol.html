@@ -28,6 +28,12 @@
     <button onclick="set_start_mode(1);restart()">Pulsar</button>
     <button onclick="set_start_mode(2);restart()">Gun</button>
     <br>
+    <button onclick="set_topology_mode(TopologyMode.Plain)">Plane</button>
+    <button onclick="set_topology_mode(TopologyMode.Mobius)">Mobius</button>
+    <button onclick="set_topology_mode(TopologyMode.Klein)">Klein</button>
+    <button onclick="set_topology_mode(TopologyMode.Torus)">Torus</button>
+    <button onclick="set_topology_mode(TopologyMode.Cylinder)">Cylinder</button>
+    <br>
     <input type="checkbox" id="activate">
     <label for="activate">Allow the mouse to activate cells it points to</label>
     <br>
