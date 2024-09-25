@@ -34,20 +34,22 @@ function set_start_mode(mode) {
 }
 function set_topology_mode(mode) {
     topo_mode = mode;
+    update_border();
 }
+set_topology_mode(TopologyMode.Torus);
 var mouse_x = 0;
 var mouse_y = 0;
-var mouse_on_canvs = false;
+var mouse_on_canvas = false;
 canvas.addEventListener('mousemove', function (e) {
     mouse_x = e.offsetX;
     mouse_y = e.offsetY;
     // console.log(mouse_x, mouse_y)
 });
 canvas.addEventListener('mouseleave', function (e) {
-    mouse_on_canvs = false;
+    mouse_on_canvas = false;
 });
 canvas.addEventListener('mouseenter', function (e) {
-    mouse_on_canvs = true;
+    mouse_on_canvas = true;
 });
 function clear() {
     gen = 0;
@@ -122,12 +124,14 @@ function draw() {
     for (var i = 0; i < len; i++) {
         for (var j = 0; j < len; j++) {
             if (cells[i][j] == 1) {
-                context.fillStyle = '#FC9F4D';
+                // context.fillStyle = '#FC9F4D';
+                context.fillStyle = 'darkgray';
                 context.fillRect(i * scale, j * scale, scale, scale);
                 live_cnt++;
             }
             else {
-                context.fillStyle = '#FFBA84';
+                // context.fillStyle = '#FFBA84'
+                context.fillStyle = 'black';
                 context.fillRect(i * scale, j * scale, scale, scale);
                 void_cnt++;
             }
@@ -135,6 +139,34 @@ function draw() {
     }
     live_cell = live_cnt;
     void_cell = void_cnt;
+}
+function update_border() {
+    canvas.style.borderImageSlice = "1";
+    switch (topo_mode) {
+        case TopologyMode.Klein:
+            canvas.style.borderImageSource =
+                "conic-gradient(red,orange,yellow,green,blue,darkblue,purple," +
+                    "yellow,orange,red,pink,yellow,green,blue,darkblue,purple,yellow,pink,red)";
+            break;
+        case TopologyMode.Cylinder:
+            canvas.style.borderImageSource =
+                "linear-gradient(yellow, blue)";
+            break;
+        case TopologyMode.Mobius:
+            canvas.style.borderImageSource =
+                "conic-gradient(red,orange,yellow,green,blue,orange,yellow,green,red)";
+            break;
+        case TopologyMode.Torus:
+            canvas.style.borderImageSource =
+                "conic-gradient(red,orange,yellow,green,blue,darkblue,purple," +
+                    "yellow,orange,red,pink,yellow,purple,darkblue,blue,green,yellow,pink,red)";
+            break;
+        default:
+        case TopologyMode.Plain:
+            canvas.style.borderImageSource =
+                "linear-gradient(lightgreen, lightgreen)";
+            break;
+    }
 }
 function is_inside_canvas(i, j) {
     return (i >= 0 && i < len && j >= 0 && j < len);
@@ -234,7 +266,7 @@ function evolve() {
     var activate_checked = activate_check.checked;
     for (var i = 0; i < len; i++) {
         for (var j = 0; j < len; j++) {
-            if (activate_checked && mouse_on_canvs && i == mouse_grid_x && j == mouse_grid_y) {
+            if (activate_checked && mouse_on_canvas && i == mouse_grid_x && j == mouse_grid_y) {
                 next_cells[i][j] = 1;
                 continue;
             }

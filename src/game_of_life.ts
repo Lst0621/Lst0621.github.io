@@ -40,11 +40,14 @@ function set_start_mode(mode: StartMode) {
 
 function set_topology_mode(mode: TopologyMode): void {
     topo_mode =  mode
+    update_border()
 }
+
+set_topology_mode(TopologyMode.Torus)
 
 let mouse_x: number = 0
 let mouse_y: number = 0
-let mouse_on_canvs: boolean = false
+let mouse_on_canvas: boolean = false
 
 canvas.addEventListener('mousemove', e => {
     mouse_x = e.offsetX
@@ -52,10 +55,10 @@ canvas.addEventListener('mousemove', e => {
     // console.log(mouse_x, mouse_y)
 })
 canvas.addEventListener('mouseleave', e => {
-    mouse_on_canvs = false
+    mouse_on_canvas = false
 })
 canvas.addEventListener('mouseenter', e => {
-    mouse_on_canvs = true
+    mouse_on_canvas = true
 })
 
 function clear() {
@@ -141,12 +144,14 @@ function draw() {
     for (let i: number = 0; i < len; i++) {
         for (let j: number = 0; j < len; j++) {
             if (cells[i][j] == 1) {
-                context.fillStyle = '#FC9F4D';
+                // context.fillStyle = '#FC9F4D';
+                context.fillStyle = 'darkgray';
                 context.fillRect(i * scale, j * scale, scale, scale);
                 live_cnt++
             } else {
-                context.fillStyle = '#FFBA84'
-                context.fillRect(i * scale, j * scale, scale, scale );
+                // context.fillStyle = '#FFBA84'
+                context.fillStyle = 'black'
+                context.fillRect(i * scale, j * scale, scale, scale);
                 void_cnt++
             }
         }
@@ -154,6 +159,36 @@ function draw() {
 
     live_cell = live_cnt
     void_cell = void_cnt
+
+}
+
+function update_border() {
+    canvas.style.borderImageSlice = "1"
+    switch (topo_mode) {
+        case TopologyMode.Klein:
+            canvas.style.borderImageSource =
+                "conic-gradient(red,orange,yellow,green,blue,darkblue,purple," +
+                "yellow,orange,red,pink,yellow,green,blue,darkblue,purple,yellow,pink,red)"
+            break
+        case TopologyMode.Cylinder:
+            canvas.style.borderImageSource =
+                "linear-gradient(yellow, blue)";
+            break
+        case TopologyMode.Mobius:
+            canvas.style.borderImageSource =
+                "conic-gradient(red,orange,yellow,green,blue,orange,yellow,green,red)"
+            break
+        case TopologyMode.Torus:
+            canvas.style.borderImageSource =
+                "conic-gradient(red,orange,yellow,green,blue,darkblue,purple," +
+                "yellow,orange,red,pink,yellow,purple,darkblue,blue,green,yellow,pink,red)"
+            break
+        default:
+        case TopologyMode.Plain:
+            canvas.style.borderImageSource =
+                "linear-gradient(lightgreen, lightgreen)";
+            break
+    }
 }
 
 function is_inside_canvas(i: number, j: number): boolean {
@@ -258,7 +293,7 @@ function evolve() {
     let activate_checked: boolean = activate_check.checked
     for (let i: number = 0; i < len; i++) {
         for (let j: number = 0; j < len; j++) {
-            if (activate_checked && mouse_on_canvs && i == mouse_grid_x && j == mouse_grid_y) {
+            if (activate_checked && mouse_on_canvas && i == mouse_grid_x && j == mouse_grid_y) {
                 next_cells[i][j] = 1
                 continue
             }
@@ -279,6 +314,7 @@ function loop() {
     head_span.innerText = "Game of Life\ngen: " + gen +
         " active: " + live_cell + " void: " + void_cell + " topology: " +
         TopologyMode[topo_mode]
+
     evolve()
     to = setTimeout(loop, timeout)
 }
