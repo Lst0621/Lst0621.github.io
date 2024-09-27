@@ -155,21 +155,22 @@ function update_border() {
     switch (topo_mode) {
         case TopologyMode.Klein:
             canvas.style.borderImageSource =
-                "conic-gradient(red,orange,yellow,green,blue,darkblue,purple," +
-                    "yellow,orange,red,pink,yellow,green,blue,darkblue,purple,yellow,pink,red)";
+                "conic-gradient(red,orange,grey,purple,blue,lightblue," +
+                    "grey,orange,red,pink,grey,purple,blue,lightblue,grey,pink,red)";
             break;
         case TopologyMode.Cylinder:
             canvas.style.borderImageSource =
-                "linear-gradient(grey,yellow,green,grey)";
+                "linear-gradient(grey,red,blue,grey)";
             break;
         case TopologyMode.Mobius:
             canvas.style.borderImageSource =
-                "conic-gradient(grey,grey,grey,blue,red,purple,grey,grey,grey,grey,grey,blue,red,purple,grey,grey,grey)";
+                "conic-gradient(grey,grey,grey,blue,purple,red,grey,grey," +
+                    "grey,grey,grey,blue,purple,red,grey,grey,grey)";
             break;
         case TopologyMode.Torus:
             canvas.style.borderImageSource =
-                "conic-gradient(red,orange,yellow,green,blue,darkblue,purple," +
-                    "yellow,orange,red,pink,yellow,purple,darkblue,blue,green,yellow,pink,red)";
+                "conic-gradient(red,orange,grey,lightblue,blue,purple," +
+                    "grey,orange,red,pink,grey,purple,blue,lightblue,grey,pink,red)";
             break;
         default:
         case TopologyMode.Plain:
