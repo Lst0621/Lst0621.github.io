@@ -16,7 +16,8 @@ var StartMode;
 (function (StartMode) {
     StartMode[StartMode["Random"] = 0] = "Random";
     StartMode[StartMode["Pulsar"] = 1] = "Pulsar";
-    StartMode[StartMode["Gun"] = 2] = "Gun";
+    StartMode[StartMode["Glider"] = 2] = "Glider";
+    StartMode[StartMode["Gun"] = 3] = "Gun";
 })(StartMode || (StartMode = {}));
 // https://lavalle.pl/planning/node136.html
 var TopologyMode;
@@ -116,6 +117,14 @@ function pulsar_start() {
         cells[x][2 * mid_point - y] = 1;
         cells[2 * mid_point - x][y] = 1;
     }
+}
+function glider_start() {
+    var mid_point = len / 2;
+    cells[mid_point + 4][mid_point] = 1;
+    cells[mid_point + 4][mid_point + 1] = 1;
+    cells[mid_point + 4][mid_point + 2] = 1;
+    cells[mid_point + 1 + 4][mid_point] = 1;
+    cells[mid_point + 2 + 4][mid_point + 1] = 1;
 }
 function draw() {
     context.clearRect(0, 0, canvas.width, canvas.height);
@@ -298,6 +307,9 @@ function init() {
             break;
         case StartMode.Gun:
             gun_start();
+            break;
+        case StartMode.Glider:
+            glider_start();
             break;
         case StartMode.Random:
         default:

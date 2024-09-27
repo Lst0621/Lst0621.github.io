@@ -17,6 +17,7 @@ let void_cell: number = 0
 enum StartMode {
     Random,
     Pulsar,
+    Glider,
     Gun
 }
 
@@ -135,6 +136,15 @@ function pulsar_start() {
         cells[x][2 * mid_point - y] = 1
         cells[2 * mid_point - x][y] = 1
     }
+}
+
+function glider_start() {
+    let mid_point: number = len / 2
+    cells[mid_point + 4][mid_point] = 1
+    cells[mid_point + 4][mid_point + 1] = 1
+    cells[mid_point + 4][mid_point + 2] = 1
+    cells[mid_point + 1 + 4][mid_point] = 1
+    cells[mid_point + 2 + 4][mid_point + 1] = 1
 }
 
 function draw() {
@@ -331,6 +341,9 @@ function init() {
             break
         case StartMode.Gun:
             gun_start()
+            break
+        case StartMode.Glider:
+            glider_start()
             break
         case StartMode.Random:
         default:
