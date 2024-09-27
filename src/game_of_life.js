@@ -150,6 +150,7 @@ function draw() {
     void_cell = void_cnt;
 }
 function update_border() {
+    canvas.style.border = "15px solid grey";
     canvas.style.borderImageSlice = "1";
     switch (topo_mode) {
         case TopologyMode.Klein:
@@ -158,13 +159,12 @@ function update_border() {
                     "yellow,orange,red,pink,yellow,green,blue,darkblue,purple,yellow,pink,red)";
             break;
         case TopologyMode.Cylinder:
-            // TODO needs update
             canvas.style.borderImageSource =
-                "linear-gradient(yellow, blue)";
+                "linear-gradient(grey,yellow,green,grey)";
             break;
         case TopologyMode.Mobius:
             canvas.style.borderImageSource =
-                "conic-gradient(red,orange,yellow,green,blue,orange,yellow,green,red)";
+                "conic-gradient(grey,grey,grey,blue,red,purple,grey,grey,grey,grey,grey,blue,red,purple,grey,grey,grey)";
             break;
         case TopologyMode.Torus:
             canvas.style.borderImageSource =
@@ -173,8 +173,6 @@ function update_border() {
             break;
         default:
         case TopologyMode.Plain:
-            canvas.style.borderImageSource =
-                "conic-gradient(red, orange,yellow,green,red)";
             break;
     }
 }
