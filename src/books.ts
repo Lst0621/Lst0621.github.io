@@ -37,12 +37,14 @@ function add_2020() {
     document.body.appendChild(book_div)
 }
 
-function add_year_month(year: number, months: Array<number>) {
+function add_year_month(year: number) {
     add_year(year)
-    for (const month in months) {
-        add_month(year, months[month])
+    let months = [12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
+    for (const idx in months) {
+        add_month(year, months[idx])
     }
 }
+
 
 function remove_empty_year_month(year: number) {
     for (let month = 1; month <= 12; month++) {
@@ -485,10 +487,10 @@ function add_books(){
 }
 
 function add_groups() {
-    add_year_month(2024, [12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1])
-    add_year_month(2023, [12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1])
-    add_year_month(2022, [12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1])
-    add_year_month(2021, [12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1])
+    add_year_month(2024)
+    add_year_month(2023)
+    add_year_month(2022)
+    add_year_month(2021)
     add_2020()
 }
 
