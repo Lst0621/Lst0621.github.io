@@ -87,15 +87,36 @@ function add_book_2023() {
     add_book("books-2023-11", "About Vectors", "https://m.media-amazon.com/images/I/61OEjMyt5iL._SL1360_.jpg", "978-0486604893");
     add_book("books-2023-12", "Introduction to Calculus and Analysis, Vol. II/1", "https://m.media-amazon.com/images/W/MEDIAX_792452-T1/images/I/51idpycxw2L._SL1360_.jpg", "978-3540665694");
 }
-add_book_2023();
-add_book_2022_12();
-add_book_2022_10();
-add_book_2022_09();
-add_book_2022_06();
-add_book_2022_05();
-add_book_2022_03();
-add_book_2021_09();
-add_book_2021_04();
-add_book_2021_03();
-add_book_2021_01();
-add_book_2020();
+function add_books() {
+    add_book("books-2024-11", "Number Theory", "https://m.media-amazon.com/images/I/61tBtOB1O6L.jpg", "978-0486682525");
+    add_book("books-2024-11", "Complex Variables: Second Edition ", "https://m.media-amazon.com/images/I/61SJ6nHwAiL.jpg", "978-0486406794");
+    add_book("books-2024-10", "Computer Networks", "https://marketing-assets.chegg.com/BDEIAGTK/as/nvfrpqf5k5frc84rs579rnc/9780132126953.jpg", "978-0132126953");
+    add_book("books-2024-09", "Elements of Programming", "https://m.media-amazon.com/images/I/51TG0kzHi6L.jpg", "978-0578222141");
+    add_book("books-2024-09", "八次危机:中国的真实经验(1949-2009) ", "https://m.media-amazon.com/images/I/71TVzm4nhsL._SL1430_.jpg", "978-7-5060-5557-4");
+    add_book("books-2024-09", "Topology: An Introduction to the Point-Set and Algebraic Areas", "https://marketing-assets.chegg.com/BDEIAGTK/as/gqr9mfw6fggmmk96wf7s6kh/9780486686097.jpg", "978-0486686097");
+    add_book("books-2024-08", "An Introduction to Ordinary Differential Equations", "https://m.media-amazon.com/images/I/81I8f6Cn-ZL.jpg", "978-0486659428");
+    add_book("books-2024-06", "Div, Grad, Curl, and All That: An Informal Text on Vector Calculus", "https://m.media-amazon.com/images/I/71mVtHgjpgL.jpg", "978-0393925166");
+    add_book("books-2024-05", "How to Lie with Statistics", "https://m.media-amazon.com/images/I/71HrHG2145L.jpg", "978-0393310726");
+    add_book("books-2024-04", "The Art of Proof: Basic Training for Deeper Mathematics", "https://m.media-amazon.com/images/I/617FpsDLEBL._SL1273_.jpg", "978-1441970220");
+    add_book("books-2024-03", "A Book of Set Theory", "https://m.media-amazon.com/images/I/81pZEbrMDHL._SL1500_.jpg", "978-0486497082");
+    add_book("books-2024-03", "Designing Distributed Systems: Patterns and Paradigms for Scalable, Reliable Services", "https://m.media-amazon.com/images/I/91CxhyACrlL._SL1500_.jpg", "978-1491983645");
+    add_book("books-2024-02", "Linear Algebra Done Rights", "https://m.media-amazon.com/images/I/61G5BuihTeL.jpg", "978-3319307657");
+    add_book("books-2024-02", "An Introduction to Functional Programming Through Lambda Calculus", "https://m.media-amazon.com/images/I/71BDN38eBVL.jpg", "978-0486478838");
+    add_book("books-2024-02", "Functional Programming in Java: How functional techniques improve your Java programs", "https://m.media-amazon.com/images/I/51Zq7G+uwxL.jpg", "978-1617292736");
+    add_book("books-2024-01", "The Filmmaker's Guide to Visual Effects", "https://m.media-amazon.com/images/I/71lngDARigL.jpg", "978-1032266695");
+    add_book("books-2024-01", "Category Theory I: Notes towards a gentle introduction", "https://m.media-amazon.com/images/I/51J4dhgYKnL._SL1437_.jpg", "978-1916906372");
+    add_book("books-2024-01", "Introduction to Calculus and Analysis, Vol. II/2", "https://m.media-amazon.com/images/I/51VtJlaAHgL.jpg", "978-3540665700");
+    add_book_2023();
+    add_book_2022_12();
+    add_book_2022_10();
+    add_book_2022_09();
+    add_book_2022_06();
+    add_book_2022_05();
+    add_book_2022_03();
+    add_book_2021_09();
+    add_book_2021_04();
+    add_book_2021_03();
+    add_book_2021_01();
+    add_book_2020();
+}
+add_books();
