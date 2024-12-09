@@ -1,3 +1,62 @@
+function add_year(year: number) {
+    let year_div: HTMLDivElement = document.createElement("div") as HTMLDivElement
+    year_div.classList.add("year_style")
+    year_div.innerHTML = year.toString();
+    document.body.appendChild(year_div)
+}
+
+function get_month_str(month: number) {
+    if (month < 10) {
+        return "0" + month.toString()
+    } else {
+        return month.toString()
+    }
+}
+
+function add_month(year: number, month: number) {
+    let month_div: HTMLDivElement = document.createElement("div") as HTMLDivElement
+    let month_h1: HTMLHeadingElement = document.createElement("h1") as HTMLHeadingElement
+    let book_div: HTMLDivElement = document.createElement("div") as HTMLDivElement
+
+    month_div.id = "header-" + year.toString() + "-" + get_month_str(month)
+    month_div.classList.add("month_style")
+    month_h1.textContent = year.toString() + "/" + get_month_str(month)
+    month_div.appendChild(month_h1)
+    document.body.appendChild(month_div)
+    book_div.classList.add("books")
+    book_div.id = "books-" + year.toString() + "-" + get_month_str(month)
+    document.body.appendChild(book_div)
+}
+
+function add_2020() {
+    // Monthly info lost
+    add_year(2020)
+    let book_div: HTMLDivElement = document.createElement("div") as HTMLDivElement
+    book_div.classList.add("books")
+    book_div.id = "books-2020"
+    document.body.appendChild(book_div)
+}
+
+function add_year_month(year: number, months: Array<number>) {
+    add_year(year)
+    for (const month in months) {
+        add_month(year, months[month])
+    }
+}
+
+function remove_empty_year_month(year: number) {
+    for (let month = 1; month <= 12; month++) {
+        let div_id: string = "books-" + year.toString() + "-" + get_month_str(month)
+        let book_div: HTMLDivElement = document.getElementById(div_id) as HTMLDivElement
+        if (book_div.children.length == 0) {
+            let month_div_id: string = "header-" + year.toString() + "-" + get_month_str(month)
+            book_div.parentNode.removeChild(document.getElementById(month_div_id))
+            book_div.parentNode.removeChild(book_div)
+        }
+    }
+}
+
+
 function add_book(books_group: string, name: string, img_url: string, id: string) {
     let books: HTMLDivElement = (document.getElementById(books_group)) as HTMLDivElement;
     let book: HTMLDivElement = document.createElement("div") as HTMLDivElement
@@ -290,7 +349,7 @@ function add_book_2023() {
     )
 }
 
-function add_books(){
+function add_book_2024() {
     add_book(
         "books-2024-11",
         "Number Theory",
@@ -407,7 +466,10 @@ function add_books(){
         "https://m.media-amazon.com/images/I/51VtJlaAHgL.jpg",
         "978-3540665700"
     )
+}
 
+function add_books(){
+    add_book_2024()
     add_book_2023()
     add_book_2022_12()
     add_book_2022_10()
@@ -422,4 +484,31 @@ function add_books(){
     add_book_2020()
 }
 
+function add_groups() {
+    add_year_month(2024, [12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1])
+    add_year_month(2023, [12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1])
+    add_year_month(2022, [12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1])
+    add_year_month(2021, [12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1])
+    add_2020()
+}
+
+function clear_groups() {
+    remove_empty_year_month(2024)
+    remove_empty_year_month(2023)
+    remove_empty_year_month(2022)
+    remove_empty_year_month(2021)
+}
+
+function add_footer() {
+    // TODO
+    // bring back span style="font-family: Courier;font-size: 12pt;"
+    let anchor: HTMLAnchorElement = document.createElement("a")
+    anchor.href = "../index.html"
+    anchor.textContent = "Back"
+    document.body.appendChild(anchor)
+}
+
+add_groups()
 add_books()
+clear_groups()
+add_footer()

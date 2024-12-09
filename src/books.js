@@ -1,3 +1,55 @@
+function add_year(year) {
+    var year_div = document.createElement("div");
+    year_div.classList.add("year_style");
+    year_div.innerHTML = year.toString();
+    document.body.appendChild(year_div);
+}
+function get_month_str(month) {
+    if (month < 10) {
+        return "0" + month.toString();
+    }
+    else {
+        return month.toString();
+    }
+}
+function add_month(year, month) {
+    var month_div = document.createElement("div");
+    var month_h1 = document.createElement("h1");
+    var book_div = document.createElement("div");
+    month_div.id = "header-" + year.toString() + "-" + get_month_str(month);
+    month_div.classList.add("month_style");
+    month_h1.textContent = year.toString() + "/" + get_month_str(month);
+    month_div.appendChild(month_h1);
+    document.body.appendChild(month_div);
+    book_div.classList.add("books");
+    book_div.id = "books-" + year.toString() + "-" + get_month_str(month);
+    document.body.appendChild(book_div);
+}
+function add_2020() {
+    // Monthly info lost
+    add_year(2020);
+    var book_div = document.createElement("div");
+    book_div.classList.add("books");
+    book_div.id = "books-2020";
+    document.body.appendChild(book_div);
+}
+function add_year_month(year, months) {
+    add_year(year);
+    for (var month in months) {
+        add_month(year, months[month]);
+    }
+}
+function remove_empty_year_month(year) {
+    for (var month = 1; month <= 12; month++) {
+        var div_id = "books-" + year.toString() + "-" + get_month_str(month);
+        var book_div = document.getElementById(div_id);
+        if (book_div.children.length == 0) {
+            var month_div_id = "header-" + year.toString() + "-" + get_month_str(month);
+            book_div.parentNode.removeChild(document.getElementById(month_div_id));
+            book_div.parentNode.removeChild(book_div);
+        }
+    }
+}
 function add_book(books_group, name, img_url, id) {
     var books = (document.getElementById(books_group));
     var book = document.createElement("div");
@@ -87,7 +139,7 @@ function add_book_2023() {
     add_book("books-2023-11", "About Vectors", "https://m.media-amazon.com/images/I/61OEjMyt5iL._SL1360_.jpg", "978-0486604893");
     add_book("books-2023-12", "Introduction to Calculus and Analysis, Vol. II/1", "https://m.media-amazon.com/images/I/51HkNDeM1XL.jpg", "978-3540665694");
 }
-function add_books() {
+function add_book_2024() {
     add_book("books-2024-11", "Number Theory", "https://m.media-amazon.com/images/I/61tBtOB1O6L.jpg", "978-0486682525");
     add_book("books-2024-11", "Complex Variables: Second Edition ", "https://m.media-amazon.com/images/I/61SJ6nHwAiL.jpg", "978-0486406794");
     add_book("books-2024-10", "Computer Networks", "https://marketing-assets.chegg.com/BDEIAGTK/as/nvfrpqf5k5frc84rs579rnc/9780132126953.jpg", "978-0132126953");
@@ -106,6 +158,9 @@ function add_books() {
     add_book("books-2024-01", "The Filmmaker's Guide to Visual Effects", "https://m.media-amazon.com/images/I/71lngDARigL.jpg", "978-1032266695");
     add_book("books-2024-01", "Category Theory I: Notes towards a gentle introduction", "https://m.media-amazon.com/images/I/51J4dhgYKnL.jpg", "978-1916906372");
     add_book("books-2024-01", "Introduction to Calculus and Analysis, Vol. II/2", "https://m.media-amazon.com/images/I/51VtJlaAHgL.jpg", "978-3540665700");
+}
+function add_books() {
+    add_book_2024();
     add_book_2023();
     add_book_2022_12();
     add_book_2022_10();
@@ -119,4 +174,28 @@ function add_books() {
     add_book_2021_01();
     add_book_2020();
 }
+function add_groups() {
+    add_year_month(2024, [12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
+    add_year_month(2023, [12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
+    add_year_month(2022, [12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
+    add_year_month(2021, [12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
+    add_2020();
+}
+function clear_groups() {
+    remove_empty_year_month(2024);
+    remove_empty_year_month(2023);
+    remove_empty_year_month(2022);
+    remove_empty_year_month(2021);
+}
+function add_footer() {
+    // TODO
+    // bring back span style="font-family: Courier;font-size: 12pt;"
+    var anchor = document.createElement("a");
+    anchor.href = "../index.html";
+    anchor.textContent = "Back";
+    document.body.appendChild(anchor);
+}
+add_groups();
 add_books();
+clear_groups();
+add_footer();
