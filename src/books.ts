@@ -195,7 +195,7 @@ function add_book_2023() {
     add_book(
         "books-2023-01",
         "The Foundations of Arithmetic: A Logico-Mathematical Enquiry into the Concept of Number",
-        "https://m.media-amazon.com/images/W/MEDIAX_792452-T1/images/I/51mVW605ekL._SL1360_.jpg",
+        "https://m.media-amazon.com/images/I/51mVW605ekL.jpg",
         "978-0810106055"
     )
     add_book(
@@ -231,49 +231,49 @@ function add_book_2023() {
     add_book(
         "books-2023-06",
         "Mythical Man-Month, The: Essays on Software Engineering",
-        "https://m.media-amazon.com/images/W/MEDIAX_792452-T1/images/I/71fCJWIx4UL._SL1500_.jpg",
+        "https://m.media-amazon.com/images/I/71fCJWIx4UL.jpg",
         "978-0201835953"
     )
     add_book(
         "books-2023-06",
         "Phaedo",
-        "https://m.media-amazon.com/images/W/MEDIAX_792452-T1/images/I/418IqdCUAXL.jpg",
+        "https://m.media-amazon.com/images/I/418IqdCUAXL.jpg",
         "B0082S2Z2S"
     )
     add_book(
         "books-2023-07",
         "Rich Dad Poor Dad: What the Rich Teach Their Kids About Money That the Poor and Middle Class Do Not!",
-        "https://m.media-amazon.com/images/W/MEDIAX_792452-T1/images/I/81BE7eeKzAL._SL1500_.jpg",
+        "https://m.media-amazon.com/images/I/81BE7eeKzAL._SL1500_.jpg",
         "978-1612681139"
     )
     add_book(
         "books-2023-07",
         "System Design Interview – An Insider's Guide: Volume 2",
-        "https://m.media-amazon.com/images/W/MEDIAX_792452-T1/images/I/51lJolln98L._SL1429_.jpg",
+        "https://m.media-amazon.com/images/I/51lJolln98L._SL1429_.jpg",
         "978-1736049112"
     )
     add_book(
         "books-2023-08",
         "Compilers: Principles, Techniques, and Tools",
-        "https://m.media-amazon.com/images/W/MEDIAX_792452-T1/images/I/51L0qegzCgL.jpg",
+        "https://m.media-amazon.com/images/I/51L0qegzCgL.jpg",
         "978-0321486813"
     )
     add_book(
         "books-2023-09",
         "A Book of Abstract Algebra: Second Edition",
-        "https://m.media-amazon.com/images/W/MEDIAX_792452-T1/images/I/71ixgrQG5yL.jpg",
+        "https://m.media-amazon.com/images/I/71ixgrQG5yL.jpg",
         "978-0486474175"
     )
     add_book(
         "books-2023-09",
         "Boolean Algebra and Its Applications",
-        "https://m.media-amazon.com/images/W/MEDIAX_792452-T1/images/I/81Lo-WmVpKL.jpg",
+        "https://m.media-amazon.com/images/I/81Lo-WmVpKL.jpg",
         "978-0486477671"
     )
     add_book(
         "books-2023-10",
         "万历十五年",
-        "https://m.media-amazon.com/images/W/MEDIAX_792452-T1/images/I/71sA9gh1sNL.jpg",
+        "https://m.media-amazon.com/images/I/71sA9gh1sNL.jpg",
         "9787101156478"
     )
     add_book(
@@ -285,7 +285,7 @@ function add_book_2023() {
     add_book(
         "books-2023-12",
         "Introduction to Calculus and Analysis, Vol. II/1",
-        "https://m.media-amazon.com/images/W/MEDIAX_792452-T1/images/I/51idpycxw2L._SL1360_.jpg",
+        "https://m.media-amazon.com/images/I/51HkNDeM1XL.jpg",
         "978-3540665694"
     )
 }
@@ -322,7 +322,7 @@ function add_books(){
     add_book(
         "books-2024-09",
         "八次危机:中国的真实经验(1949-2009) ",
-        "https://m.media-amazon.com/images/I/71TVzm4nhsL._SL1430_.jpg",
+        "https://m.media-amazon.com/images/I/71TVzm4nhsL.jpg",
         "978-7-5060-5557-4"
     )
     add_book(
@@ -352,19 +352,19 @@ function add_books(){
     add_book(
         "books-2024-04",
         "The Art of Proof: Basic Training for Deeper Mathematics",
-        "https://m.media-amazon.com/images/I/617FpsDLEBL._SL1273_.jpg",
+        "https://m.media-amazon.com/images/I/617FpsDLEBL.jpg",
         "978-1441970220",
     )
     add_book(
         "books-2024-03",
         "A Book of Set Theory",
-        "https://m.media-amazon.com/images/I/81pZEbrMDHL._SL1500_.jpg",
+        "https://m.media-amazon.com/images/I/81pZEbrMDHL.jpg",
         "978-0486497082"
     )
     add_book(
         "books-2024-03",
         "Designing Distributed Systems: Patterns and Paradigms for Scalable, Reliable Services",
-        "https://m.media-amazon.com/images/I/91CxhyACrlL._SL1500_.jpg",
+        "https://m.media-amazon.com/images/I/91CxhyACrlL.jpg",
         "978-1491983645"
     )
 
@@ -398,7 +398,7 @@ function add_books(){
     add_book(
         "books-2024-01",
         "Category Theory I: Notes towards a gentle introduction",
-        "https://m.media-amazon.com/images/I/51J4dhgYKnL._SL1437_.jpg",
+        "https://m.media-amazon.com/images/I/51J4dhgYKnL.jpg",
         "978-1916906372"
     )
     add_book(
