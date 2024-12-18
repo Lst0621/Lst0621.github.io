@@ -149,6 +149,7 @@ function add_book_2024() {
     add_book("books-2024-09", "Topology: An Introduction to the Point-Set and Algebraic Areas", "https://marketing-assets.chegg.com/BDEIAGTK/as/gqr9mfw6fggmmk96wf7s6kh/9780486686097.jpg", "978-0486686097");
     add_book("books-2024-08", "An Introduction to Ordinary Differential Equations", "https://m.media-amazon.com/images/I/81I8f6Cn-ZL.jpg", "978-0486659428");
     add_book("books-2024-06", "Div, Grad, Curl, and All That: An Informal Text on Vector Calculus", "https://m.media-amazon.com/images/I/71mVtHgjpgL.jpg", "978-0393925166");
+    add_book("books-2024-05", "Introduction to Calculus and Analysis, Vol. II/2", "https://m.media-amazon.com/images/I/51VtJlaAHgL.jpg", "978-3540665700");
     add_book("books-2024-05", "How to Lie with Statistics", "https://m.media-amazon.com/images/I/71HrHG2145L.jpg", "978-0393310726");
     add_book("books-2024-04", "The Art of Proof: Basic Training for Deeper Mathematics", "https://m.media-amazon.com/images/I/617FpsDLEBL.jpg", "978-1441970220");
     add_book("books-2024-03", "A Book of Set Theory", "https://m.media-amazon.com/images/I/81pZEbrMDHL.jpg", "978-0486497082");
@@ -158,7 +159,6 @@ function add_book_2024() {
     add_book("books-2024-02", "Functional Programming in Java: How functional techniques improve your Java programs", "https://m.media-amazon.com/images/I/51Zq7G+uwxL.jpg", "978-1617292736");
     add_book("books-2024-01", "The Filmmaker's Guide to Visual Effects", "https://m.media-amazon.com/images/I/71lngDARigL.jpg", "978-1032266695");
     add_book("books-2024-01", "Category Theory I: Notes towards a gentle introduction", "https://m.media-amazon.com/images/I/51J4dhgYKnL.jpg", "978-1916906372");
-    add_book("books-2024-01", "Introduction to Calculus and Analysis, Vol. II/2", "https://m.media-amazon.com/images/I/51VtJlaAHgL.jpg", "978-3540665700");
 }
 function add_books() {
     add_book_2024();

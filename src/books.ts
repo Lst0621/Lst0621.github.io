@@ -406,6 +406,12 @@ function add_book_2024() {
     )
     add_book(
         "books-2024-05",
+        "Introduction to Calculus and Analysis, Vol. II/2",
+        "https://m.media-amazon.com/images/I/51VtJlaAHgL.jpg",
+        "978-3540665700"
+    )
+    add_book(
+        "books-2024-05",
         "How to Lie with Statistics",
         "https://m.media-amazon.com/images/I/71HrHG2145L.jpg",
         "978-0393310726"
@@ -461,12 +467,6 @@ function add_book_2024() {
         "Category Theory I: Notes towards a gentle introduction",
         "https://m.media-amazon.com/images/I/51J4dhgYKnL.jpg",
         "978-1916906372"
-    )
-    add_book(
-        "books-2024-01",
-        "Introduction to Calculus and Analysis, Vol. II/2",
-        "https://m.media-amazon.com/images/I/51VtJlaAHgL.jpg",
-        "978-3540665700"
     )
 }
 
