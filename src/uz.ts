@@ -240,11 +240,11 @@ function get_locations() {
     for (const location of locations) {
         x_min = Math.min(x_min, location[0][0], location[1][0])
         y_min = Math.min(y_min, location[0][1], location[1][1])
-        x_max = Math.max(x_min, location[0][0], location[1][0])
-        y_max = Math.max(y_min, location[0][1], location[1][1])
+        x_max = Math.max(x_max, location[0][0], location[1][0])
+        y_max = Math.max(y_max, location[0][1], location[1][1])
     }
 
-    if (y_max - y_min > 5 || x_max - x_min > 4) {
+    if (y_max - y_min > 3 || x_max - x_min > 2) {
         // too wide. try again
         return get_locations()
     }

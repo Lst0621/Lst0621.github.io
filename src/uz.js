@@ -220,10 +220,10 @@ function get_locations() {
         var location_5 = locations_3[_a];
         x_min = Math.min(x_min, location_5[0][0], location_5[1][0]);
         y_min = Math.min(y_min, location_5[0][1], location_5[1][1]);
-        x_max = Math.max(x_min, location_5[0][0], location_5[1][0]);
-        y_max = Math.max(y_min, location_5[0][1], location_5[1][1]);
+        x_max = Math.max(x_max, location_5[0][0], location_5[1][0]);
+        y_max = Math.max(y_max, location_5[0][1], location_5[1][1]);
     }
-    if (y_max - y_min > 5 || x_max - x_min > 4) {
+    if (y_max - y_min > 3 || x_max - x_min > 2) {
         // too wide. try again
         return get_locations();
     }
