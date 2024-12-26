@@ -73,9 +73,10 @@ function drawBlocks(blocks, i) {
 }
 function switch_block_mode() {
     show_chosen_block_only = !show_chosen_block_only;
-    DrawInputs();
+    drawPatterns();
+    drawInputs();
 }
-function DrawInputs() {
+function drawInputs() {
     context.clearRect(0, 0, canvas.width, canvas.height);
     drawBlocks(allBlocks[0], 0);
     drawBlocks(allBlocks[1], 1);
@@ -83,20 +84,32 @@ function DrawInputs() {
     drawBlocks(allBlocks[3], 3);
     drawBlocks(allBlocks[4], 4);
 }
-function setup() {
+function init() {
     addBlockI(allBlocks[0], 1);
     addBlockI(allBlocks[1], 2);
     addBlockI(allBlocks[2], 3);
     addBlockI(allBlocks[3], 4);
     addBlockI(allBlocks[4], 5);
-    DrawInputs();
-    var locations = get_locations();
+}
+function setup() {
+    createPuzzle();
+    drawPatterns();
+    drawInputs();
+}
+var locations = [];
+function createPuzzle() {
+    locations = get_locations();
     // TODO
     block_idx = [0, 4, 2, 1, 3];
     faces = [];
     for (var i = 0; i < block_idx.length; i++) {
         faces.push(Math.floor(Math.random() * 4));
     }
+}
+function drawPatterns() {
+    context_uz.clearRect(0, 0, canvas_uz.width, canvas_uz.height);
+    context_uz.textAlign = 'center';
+    context_uz.font = "bold 80px serif";
     for (var i = 0; i < faces.length; i++) {
         var location_pair = locations[i];
         var swap = Math.random() < 0.5;
@@ -105,6 +118,10 @@ function setup() {
             var x = location_1[0];
             var y = location_1[1];
             drawOneBlock(allBlocks[block_idx[i]][faces[i]][swap ? 1 : 0], context_uz, x * scale, y * scale);
+            if (show_chosen_block_only) {
+                context_uz.fillStyle = 'black';
+                context_uz.fillText((1 + block_idx[i]).toString(), (x + 0.5) * scale, (y + 1) * scale);
+            }
             swap = !swap;
         }
     }
@@ -217,4 +234,5 @@ function get_locations() {
     }
     return locations;
 }
+init();
 setup();
