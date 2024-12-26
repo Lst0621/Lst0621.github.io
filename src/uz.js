@@ -63,6 +63,10 @@ function drawBlocks(blocks, i) {
     if (show_chosen_block_only) {
         var idx = block_idx.indexOf(i);
         drawTwoBlock(blocks[faces[idx]], faces[idx] * 2 * scaleWithGapX, y);
+        context.textAlign = 'center';
+        context.font = "bold 80px serif";
+        context.fillStyle = 'black';
+        context.fillText((1 + i).toString(), (faces[idx] * 2 + 1) * scaleWithGapX, y + scale);
     }
     else {
         drawTwoBlock(blocks[0], 0, y);
