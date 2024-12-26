@@ -59,7 +59,7 @@ function drawTwoBlock(blocks, x, y) {
 function drawBlocks(blocks, i) {
     var scaleWithGapX = scale + 2;
     var scaleWithGapY = scale + 10;
-    var y = i * scaleWithGapY;
+    var y = i * scaleWithGapY + 5;
     if (show_chosen_block_only) {
         var idx = block_idx.indexOf(i);
         drawTwoBlock(blocks[faces[idx]], faces[idx] * 2 * scaleWithGapX, y);
@@ -193,12 +193,18 @@ function get_locations() {
     console.log(locations);
     var x_min = locations[0][0][0];
     var y_min = locations[0][0][1];
+    var x_max = locations[0][0][0];
+    var y_max = locations[0][0][1];
     for (var _a = 0, locations_3 = locations; _a < locations_3.length; _a++) {
         var location_5 = locations_3[_a];
-        x_min = Math.min(x_min, location_5[0][0]);
-        y_min = Math.min(y_min, location_5[0][1]);
-        x_min = Math.min(x_min, location_5[1][0]);
-        y_min = Math.min(y_min, location_5[1][1]);
+        x_min = Math.min(x_min, location_5[0][0], location_5[1][0]);
+        y_min = Math.min(y_min, location_5[0][1], location_5[1][1]);
+        x_max = Math.max(x_min, location_5[0][0], location_5[1][0]);
+        y_max = Math.max(y_min, location_5[0][1], location_5[1][1]);
+    }
+    if (y_max - y_min > 5 || x_max - x_min > 4) {
+        // too wide. try again
+        return get_locations();
     }
     for (var _b = 0, locations_4 = locations; _b < locations_4.length; _b++) {
         var location_pair = locations_4[_b];

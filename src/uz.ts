@@ -71,7 +71,7 @@ function drawTwoBlock(blocks: Array<Block>, x: number, y: number) {
 function drawBlocks(blocks: Array<Array<Block>>, i: number) {
     let scaleWithGapX = scale + 2
     let scaleWithGapY = scale + 10
-    let y = i * scaleWithGapY
+    let y = i * scaleWithGapY + 5
     if (show_chosen_block_only) {
         let idx = block_idx.indexOf(i)
         drawTwoBlock(blocks[faces[idx]], faces[idx] * 2 * scaleWithGapX, y)
@@ -213,12 +213,20 @@ function get_locations() {
     console.log(locations)
     let x_min = locations[0][0][0]
     let y_min = locations[0][0][1]
+    let x_max = locations[0][0][0]
+    let y_max = locations[0][0][1]
     for (const location of locations) {
-        x_min = Math.min(x_min, location[0][0])
-        y_min = Math.min(y_min, location[0][1])
-        x_min = Math.min(x_min, location[1][0])
-        y_min = Math.min(y_min, location[1][1])
+        x_min = Math.min(x_min, location[0][0], location[1][0])
+        y_min = Math.min(y_min, location[0][1], location[1][1])
+        x_max = Math.max(x_min, location[0][0], location[1][0])
+        y_max = Math.max(y_min, location[0][1], location[1][1])
     }
+
+    if (y_max - y_min > 5 || x_max - x_min > 4) {
+        // too wide. try again
+        return get_locations()
+    }
+
     for (const location_pair of locations) {
         for (const location of location_pair) {
             // TODO move to center
