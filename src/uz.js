@@ -101,10 +101,20 @@ function setup() {
     drawInputs();
 }
 var locations = [];
+function shuffleArray(array) {
+    array.sort(function (a, b) { return a - b; });
+    for (var i = array.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var temp = array[i];
+        array[i] = array[j];
+        array[j] = temp;
+    }
+}
 function createPuzzle() {
     locations = get_locations();
     // TODO
-    block_idx = [0, 4, 2, 1, 3];
+    shuffleArray(block_idx);
+    console.log("blk: " + block_idx);
     faces = [];
     for (var i = 0; i < block_idx.length; i++) {
         faces.push(Math.floor(Math.random() * 4));
@@ -216,7 +226,6 @@ function get_locations() {
             break;
         }
     }
-    console.log(locations);
     var x_min = locations[0][0][0];
     var y_min = locations[0][0][1];
     var x_max = locations[0][0][0];
@@ -241,6 +250,7 @@ function get_locations() {
             location_6[1] -= y_min;
         }
     }
+    console.log(locations);
     return locations;
 }
 init();

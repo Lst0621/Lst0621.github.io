@@ -119,10 +119,21 @@ function setup() {
 
 let locations: (typeof loc_pair)[] = []
 
+function shuffleArray(array: any[]) {
+    array.sort((a, b) => a - b)
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        const temp = array[i];
+        array[i] = array[j];
+        array[j] = temp;
+    }
+}
+
 function createPuzzle() {
     locations = get_locations()
     // TODO
-    block_idx = [0, 4, 2, 1, 3]
+    shuffleArray(block_idx)
+    console.log("blk: " + block_idx)
     faces = []
     for (let i = 0; i < block_idx.length; i++) {
         faces.push(Math.floor(Math.random() * 4));
@@ -236,7 +247,6 @@ function get_locations() {
         }
     }
 
-    console.log(locations)
     let x_min = locations[0][0][0]
     let y_min = locations[0][0][1]
     let x_max = locations[0][0][0]
@@ -261,6 +271,7 @@ function get_locations() {
         }
     }
 
+    console.log(locations)
     return locations
 }
 
