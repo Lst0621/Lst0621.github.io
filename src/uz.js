@@ -187,7 +187,12 @@ function get_nbs(locations) {
 }
 function get_locations() {
     var locations = [];
-    locations.push([[0, 0], [0, 1]]);
+    if (Math.random() < 0.5) {
+        locations.push([[0, 0], [0, 1]]);
+    }
+    else {
+        locations.push([[0, 0], [1, 0]]);
+    }
     for (var i = 0; i < 4; i++) {
         var locations_flatten = flat(locations);
         var nbs = get_nbs(locations);

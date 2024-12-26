@@ -207,7 +207,11 @@ function get_nbs(locations: (typeof loc_pair)[]) {
 
 function get_locations() {
     let locations: (typeof loc_pair)[] = []
-    locations.push([[0, 0], [0, 1]])
+    if (Math.random() < 0.5) {
+        locations.push([[0, 0], [0, 1]])
+    } else {
+        locations.push([[0, 0], [1, 0]])
+    }
     for (let i = 0; i < 4; i++) {
         let locations_flatten: typeof loc[] = flat(locations);
         let nbs = get_nbs(locations);
