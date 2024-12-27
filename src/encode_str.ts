@@ -1,5 +1,21 @@
 function reverseString(str: string) {
-    return str.split("").reverse().join("");
+    let rev: string = str.split("").reverse().join("");
+    let ret: string = ""
+    for (let c of rev) {
+        if(c>='a' && c<='z'){
+            ret += String.fromCharCode('a'.charCodeAt(0) + 'z'.charCodeAt(0) - c.charCodeAt(0))
+            continue
+        }
+
+        if(c>='A' && c<='Z'){
+            ret += String.fromCharCode('A'.charCodeAt(0) + 'Z'.charCodeAt(0) - c.charCodeAt(0))
+            continue
+        }
+
+        ret += c
+    }
+
+    return ret
 }
 
 function encode() {
