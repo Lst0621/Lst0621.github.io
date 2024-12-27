@@ -42,24 +42,8 @@ function addBlockI(blocks: Array<Array<Block>>, i: number) {
 let scale: number = 80
 
 function drawOneBlock(block: Block, ctx: CanvasRenderingContext2D, x: number, y: number) {
-
-    switch (block) {
-        case Block.RED:
-            ctx.fillStyle = 'red';
-            break;
-        case Block.GREEN:
-            ctx.fillStyle = 'green';
-            break;
-        case Block.BLUE:
-            ctx.fillStyle = 'blue';
-            break;
-        case Block.PURPLE:
-            ctx.fillStyle = 'purple';
-            break;
-        case Block.ORANGE:
-            ctx.fillStyle = 'orange';
-            break;
-    }
+    let colors: string[] = ['red', 'green', 'blue', 'purple', 'orange']
+    ctx.fillStyle = colors[block - 1]
     ctx.fillRect(x, y, scale, scale)
 }
 

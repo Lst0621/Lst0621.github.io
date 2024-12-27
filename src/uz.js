@@ -33,23 +33,8 @@ function addBlockI(blocks, i) {
 }
 var scale = 80;
 function drawOneBlock(block, ctx, x, y) {
-    switch (block) {
-        case Block.RED:
-            ctx.fillStyle = 'red';
-            break;
-        case Block.GREEN:
-            ctx.fillStyle = 'green';
-            break;
-        case Block.BLUE:
-            ctx.fillStyle = 'blue';
-            break;
-        case Block.PURPLE:
-            ctx.fillStyle = 'purple';
-            break;
-        case Block.ORANGE:
-            ctx.fillStyle = 'orange';
-            break;
-    }
+    var colors = ['red', 'green', 'blue', 'purple', 'orange'];
+    ctx.fillStyle = colors[block - 1];
     ctx.fillRect(x, y, scale, scale);
 }
 function drawTwoBlock(blocks, x, y) {
