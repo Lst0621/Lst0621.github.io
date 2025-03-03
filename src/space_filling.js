@@ -1,61 +1,84 @@
 var canvas = document.getElementById('space_filling_canvas');
 var head_span = document.getElementById("head_span");
 var context = canvas.getContext("2d");
-function draw_square(x, y, width, level, positive, major) {
+var to = 0;
+function draw_square(start, end, level) {
+    var x0 = start[0];
+    var y0 = start[1];
+    var x1 = end[0];
+    var y1 = end[1];
     if (level == 1) {
         // last iteration
-        context.beginPath();
-        if (major) {
-            context.strokeStyle = "yellow";
-            if (positive) {
-                context.strokeStyle = context.createLinearGradient(x, y, x + width, y + width);
+        if (line_cnt <= box_idx) {
+            context.beginPath();
+            var major = (x0 - x1) * (y0 - y1) > 0;
+            if (major) {
+                context.strokeStyle = context.createLinearGradient(x0, y0, x1, y1);
+                context.strokeStyle.addColorStop(0, "yellow");
+                context.strokeStyle.addColorStop(1, "red");
+                context.moveTo(x0, y0);
+                context.lineTo(x1, y1);
             }
             else {
-                context.strokeStyle = context.createLinearGradient(x + width, y + width, x, y);
+                context.strokeStyle = context.createLinearGradient(x0, y0, x1, y1);
+                context.strokeStyle.addColorStop(0, "blue");
+                context.strokeStyle.addColorStop(1, "green");
+                context.moveTo(x0, y0);
+                context.lineTo(x1, y1);
             }
-            context.strokeStyle.addColorStop(0, "yellow");
-            context.strokeStyle.addColorStop(1, "red");
-            context.moveTo(x, y);
-            context.lineTo(x + width, y + width);
+            context.stroke();
         }
-        else {
-            context.strokeStyle = "green";
-            if (positive) {
-                context.strokeStyle = context.createLinearGradient(x + width, y, x, y + width);
-            }
-            else {
-                context.strokeStyle = context.createLinearGradient(x, y + width, x + width, y);
-            }
-            context.strokeStyle.addColorStop(0, "blue");
-            context.strokeStyle.addColorStop(1, "green");
-            context.moveTo(x + width, y);
-            context.lineTo(x, y + width);
+        line_cnt += 1;
+        if (line_cnt >= Math.pow(9, lvl - 1)) {
+            line_cnt = 0;
         }
-        context.stroke();
-        return;
     }
-    var split = 3;
-    var next_width = width / split;
-    for (var i = 0; i < split; i++) {
-        for (var j = 0; j < split; j++) {
-            draw_square(x + i * next_width, y + j * next_width, next_width, level - 1, j % 2 == 0 ? positive : !positive, (i + j) % 2 == 0 ? major : !major);
-        }
+    else {
+        var diff_x = (x1 - x0) / 3;
+        var diff_y = (y1 - y0) / 3;
+        draw_square([x0, y0], [x0 + diff_x, y0 + diff_y], level - 1);
+        draw_square([x0 + diff_x, y0 + diff_y], [x0, y1 - diff_y], level - 1);
+        draw_square([x0, y1 - diff_y], [x0 + diff_x, y1], level - 1);
+        draw_square([x0 + diff_x, y1], [x1 - diff_x, y1 - diff_y], level - 1);
+        draw_square([x1 - diff_x, y1 - diff_y], [x0 + diff_x, y0 + diff_y], level - 1);
+        draw_square([x0 + diff_x, y0 + diff_y], [x1 - diff_x, y0], level - 1);
+        draw_square([x1 - diff_x, y0], [x1, y0 + diff_y], level - 1);
+        draw_square([x1, y0 + diff_y], [x1 - diff_x, y1 - diff_y], level - 1);
+        draw_square([x1 - diff_x, y1 - diff_y], [x1, y1], level - 1);
     }
 }
-var lvl = 4;
+var lvl = 3;
 function increment() {
     lvl += 1;
-    draw();
+    restart();
 }
 function decrement() {
     if (lvl > 1) {
         lvl -= 1;
     }
-    draw();
+    restart();
 }
+var line_cnt = 0;
 function draw() {
-    context.fillStyle = "white";
+    context.fillStyle = "black";
     context.fillRect(0, 0, canvas.width, canvas.width);
-    draw_square(0, 0, canvas.width, lvl, true, true);
+    line_cnt = 0;
+    draw_square([0, 0], [canvas.width, canvas.width], lvl);
 }
-draw();
+var timeout = 100;
+var box_idx = 0;
+function loop() {
+    draw();
+    box_idx += 1;
+    if (box_idx >= Math.pow(9, lvl - 1)) {
+        box_idx = 0;
+    }
+    console.log("box idx " + box_idx.toString());
+    to = setTimeout(loop, timeout);
+}
+function restart() {
+    box_idx = 0;
+    clearTimeout(to);
+    loop();
+}
+restart();

@@ -3,67 +3,92 @@ let canvas: HTMLCanvasElement = document.getElementById('space_filling_canvas') 
 let head_span: HTMLSpanElement = document.getElementById("head_span") as HTMLSpanElement
 let context: CanvasRenderingContext2D = canvas.getContext("2d");
 
+let to: number = 0
 
-function draw_square(x: number, y: number, width: number, level: number, positive: boolean, major: boolean) {
+function draw_square(start: number[], end: number[], level: number) {
+    let x0: number = start[0]
+    let y0: number = start[1]
+    let x1: number = end[0]
+    let y1: number = end[1]
     if (level == 1) {
         // last iteration
-        context.beginPath();
-        if (major) {
-            context.strokeStyle = "yellow"
-            if (positive) {
-                context.strokeStyle = context.createLinearGradient(x, y, x + width, y + width);
+        if (line_cnt <= box_idx) {
+            context.beginPath();
+            let major: boolean = (x0 - x1) * (y0 - y1) > 0
+            if (major) {
+                context.strokeStyle = context.createLinearGradient(x0, y0, x1, y1);
+                context.strokeStyle.addColorStop(0, "yellow")
+                context.strokeStyle.addColorStop(1, "red")
+                context.moveTo(x0, y0);
+                context.lineTo(x1, y1);
             } else {
-                context.strokeStyle = context.createLinearGradient(x + width, y + width, x, y);
+                context.strokeStyle = context.createLinearGradient(x0, y0, x1, y1);
+                context.strokeStyle.addColorStop(0, "blue")
+                context.strokeStyle.addColorStop(1, "green")
+                context.moveTo(x0, y0);
+                context.lineTo(x1, y1);
             }
-            context.strokeStyle.addColorStop(0, "yellow")
-            context.strokeStyle.addColorStop(1, "red")
-            context.moveTo(x, y);
-            context.lineTo(x + width, y + width);
-        } else {
-            context.strokeStyle = "green"
-            if (positive) {
-                context.strokeStyle = context.createLinearGradient(x + width, y, x, y + width);
-            } else {
-                context.strokeStyle = context.createLinearGradient(x, y + width, x + width, y);
-            }
-            context.strokeStyle.addColorStop(0, "blue")
-            context.strokeStyle.addColorStop(1, "green")
-            context.moveTo(x + width, y)
-            context.lineTo(x, y + width);
+            context.stroke()
         }
-        context.stroke()
-        return
-    }
-
-    let split: number = 3
-    let next_width = width / split
-    for (let i = 0; i < split; i++) {
-        for (let j = 0; j < split; j++) {
-            draw_square(x + i * next_width, y + j * next_width, next_width,
-                level - 1, j % 2 == 0 ? positive : !positive, (i + j) % 2 == 0 ? major : !major);
-
+        line_cnt += 1
+        if (line_cnt >= Math.pow(9, lvl - 1)) {
+            line_cnt = 0
         }
+    } else {
+        let diff_x: number = (x1 - x0) / 3
+        let diff_y: number = (y1 - y0) / 3
+        draw_square([x0, y0], [x0 + diff_x, y0 + diff_y], level - 1)
+        draw_square([x0 + diff_x, y0 + diff_y], [x0, y1 - diff_y], level - 1)
+        draw_square([x0, y1 - diff_y], [x0 + diff_x, y1], level - 1)
+        draw_square([x0 + diff_x, y1], [x1 - diff_x, y1 - diff_y], level - 1)
+        draw_square([x1 - diff_x, y1 - diff_y], [x0 + diff_x, y0 + diff_y], level - 1)
+        draw_square([x0 + diff_x, y0 + diff_y], [x1 - diff_x, y0], level - 1)
+        draw_square([x1 - diff_x, y0], [x1, y0 + diff_y], level - 1)
+        draw_square([x1, y0 + diff_y], [x1 - diff_x, y1 - diff_y], level - 1)
+        draw_square([x1 - diff_x, y1 - diff_y], [x1, y1], level - 1)
     }
 }
 
-let lvl: number = 4
+let lvl: number = 3
 
 function increment() {
     lvl += 1
-    draw()
+    restart()
 }
 
 function decrement() {
     if (lvl > 1) {
         lvl -= 1
     }
-    draw()
+    restart()
 }
+
+let line_cnt: number = 0
 
 function draw() {
-    context.fillStyle = "white"
+    context.fillStyle = "black"
     context.fillRect(0, 0, canvas.width, canvas.width)
-    draw_square(0, 0, canvas.width, lvl, true, true)
+    line_cnt = 0
+    draw_square([0, 0], [canvas.width, canvas.width], lvl)
 }
 
-draw()
+let timeout: number = 100
+let box_idx = 0
+
+function loop() {
+    draw()
+    box_idx += 1
+    if (box_idx >= Math.pow(9, lvl - 1)) {
+        box_idx = 0
+    }
+    console.log("box idx " + box_idx.toString())
+    to = setTimeout(loop, timeout)
+}
+
+function restart() {
+    box_idx = 0
+    clearTimeout(to)
+    loop()
+}
+
+restart()
