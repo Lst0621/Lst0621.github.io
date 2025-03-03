@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<head>
+    <title>Power Mod</title>
+    <link rel="icon" href="../img/flame1.png">
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-9BLVHLETMC"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+
+        function gtag() {
+            dataLayer.push(arguments);
+        }
+
+        gtag('js', new Date());
+        gtag('config', 'G-9BLVHLETMC');
+    </script>
+</head>
+
+<h1 style="margin-top: 10;" align="center">
+		<span id="head_span" style="font-size: 24pt">
+            Power(m,n) % p
+		</span><br>
+</h1>
+
+<body>
+<p align="center">
+    <canvas id="canvas_power_mod" width="1000" height="1000"
+            style="border: 15px solid black;">
+    </canvas>
+    <br>
+
+    <label for="power_input">Degree</label>
+    <input type="number" id="power_input" value=2><br><br>
+    <label for="range_input">Divisor</label>
+    <input type="number" id="range_input" value=100><br><br>
+    <button onclick="draw()">Update</button>
+    <br>
+</p>
+    <table id="powers" align="center"></table>
+
+<script src="../src/power_mod.js"></script>
+
+
+<a href="../index.html">
+    Back
+</a>
+</body>
