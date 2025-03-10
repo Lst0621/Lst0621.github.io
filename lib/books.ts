@@ -52,8 +52,10 @@ function remove_empty_year_month(year: number) {
         let book_div: HTMLDivElement = document.getElementById(div_id) as HTMLDivElement
         if (book_div.children.length == 0) {
             let month_div_id: string = "header-" + year.toString() + "-" + get_month_str(month)
-            book_div.parentNode.removeChild(document.getElementById(month_div_id))
-            book_div.parentNode.removeChild(book_div)
+            if (book_div.parentNode != null) {
+                book_div.parentNode.removeChild(document.getElementById(month_div_id) as HTMLDivElement)
+                book_div.parentNode.removeChild(book_div)
+            }
         }
     }
 }
@@ -497,7 +499,7 @@ function add_book_2025(){
     )
 }
 
-function add_books(){
+export function add_books(){
     add_book_2025()
     add_book_2024()
     add_book_2023()
@@ -514,7 +516,7 @@ function add_books(){
     add_book_2020()
 }
 
-function add_groups() {
+export function add_groups() {
     add_year_month(2025)
     add_year_month(2024)
     add_year_month(2023)
@@ -523,7 +525,7 @@ function add_groups() {
     add_2020()
 }
 
-function clear_groups() {
+export function clear_groups() {
     remove_empty_year_month(2025)
     remove_empty_year_month(2024)
     remove_empty_year_month(2023)
@@ -531,7 +533,7 @@ function clear_groups() {
     remove_empty_year_month(2021)
 }
 
-function add_footer() {
+export function add_footer() {
     // TODO
     // bring back span style="font-family: Courier;font-size: 12pt;"
     let anchor: HTMLAnchorElement = document.createElement("a")
@@ -540,7 +542,3 @@ function add_footer() {
     document.body.appendChild(anchor)
 }
 
-add_groups()
-add_books()
-clear_groups()
-add_footer()
