@@ -160,7 +160,14 @@ function add_book_2024() {
     add_book("books-2024-01", "The Filmmaker's Guide to Visual Effects", "https://m.media-amazon.com/images/I/71lngDARigL.jpg", "978-1032266695");
     add_book("books-2024-01", "Category Theory I: Notes towards a gentle introduction", "https://m.media-amazon.com/images/I/51J4dhgYKnL.jpg", "978-1916906372");
 }
+function add_book_2025() {
+    add_book("books-2025-01", "Finite-Dimensional Vector Spaces", "https://m.media-amazon.com/images/I/71N1jNExbrL.jpg", "978-0486814865");
+    add_book("books-2025-02", "Distributed Systems", "https://m.media-amazon.com/images/I/71SV45P9vwL.jpg", "978-1543057386");
+    add_book("books-2025-03", "The Real Numbers: An Introduction to Set Theory and Analysis", "https://m.media-amazon.com/images/I/51CGuhgGvTL.jpg", "978-3319347264");
+    add_book("books-2025-03", "Naive Set Theory", "https://m.media-amazon.com/images/I/610lIEx2LqL.jpg", "978-1614271314");
+}
 function add_books() {
+    add_book_2025();
     add_book_2024();
     add_book_2023();
     add_book_2022_12();
@@ -176,6 +183,7 @@ function add_books() {
     add_book_2020();
 }
 function add_groups() {
+    add_year_month(2025);
     add_year_month(2024);
     add_year_month(2023);
     add_year_month(2022);
@@ -183,6 +191,7 @@ function add_groups() {
     add_2020();
 }
 function clear_groups() {
+    remove_empty_year_month(2025);
     remove_empty_year_month(2024);
     remove_empty_year_month(2023);
     remove_empty_year_month(2022);
