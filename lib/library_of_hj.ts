@@ -1,4 +1,4 @@
-import {add_book, add_footer, add_groups, clear_groups} from "./books.js";
+import {add_book, add_footer, add_groups, clear_groups, update_from_file} from "./books.js";
 
 
 function add_book_2025() {
@@ -49,13 +49,4 @@ function add_book_2024() {
     )
 }
 
-function add_books() {
-    add_book_2025()
-    add_book_2024()
-}
-
-let years: number[] = [2024, 2025]
-add_groups(years)
-add_books()
-clear_groups(years)
-add_footer()
+update_from_file()

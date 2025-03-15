@@ -37,10 +37,13 @@ function add_year_month(year: number) {
     }
 }
 
+function get_div_from_year_month(year: number, month: number) {
+    return "books-" + year.toString() + "-" + get_month_str(month)
+}
 
 function remove_empty_year_month(year: number) {
     for (let month = 1; month <= 12; month++) {
-        let div_id: string = "books-" + year.toString() + "-" + get_month_str(month)
+        let div_id: string = get_div_from_year_month(year, month)
         let book_div: HTMLDivElement = document.getElementById(div_id) as HTMLDivElement
         if (book_div.children.length == 0) {
             let month_div_id: string = "header-" + year.toString() + "-" + get_month_str(month)
@@ -93,5 +96,61 @@ export function add_footer() {
     anchor.href = "../index.html"
     anchor.textContent = "Back"
     document.body.appendChild(anchor)
+}
+
+function show_all_books(text: string) {
+    console.log(text)
+    let lines: string[] = text.split('\n')
+    console.log(lines.length)
+    let years: number[] = []
+    for (let line_idx = 0; line_idx < lines.length; line_idx++) {
+        let line = lines[line_idx]
+        if (line_idx == 0) {
+            console.log(line)
+            continue
+        }
+        if (line.length == 0) {
+            console.log(line)
+        }
+        let parts: string[] = line.split('|')
+        let year: number = Number(parts[3])
+        if (!years.includes(year)) {
+            years.push(year)
+        }
+    }
+    console.log(years)
+    add_groups(years)
+
+    for (let line_idx = 0; line_idx < lines.length; line_idx++) {
+        let line = lines[line_idx]
+        if (line_idx == 0) {
+            continue
+        }
+
+        if (line.length == 0) {
+            console.log(line)
+        }
+        let parts: string[] = line.split('|')
+        let title: string = parts[0]
+        let image: string = parts[1]
+        let isbn: string = parts[2]
+        let year: number = Number(parts[3])
+        let month: number = Number(parts[4])
+        console.log(get_div_from_year_month(year, month))
+        add_book(get_div_from_year_month(year, month), title, image, isbn)
+    }
+
+    clear_groups(years)
+    add_footer()
+}
+
+export function update_from_file() {
+    let req: XMLHttpRequest = new XMLHttpRequest()
+    req.addEventListener("load", function () {
+        show_all_books(this.responseText)
+    });
+    let LIB_FILE_URL: string = "../resource/lib_of_hj.psv"
+    req.open("GET", LIB_FILE_URL);
+    req.send();
 }
 
