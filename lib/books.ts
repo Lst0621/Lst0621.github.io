@@ -6,6 +6,9 @@ export function add_year(year: number) {
 }
 
 function get_month_str(month: number) {
+    if (month == 0) {
+        return "unknown";
+    }
     if (month < 10) {
         return "0" + month.toString()
     } else {
@@ -20,7 +23,11 @@ function add_month(year: number, month: number) {
 
     month_div.id = "header-" + year.toString() + "-" + get_month_str(month)
     month_div.classList.add("month_style")
-    month_h1.textContent = year.toString() + "/" + get_month_str(month)
+    if (month == 0) {
+        month_h1.textContent = year.toString() + "/" + "?"
+    } else {
+        month_h1.textContent = year.toString() + "/" + get_month_str(month)
+    }
     month_div.appendChild(month_h1)
     document.body.appendChild(month_div)
     book_div.classList.add("books")
@@ -31,7 +38,7 @@ function add_month(year: number, month: number) {
 
 function add_year_month(year: number) {
     add_year(year)
-    let months = [12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
+    let months = [12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]
     for (const idx in months) {
         add_month(year, months[idx])
     }
@@ -42,7 +49,7 @@ function get_div_from_year_month(year: number, month: number) {
 }
 
 function remove_empty_year_month(year: number) {
-    for (let month = 1; month <= 12; month++) {
+    for (let month = 0; month <= 12; month++) {
         let div_id: string = get_div_from_year_month(year, month)
         let book_div: HTMLDivElement = document.getElementById(div_id) as HTMLDivElement
         if (book_div.children.length == 0) {
@@ -141,13 +148,13 @@ function show_all_books(text: string) {
     add_footer()
 }
 
-export function update_from_file() {
+export function update_from_file(url: string) {
     let req: XMLHttpRequest = new XMLHttpRequest()
     req.addEventListener("load", function () {
         show_all_books(this.responseText)
     });
-    let LIB_FILE_URL: string = "../resource/lib_of_hj.psv"
-    req.open("GET", LIB_FILE_URL);
+
+    req.open("GET", url);
     req.send();
 }
 
