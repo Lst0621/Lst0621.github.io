@@ -1,7 +1,7 @@
 let canvas: HTMLCanvasElement = document.getElementById('gol') as
     HTMLCanvasElement;
 let head_span: HTMLSpanElement = document.getElementById("head_span") as HTMLSpanElement
-let context: CanvasRenderingContext2D = canvas.getContext("2d");
+let context: CanvasRenderingContext2D = canvas.getContext("2d") as CanvasRenderingContext2D;
 let activate_check: HTMLInputElement = <HTMLInputElement>document.getElementById("activate");
 let cells: Array<Array<number>> = []
 let len: number = 40
@@ -14,7 +14,7 @@ let gen: number = 0
 let live_cell: number = 0
 let void_cell: number = 0
 
-enum StartMode {
+export enum StartMode {
     Random,
     Pulsar,
     Glider,
@@ -23,7 +23,7 @@ enum StartMode {
 
 
 // https://lavalle.pl/planning/node136.html
-enum TopologyMode {
+export enum TopologyMode {
     Plain,
     Mobius,
     Klein,
@@ -37,11 +37,11 @@ enum TopologyMode {
 let start_mode: StartMode = StartMode.Random
 let topo_mode: TopologyMode = TopologyMode.Plain
 
-function set_start_mode(mode: StartMode) {
+export function set_start_mode(mode: StartMode) {
     start_mode = mode
 }
 
-function set_topology_mode(mode: TopologyMode): void {
+export function set_topology_mode(mode: TopologyMode): void {
     topo_mode =  mode
     update_border()
 }
@@ -390,11 +390,8 @@ function init() {
     one_d_clear()
 }
 
-function restart() {
+export function restart() {
     clearTimeout(to)
     init()
     loop()
 }
-
-restart()
-

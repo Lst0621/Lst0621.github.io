@@ -41,14 +41,19 @@
     <br>
 </p>
 
-<script src="../src/game_of_life.js"></script>
+<script type="module">
+    import {set_start_mode, set_topology_mode, TopologyMode, StartMode, restart} from "../lib/game_of_life.js";
+
+    Object.assign(window, {restart, set_start_mode, set_topology_mode, TopologyMode, StartMode,})
+    restart();
+</script>
 <p style="white-space:pre-wrap" >
     Conway's game of life written in typescript.
     Different boundary conditions/topologies are provided, including Mobius Band, Torus, Klien bottle.
     Colored boundaries are portals while grey boundaries are connected to the void.
     What you must learn is that these rules are no different that the rules of a computer system. <b>Some of them can be bent. Others can be broken.</b>
 </p>
-<script src="https://emgithub.com/embed.js?target=https://github.com/Lst0621/Lst0621.github.io/blob/master/src/game_of_life.ts&style=solarized-light&showBorder=on&showLineNumbers=on&showFileMeta=on"></script>
+<script src="https://emgithub.com/embed.js?target=https://github.com/Lst0621/Lst0621.github.io/blob/master/lib/game_of_life.ts&style=solarized-light&showBorder=on&showLineNumbers=on&showFileMeta=on"></script>
 <a href="../index.html">
     Back
 </a>
