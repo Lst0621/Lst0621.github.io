@@ -28,7 +28,9 @@ enum TopologyMode {
     Mobius,
     Klein,
     Torus,
-    Cylinder
+    Cylinder,
+    ONE_D,
+
 }
 
 
@@ -195,8 +197,9 @@ function update_border() {
                 "conic-gradient(red,orange,grey,lightblue,blue,purple," +
                 "grey,orange,red,pink,grey,purple,blue,lightblue,grey,pink,red)"
             break
-        default:
         case TopologyMode.Plain:
+        case TopologyMode.ONE_D:
+        default:
             break
     }
 }
@@ -205,7 +208,19 @@ function is_inside_canvas(i: number, j: number): boolean {
     return (i >= 0 && i < len && j >= 0 && j < len)
 }
 
+function is_boundary(i: number, j: number): boolean {
+    return i==0 || j==0 || i ==len -1 || j ==len-1
+}
+
 function fetch_value(i: number, j: number): number {
+    if (topo_mode == TopologyMode.ONE_D) {
+        if (is_inside_canvas(i, j) && is_boundary(i, j)) {
+            return cells[i][j]
+        } else {
+            return 0
+        }
+    }
+
     if (is_inside_canvas(i, j)) {
         return cells[i][j]
     }
@@ -312,8 +327,18 @@ function evolve() {
             }
 
             let sum: number = get_nb_count(i, j)
-            if ((cells[i][j] == 1 && sum == 2) || sum == 3) {
-                next_cells[i][j] = 1
+            if (topo_mode == TopologyMode.ONE_D) {
+                if (!is_boundary(i, j)) {
+                    continue;
+                }
+                if ((cells[i][j] == 1 && sum != 2) || (cells[i][j] == 0 && sum > 0)) {
+                    next_cells[i][j] = 1
+                }
+
+            } else {
+                if ((cells[i][j] == 1 && sum == 2) || sum == 3) {
+                    next_cells[i][j] = 1
+                }
             }
         }
     }
