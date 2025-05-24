@@ -321,6 +321,18 @@ function loop() {
     evolve();
     to = setTimeout(loop, timeout);
 }
+function one_d_clear() {
+    if (topo_mode != TopologyMode.ONE_D) {
+        return;
+    }
+    for (var i = 0; i < len; i++) {
+        for (var j = 0; j < len; j++) {
+            if (!is_boundary(i, j)) {
+                cells[i][j] = 0;
+            }
+        }
+    }
+}
 function init() {
     clear();
     switch (start_mode) {
@@ -337,6 +349,7 @@ function init() {
         default:
             random_start();
     }
+    one_d_clear();
 }
 function restart() {
     clearTimeout(to);
