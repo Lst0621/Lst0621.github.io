@@ -61,6 +61,15 @@ function evolve() {
     gen += 1
     let next_cells: number[][] = get_empty_grid(y_max, x_max)
 
+    let survivals: boolean[] = []
+    let creates: boolean[] = []
+    for (let i = 0; i <= 6; i++) {
+        let survival_check: HTMLInputElement = <HTMLInputElement>document.getElementById("survive_" + i.toString())
+        let create_check: HTMLInputElement = <HTMLInputElement>document.getElementById("create_" + i.toString())
+        survivals.push(survival_check.checked)
+        creates.push(create_check.checked)
+    }
+
     for (let i: number = 0; i < y_max; i++) {
         for (let j: number = 0; j < x_max; j++) {
             let sum: number = get_nb_count(i, j)
@@ -69,13 +78,11 @@ function evolve() {
             }
 
             if (cells[i][j]) {
-                let survival_check: HTMLInputElement = <HTMLInputElement>document.getElementById("survive_" + sum.toString())
-                if (survival_check.checked) {
+                if (survivals[sum]) {
                     next_cells[i][j] = 1
                 }
             } else {
-                let create_check: HTMLInputElement = <HTMLInputElement>document.getElementById("create_" + sum.toString())
-                if (create_check.checked) {
+                if (creates[sum]) {
                     next_cells[i][j] = 1
                 }
             }
