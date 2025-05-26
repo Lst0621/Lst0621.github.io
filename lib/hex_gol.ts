@@ -6,10 +6,12 @@ let ctx: CanvasRenderingContext2D = canvas.getContext("2d") as CanvasRenderingCo
 
 
 let to: number = 0
-let x_max = 17
-let y_max = 20
+let x_max = 42
+let y_max = 49
+let hex_radius = 8
 let cells: Array<Array<number>> = []
 let thres: number = 0.2
+let timeout: number = 150
 let gen: number = 0
 
 function get_empty_grid(m: number, n: number) {
@@ -98,8 +100,7 @@ function loop() {
     ctx.fillStyle = "black";
     ctx.fillRect(0, 0, canvas.width, canvas.height)
     evolve()
-    drawHexGrid(ctx, x_max, y_max, (col: number, row: number): string => get_color(col, row));
-    let timeout: number = 200
+    drawHexGrid(ctx, x_max, y_max, hex_radius, (col: number, row: number): string => get_color(col, row));
     to = setTimeout(loop, timeout)
 }
 

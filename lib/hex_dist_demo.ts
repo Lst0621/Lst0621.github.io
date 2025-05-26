@@ -12,8 +12,8 @@ let y: number = 10
 function loop() {
     ctx.clearRect(0, 0, canvas.width, canvas.height)
 
-    let x_max = 17
-    let y_max = 20
+    let x_max = 34
+    let y_max = 40
     x += Math.floor(Math.random() * 4 - 2)
     y += Math.floor(Math.random() * 4 - 2)
     if (x < 0) {
@@ -26,8 +26,8 @@ function loop() {
     y = y % y_max
     console.log(x, y)
 
-    drawHexGrid(ctx, x_max, y_max, (col: number, row: number): string => get_color(x, y, col, row));
-    let timeout: number = 800
+    drawHexGrid(ctx, x_max, y_max, 10, (col: number, row: number): string => get_color(x, y, col, row));
+    let timeout: number = 300
     to = setTimeout(loop, timeout)
 }
 
