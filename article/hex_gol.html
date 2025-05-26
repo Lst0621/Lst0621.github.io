@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<head>
+    <title>Hex GOL</title>
+    <link rel="icon" href="../img/flame1.png">
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-9BLVHLETMC"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+
+        function gtag() {
+            dataLayer.push(arguments);
+        }
+
+        gtag('js', new Date());
+        gtag('config', 'G-9BLVHLETMC');
+    </script>
+</head>
+
+<h1 style="margin-top: 10;" align="center">
+		<span id="head_span" style="font-size: 24pt">
+            Game of Life in Hex
+		</span><br>
+</h1>
+
+<body>
+<p align="center">
+    <canvas id="hexCanvas" width="600" height="600"
+            style="border: 15px solid black;">
+    </canvas>
+    <br>
+    <button onclick="restart()">Restart</button>
+
+</p>
+
+<script src="../lib/hex_gol.js" type="module"></script>
+
+<script type="module">
+    import {restart} from "../lib/hex_gol.js";
+
+    Object.assign(window, {restart})
+    restart();
+</script>
+
+<a href="../index.html">
+    Back
+</a>
+</body>
