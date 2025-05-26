@@ -67,6 +67,18 @@ function evolve() {
             if ((cells[i][j] == 1 && sum == 2) || sum == 2) {
                 next_cells[i][j] = 1
             }
+
+            if (cells[i][j]) {
+                let survival_check: HTMLInputElement = <HTMLInputElement>document.getElementById("survive_" + sum.toString())
+                if (survival_check.checked) {
+                    next_cells[i][j] = 1
+                }
+            } else {
+                let create_check: HTMLInputElement = <HTMLInputElement>document.getElementById("create_" + sum.toString())
+                if (create_check.checked) {
+                    next_cells[i][j] = 1
+                }
+            }
         }
     }
 
@@ -93,7 +105,7 @@ export function restart() {
 
 function get_color(col: number, row: number) {
     if (cells[col][row] == 1) {
-        return 'darkgray'
+        return 'grey'
     } else {
         return 'black'
     }

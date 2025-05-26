@@ -16,6 +16,12 @@
     </script>
 </head>
 
+<style>
+    html * {
+        background: gray;
+    }
+</style>
+
 <h1 style="margin-top: 10;" align="center">
 		<span id="head_span" style="font-size: 24pt">
             Game of Life in Hex
@@ -29,7 +35,41 @@
     </canvas>
     <br>
     <button onclick="restart()">Restart</button>
+    <br>
+    Number of neighbours for survival
+    <br>
+    <input type="checkbox" id="survive_0">
+    <label for="survive_0">0</label>
+    <input type="checkbox" id="survive_1" checked>
+    <label for="survive_1">1</label>
+    <input type="checkbox" id="survive_2" checked>
+    <label for="survive_2">2</label>
+    <input type="checkbox" id="survive_3">
+    <label for="survive_3">3</label>
+    <input type="checkbox" id="survive_4">
+    <label for="survive_4">4</label>
+    <input type="checkbox" id="survive_5">
+    <label for="survive_5">5</label>
+    <input type="checkbox" id="survive_6">
+    <label for="survive_6">6</label>
+    <br>
 
+    Number of neighbours for creation
+    <br>
+    <input type="checkbox" id="create_0">
+    <label for="create_0">0</label>
+    <input type="checkbox" id="create_1">
+    <label for="create_1">1</label>
+    <input type="checkbox" id="create_2" checked>
+    <label for="create_2">2</label>
+    <input type="checkbox" id="create_3">
+    <label for="create_3">3</label>
+    <input type="checkbox" id="create_4">
+    <label for="create_4">4</label>
+    <input type="checkbox" id="create_5">
+    <label for="create_5">5</label>
+    <input type="checkbox" id="create_6">
+    <label for="create_6">6</label>
 </p>
 
 <script src="../lib/hex_gol.js" type="module"></script>
