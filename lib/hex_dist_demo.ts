@@ -38,13 +38,10 @@ function restart() {
 
 function get_color(center_x: number, center_y: number, col: number, row: number) {
     const dist = hex_dist([center_x, center_y], [col, row])
-    if (dist == 0) {
-        return "yellow"
-    }
-    const dist_mod = dist % 4
+    const dist_mod = dist % 7
     const color: string = dist_mod == 0 ?
-        "orange" : dist_mod == 1 ?
-            "lightgreen" : dist_mod == 2 ? "pink" : dist_mod == 3 ? "lightblue" : "lightyellow"
+        "red" : dist_mod == 1 ?
+            "orange" : dist_mod == 2 ? "yellow" : dist_mod == 3 ? "green" : dist_mod == 4 ? "blue" : dist_mod == 5 ? "darkblue" : "purple"
     return color
 }
 
