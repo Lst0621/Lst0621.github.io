@@ -75,9 +75,6 @@ function evolve() {
     for (let i: number = 0; i < y_max; i++) {
         for (let j: number = 0; j < x_max; j++) {
             let sum: number = get_nb_count(i, j)
-            if ((cells[i][j] == 1 && sum == 2) || sum == 2) {
-                next_cells[i][j] = 1
-            }
 
             if (cells[i][j]) {
                 if (survivals[sum]) {
