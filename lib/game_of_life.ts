@@ -12,7 +12,7 @@ let timeout: number = 100
 let to: number = 0
 let gen: number = 0
 let live_cell: number = 0
-let void_cell: number = 0
+let dead_cell: number = 0
 
 export enum StartMode {
     Random,
@@ -152,7 +152,7 @@ function glider_start() {
 function draw() {
     context.clearRect(0, 0, canvas.width, canvas.height);
     let live_cnt: number = 0
-    let void_cnt: number = 0
+    let dead_cnt: number = 0
     for (let i: number = 0; i < len; i++) {
         for (let j: number = 0; j < len; j++) {
             if (cells[i][j] == 1) {
@@ -164,13 +164,15 @@ function draw() {
                 // context.fillStyle = '#FFBA84'
                 context.fillStyle = 'black'
                 context.fillRect(i * scale, j * scale, scale, scale);
-                void_cnt++
+                if (!(topo_mode == TopologyMode.ONE_D && !is_boundary(i, j))) {
+                    dead_cnt++
+                }
             }
         }
     }
 
     live_cell = live_cnt
-    void_cell = void_cnt
+    dead_cell = dead_cnt
 
 }
 
@@ -350,7 +352,7 @@ function evolve() {
 function loop() {
     draw()
     head_span.innerText = "Game of Life\ngen: " + gen +
-        " active: " + live_cell + " void: " + void_cell + " topology: " +
+        " alive: " + live_cell + " dead: " + dead_cell + " topology: " +
         TopologyMode[topo_mode]
 
     evolve()
