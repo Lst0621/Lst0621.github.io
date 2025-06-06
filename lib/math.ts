@@ -1,4 +1,7 @@
 export function gcd(a: number, b: number): number {
+    if (a < 0 || b < 0) {
+        return gcd(Math.abs(a), Math.abs(b))
+    }
     if (a == 0) {
         return b
     }
