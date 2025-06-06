@@ -1,4 +1,7 @@
+import {gcd} from "./math.js"
+
 let table_sz: number = 6
+
 
 export function update_table(sz: number) {
     let table: HTMLTableElement = document.getElementById("multiplication_table") as HTMLTableElement
@@ -23,6 +26,7 @@ export function update_table(sz: number) {
         }
     }
 
+    let mod: number = sz + 1
     for (let i = 1; i <= sz; i++) {
         let row = table.insertRow()
         let cell = row.insertCell()
@@ -31,7 +35,12 @@ export function update_table(sz: number) {
         for (let j = 1; j <= sz; j++) {
             let cell_product = row.insertCell()
             cell_product.style.borderStyle = "solid"
-            cell_product.innerText = (i * j % (sz + 1)).toString()
+            cell_product.innerText = (i * j % mod).toString()
+            if (gcd(i, mod) == 1 && gcd(j, mod) == 1) {
+                cell_product.style.background = "gold"
+            } else if (gcd(i, mod) == 1 || gcd(j, mod) == 1) {
+                cell_product.style.background = "lightblue"
+            }
         }
     }
 }
