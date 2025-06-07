@@ -1,4 +1,4 @@
-import {gcd} from "./math.js"
+import {are_co_prime} from "./math.js"
 
 let table_sz: number = 6
 
@@ -24,7 +24,7 @@ export function update_table(sz: number) {
             if (i != 0) {
                 cell.style.borderStyle = "solid"
                 cell.innerText = i.toString()
-                if (gcd(i, mod) == 1) {
+                if (are_co_prime(i, mod)) {
                     cell.style.background = "lightgreen"
                 }
             }
@@ -35,7 +35,7 @@ export function update_table(sz: number) {
         let row = table.insertRow()
         let cell = row.insertCell()
         cell.style.borderStyle = "solid"
-        if (gcd(i, mod) == 1) {
+        if (are_co_prime(i, mod)) {
             cell.style.background = "lightgreen"
         }
 
@@ -44,9 +44,9 @@ export function update_table(sz: number) {
             let cell_product = row.insertCell()
             cell_product.style.borderStyle = "solid"
             cell_product.innerText = (i * j % mod).toString()
-            if (gcd(i, mod) == 1 && gcd(j, mod) == 1) {
+            if (are_co_prime(i, mod) && are_co_prime(j, mod)) {
                 cell_product.style.background = "gold"
-            } else if (gcd(i, mod) == 1 || gcd(j, mod) == 1) {
+            } else if (are_co_prime(i, mod) || are_co_prime(j, mod)) {
                 cell_product.style.background = "lightblue"
             }
         }

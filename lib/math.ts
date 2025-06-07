@@ -1,18 +1,31 @@
-export function gcd(a: number, b: number): number {
-    if (a < 0 || b < 0) {
-        return gcd(Math.abs(a), Math.abs(b))
+export function gcd(a_in: number, b_in: number): number {
+    let a: number = Math.abs(a_in);
+    let b: number = Math.abs(b_in);
+    if (a == 0 || b == 0) {
+        return a + b
     }
-    if (a == 0) {
-        return b
-    }
+
     if (a == b) {
         return a
     }
+
     if (a > b) {
-        return gcd(b, a)
+        let tmp: number = a
+        a = b
+        b = tmp
     }
-    if (a % b == 0) {
-        return b
+
+    // a < b
+    while (true) {
+        let res = b % a
+        if (res == 0) {
+            return a
+        }
+        b = a
+        a = res
     }
-    return gcd(b % a, a)
+}
+
+export function are_co_prime(a: number, b: number): boolean {
+    return gcd(a, b) == 1
 }
