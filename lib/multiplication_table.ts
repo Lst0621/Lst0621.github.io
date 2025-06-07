@@ -4,6 +4,8 @@ let table_sz: number = 6
 
 
 export function update_table(sz: number) {
+    let mul_text = document.getElementById("mul_text") as HTMLSpanElement
+    mul_text.innerText = "Multiplication for Z" + (sz + 1).toString()
     let table: HTMLTableElement = document.getElementById("multiplication_table") as HTMLTableElement
     table.style.alignSelf = "center"
     table.style.borderStyle = "solid"
@@ -35,7 +37,8 @@ export function update_table(sz: number) {
         let row = table.insertRow()
         let cell = row.insertCell()
         cell.style.borderStyle = "solid"
-        if (are_co_prime(i, mod)) {
+        let i_co_prime = are_co_prime(i, mod)
+        if (i_co_prime) {
             cell.style.background = "lightgreen"
         }
 
@@ -44,9 +47,10 @@ export function update_table(sz: number) {
             let cell_product = row.insertCell()
             cell_product.style.borderStyle = "solid"
             cell_product.innerText = (i * j % mod).toString()
-            if (are_co_prime(i, mod) && are_co_prime(j, mod)) {
+            let j_co_prime = are_co_prime(j, mod)
+            if (i_co_prime && j_co_prime) {
                 cell_product.style.background = "gold"
-            } else if (are_co_prime(i, mod) || are_co_prime(j, mod)) {
+            } else if (i_co_prime || j_co_prime) {
                 cell_product.style.background = "lightblue"
             }
         }
