@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <head>
-    <title>Multiplication Table</title>
+    <title>Multiplication Table for Symmetric Group</title>
     <link rel="icon" href="../img/flame1.png">
     <!-- Global site tag (gtag.js) - Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-9BLVHLETMC"></script>
@@ -17,7 +17,7 @@
 </head>
 <body>
 <h1 style="margin-top: 10;font-size: 18pt;font-weight:normal;font-family: Courier;" align="center">
-    Multiplication Table for Modular Arithmetic
+    Multiplication Table for Symmetric Group
 </h1>
 <p align="center">
     The perfect model of truth is the multiplication table, which is precise and certain and free from all temporal
@@ -25,7 +25,7 @@
 </p>
 <p align="center">
     <span id="mul_text">
-    Multiplication for Z7
+    Multiplication for Permutations
     </span>
     <br>
     <button onclick="increment()">+</button>
@@ -34,10 +34,10 @@
 </p>
 
 <script type="module">
-    import {increment, decrement, update_table} from "../lib/multiplication_table.js"
+    import {increment, decrement, update_table} from "../lib/permute_multiplication_table.js"
 
     Object.assign(window, {increment, decrement, update_table})
-    update_table(6)
+    update_table(4)
 </script>
 
 <a href="../index.html">
