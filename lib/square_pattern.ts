@@ -2,6 +2,19 @@ let canvas: HTMLCanvasElement = document.getElementById('canvas_square_pattern')
     HTMLCanvasElement;
 let context: CanvasRenderingContext2D = canvas.getContext("2d") as CanvasRenderingContext2D;
 
+function get_control_point(pos: number[], num_vt: number) {
+    let x = pos[0]
+    let y = pos[1]
+    let randomness = 0.4
+    let least_shift = 0.1
+    let shift = Math.random() * num_vt * randomness
+    if (y == 0 || y == num_vt) {
+        return [x, y == 0 ? num_vt * least_shift + shift : (1 - least_shift) * num_vt - shift]
+    } else {
+        return [x == 0 ? num_vt * least_shift + shift : (1 - least_shift) * num_vt - shift, y]
+    }
+}
+
 function get_node_pos(n: number) {
     let ret: number[][] = []
 
@@ -41,21 +54,42 @@ function draw_square(x: number, y: number, sz: number, num_vt: number, vertices:
         let v_y_0 = y + (vertices[i][1]) * sz / num_vt
         let v_x_1 = x + (vertices[i + 1][0]) * sz / num_vt
         let v_y_1 = y + (vertices[i + 1][1]) * sz / num_vt
+
+
         context.beginPath();
-        if (is_on_same_side(vertices[i], vertices[i + 1], num_vt)) {
-            let angle: number = 0;
-            if (v_x_0 == v_x_1) {
-                angle = v_x_0 == x ? -Math.PI / 2 : Math.PI / 2;
-            } else {
-                angle = v_y_0 == y ? 0 : Math.PI;
-            }
-            context.arc((v_x_0 + v_x_1) / 2, (v_y_0 + v_y_1) / 2,
-                (Math.abs(v_x_1 - v_x_0) + Math.abs(v_y_1 - v_y_0)) / 2, angle, angle + Math.PI)
-        } else {
-            context.moveTo(v_x_0, v_y_0)
-            context.lineTo(v_x_1, v_y_1)
-        }
+        context.moveTo(v_x_0, v_y_0)
+        let control_0 = get_control_point(vertices[i], num_vt)
+        let control_1 = get_control_point(vertices[i + 1], num_vt)
+        let v_mid_x_0 = x + control_0[0] * sz / num_vt
+        let v_mid_y_0 = y + control_0[1] * sz / num_vt
+        let v_mid_x_1 = x + control_1[0] * sz / num_vt
+        let v_mid_y_1 = y + control_1[1] * sz / num_vt
+        context.bezierCurveTo(v_mid_x_0, v_mid_y_0, v_mid_x_1, v_mid_y_1, v_x_1, v_y_1)
         context.stroke()
+
+        let debug = false
+        if (debug) {
+            context.strokeStyle = "brown"
+            context.beginPath();
+            context.moveTo(v_x_0, v_y_0)
+            context.lineTo(v_mid_x_0, v_mid_y_0)
+            context.stroke()
+
+
+            context.beginPath();
+            context.arc(v_mid_x_0, v_mid_y_0, 4, 0, Math.PI * 2)
+            context.stroke()
+
+            context.beginPath();
+            context.moveTo(v_x_1, v_y_1)
+            context.lineTo(v_mid_x_1, v_mid_y_1)
+            context.stroke()
+
+            context.beginPath();
+            context.arc(v_mid_x_1, v_mid_y_1, 4, 0, Math.PI * 2)
+            context.stroke()
+            context.strokeStyle = "black"
+        }
     }
 }
 
@@ -72,7 +106,7 @@ function is_on_same_side(v1: number[], v2: number[], num_vt: number) {
 function draw() {
     context.clearRect(0, 0, canvas.width, canvas.height);
     let num_sq = 10
-    let w = canvas.width/ num_sq
+    let w = canvas.width / num_sq
     let num_vt = 2;
     for (let i = 0; i < num_sq; i++) {
         for (let j = 0; j < num_sq; j++) {
