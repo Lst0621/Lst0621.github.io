@@ -44,10 +44,25 @@ export function permutation_multiply(p1: number[], p2: number[]): number[] {
 }
 
 export function get_all_permutations(n: number): number[][] {
+    let e: number[] = Array(n).fill(0).map((_, i) => i + 1);
+    let perm: number[] = e
+    let ans: number[][] = [e]
+    while (true) {
+        let next: number[] = next_permutation(perm)
+        if (next.every((val, i) => val === e[i])) {
+            break
+        }
+        perm = next
+        ans.push(perm)
+    }
+    return ans
+}
+
+export function get_all_permutations_recursive(n: number): number[][] {
     if (n == 1) {
         return [[1]]
     }
-    let per_n_minus_one = get_all_permutations(n - 1)
+    let per_n_minus_one = get_all_permutations_recursive(n - 1)
     let ans: number[][] = []
     for (let permutation of per_n_minus_one) {
         for (let i: number = 0; i <= n - 1; i++) {
@@ -97,25 +112,52 @@ export function get_permutation_parity(perm: number[]) {
 
 export function per_to_str(perm: number[]) {
     let cycles: number[][] = get_cycles_from_permutations(perm)
-    console.log(perm)
-    console.log(cycles)
-
     let ret = ""
     for (let cycle of cycles) {
         if (cycle.length <= 1) {
             continue
         }
-        let c = ""
+        let cycle_str = ""
         for (let j = 0; j < cycle.length; j++) {
-            if (j >= 1) {
-                c += ","
-            }
-            c += cycle[j]
+            cycle_str += cycle[j]
         }
-        ret += "(" + cycle + ")"
+        ret += "(" + cycle_str + ")"
     }
     if (ret.length == 0) {
         ret = "e"
     }
     return ret
+}
+
+function next_permutation(perm: number[]): number[] {
+    let next: number[] = Array.from(perm)
+    next_permutation_in_place(next)
+    return next
+}
+
+function next_permutation_in_place(nums: number[]): void {
+    // Step 1: Find the first index `i` from the end where nums[i] < nums[i + 1]
+    let i = nums.length - 2;
+    while (i >= 0 && nums[i] >= nums[i + 1]) {
+        i--;
+    }
+
+    if (i >= 0) {
+        // Step 2: Find the first index `j` from the end where nums[j] > nums[i]
+        let j = nums.length - 1;
+        while (j >= 0 && nums[j] <= nums[i]) {
+            j--;
+        }
+        // Step 3: Swap nums[i] and nums[j]
+        [nums[i], nums[j]] = [nums[j], nums[i]];
+    }
+
+    // Step 4: Reverse the suffix starting at i + 1
+    let left = i + 1;
+    let right = nums.length - 1;
+    while (left < right) {
+        [nums[left], nums[right]] = [nums[right], nums[left]];
+        left++;
+        right--;
+    }
 }
