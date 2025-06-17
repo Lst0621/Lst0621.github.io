@@ -176,7 +176,7 @@ export function get_string_from_cycle(cycle: number[]): string {
 
 export function per_to_arrow(perm: number[]): string {
     let cycles: number[][] = get_cycles_from_permutations(perm)
-    let ret: string = cycles.filter((cycle) => cycle.length > 1).map(get_arrow_string_from_cycle).join("*")
+    let ret: string = cycles.filter((cycle) => cycle.length > 1).map(get_arrow_string_from_cycle).join("")
     if (ret.length == 0) {
         ret = "e"
     }
