@@ -1,10 +1,18 @@
-import {get_permutation_from_cycle, is_cycle_valid, per_to_str, permutation_multiply} from "./math.js";
+import {
+    get_arrow_string_from_cycle,
+    get_permutation_from_cycle,
+    is_cycle_valid, per_to_arrow,
+    per_to_str,
+    permutation_multiply
+} from "./math.js";
 
 function update_perm() {
     let perm_input: string = (document.getElementById("perm_input") as HTMLInputElement as HTMLInputElement).value;
     let span: HTMLSpanElement = document.getElementById('perm_text') as HTMLSpanElement;
     let parts: string[] = perm_input.split(";");
     let perm: number[] = []
+
+    let cycles: number[][] = []
     for (let part of parts) {
         if (part.length == 0) {
             continue;
@@ -15,10 +23,14 @@ function update_perm() {
             span.innerHTML = cycle_str + " is not valid!"
             return
         }
+        cycles.push(cycle)
+
         perm = permutation_multiply(perm, get_permutation_from_cycle(cycle));
     }
-    span.innerHTML = per_to_str(perm)
 
+    let arrow_str = cycles.map(get_arrow_string_from_cycle).join("*")
+    arrow_str += "=" + per_to_arrow(perm)
+    span.innerHTML = arrow_str + "=" + per_to_str(perm)
 }
 
 function set_up() {

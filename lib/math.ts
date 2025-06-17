@@ -92,12 +92,16 @@ export function is_cycle_valid(cycle: number[]) {
         return false
     }
     for (let i = 0; i < cycle.length; i++) {
+        if (isNaN(cycle[i])) {
+            return false
+        }
         for (let j = i + 1; j < cycle.length; j++) {
             if (cycle[j] == cycle[i]) {
                 return false
             }
         }
     }
+
     return true
 }
 
@@ -107,7 +111,7 @@ export function get_permutation_from_cycle(cycle: number[]): number[] {
     }
     let num_element: number = cycle[0]
     for (let num of cycle) {
-        num_element = Math.max(num, cycle[1])
+        num_element = Math.max(num, num_element)
     }
     let perm: number[] = get_identity_permutation(num_element)
     if (cycle.length == 1) {
@@ -155,6 +159,25 @@ export function get_permutation_parity(perm: number[]) {
         parity = (parity && !is_cycle_odd) || (!parity && is_cycle_odd)
     }
     return parity
+}
+
+export function get_arrow_string_from_cycle(cycle: number[]): string {
+    let ret = "("
+    for (let i = 0; i < cycle.length; i++) {
+        ret += cycle[i].toString()
+        ret += "->"
+    }
+    ret += cycle[0].toString() + ")"
+    return ret
+}
+
+export function per_to_arrow(perm: number[]): string {
+    let cycles: number[][] = get_cycles_from_permutations(perm)
+    let ret: string = cycles.filter((cycle) => cycle.length > 1).map(get_arrow_string_from_cycle).join("*")
+    if (ret.length == 0) {
+        ret = "e"
+    }
+    return ret
 }
 
 export function per_to_str(perm: number[]) {
