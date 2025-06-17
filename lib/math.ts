@@ -34,6 +34,15 @@ export function permutation_multiply(p1: number[], p2: number[]): number[] {
     let l1 = p1.length;
     let l2 = p2.length;
     let l = Math.max(l1, l2);
+
+    // fill
+    for (let i = l1 + 1; i <= l; i++) {
+        p1.push(i)
+    }
+    for (let i = l2 + 1; i <= l; i++) {
+        p2.push(i)
+    }
+
     let ans: number[] = []
     for (let i = 1; i <= l; i++) {
         let p2_i = p2[i - 1]
@@ -43,8 +52,12 @@ export function permutation_multiply(p1: number[], p2: number[]): number[] {
     return ans
 }
 
+export function get_identity_permutation(n: number): number[] {
+    return Array(n).fill(0).map((_, i) => i + 1);
+}
+
 export function get_all_permutations(n: number): number[][] {
-    let e: number[] = Array(n).fill(0).map((_, i) => i + 1);
+    let e: number[] = get_identity_permutation(n)
     let perm: number[] = e
     let ans: number[][] = [e]
     while (true) {
@@ -74,7 +87,41 @@ export function get_all_permutations_recursive(n: number): number[][] {
     return ans
 }
 
-export function get_cycles_from_permutations(perm: number[]) {
+export function is_cycle_valid(cycle: number[]) {
+    if (cycle == null) {
+        return false
+    }
+    for (let i = 0; i < cycle.length; i++) {
+        for (let j = i + 1; j < cycle.length; j++) {
+            if (cycle[j] == cycle[i]) {
+                return false
+            }
+        }
+    }
+    return true
+}
+
+export function get_permutation_from_cycle(cycle: number[]): number[] {
+    if (cycle == null) {
+        return []
+    }
+    let num_element: number = cycle[0]
+    for (let num of cycle) {
+        num_element = Math.max(num, cycle[1])
+    }
+    let perm: number[] = get_identity_permutation(num_element)
+    if (cycle.length == 1) {
+        return perm
+    }
+    for (let i = 0; i < cycle.length; i++) {
+        let from = cycle[i]
+        let to = (i + 1) < cycle.length ? cycle[i + 1] : cycle[0]
+        perm[from - 1] = to
+    }
+    return perm
+}
+
+export function get_cycles_from_permutations(perm: number[]): number[][] {
     let visited = Array(perm.length).fill(0)
     let cycles: number[][] = []
     let cycle: number[] = []
