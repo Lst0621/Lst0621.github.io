@@ -169,6 +169,11 @@ export function get_arrow_string_from_cycle(cycle: number[]): string {
     return ret
 }
 
+export function get_string_from_cycle(cycle: number[]): string {
+    let join_str = cycle[cycle.length - 1] > 9 ? "," : ""
+    return "(" + cycle.map(String).join(join_str) + ")"
+}
+
 export function per_to_arrow(perm: number[]): string {
     let cycles: number[][] = get_cycles_from_permutations(perm)
     let ret: string = cycles.filter((cycle) => cycle.length > 1).map(get_arrow_string_from_cycle).join("*")
@@ -180,7 +185,7 @@ export function per_to_arrow(perm: number[]): string {
 
 export function perm_to_str(perm: number[]) {
     let cycles: number[][] = get_cycles_from_permutations(perm)
-    let cycle_str: string = cycles.filter((cycle) => cycle.length > 1).map(cycle => "(" + cycle.map(String).join(cycle[cycle.length - 1] > 9 ? "," : "") + ")").join("")
+    let cycle_str: string = cycles.filter((cycle) => cycle.length > 1).map(get_string_from_cycle).join("")
     if (cycle_str.length == 0) {
         return "e"
     }

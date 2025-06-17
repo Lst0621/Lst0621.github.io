@@ -1,6 +1,6 @@
 import {
     get_arrow_string_from_cycle,
-    get_permutation_from_cycle,
+    get_permutation_from_cycle, get_string_from_cycle,
     is_cycle_valid, per_to_arrow,
     perm_to_str,
     permutation_multiply
@@ -28,13 +28,14 @@ function update_perm() {
         perm = permutation_multiply(perm, get_permutation_from_cycle(cycle));
     }
 
-    let arrow_str = cycles.map(get_arrow_string_from_cycle).join("*")
+    let cycles_str = cycles.map(get_string_from_cycle).join("")
+    let arrow_str = cycles.map(get_arrow_string_from_cycle).join("")
     arrow_str += "=" + per_to_arrow(perm)
-    span.innerHTML = arrow_str + "=" + perm_to_str(perm)
+    span.innerHTML = cycles_str + "=" + arrow_str + "=" + perm_to_str(perm)
 }
 
 function set_up() {
-    (document.getElementById("perm_input") as HTMLInputElement as HTMLInputElement).value = "1,2,3;1,3,5";
+    (document.getElementById("perm_input") as HTMLInputElement as HTMLInputElement).value = "1,2,3;1,3,5;7,5;8,12";
     update_perm();
     let button: HTMLButtonElement = document.getElementById("update_button") as HTMLButtonElement
     button.onclick = update_perm;
