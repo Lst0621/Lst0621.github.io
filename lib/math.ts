@@ -162,12 +162,10 @@ export function get_permutation_parity(perm: number[]) {
 }
 
 export function get_arrow_string_from_cycle(cycle: number[]): string {
+    let arrow = "->"
     let ret = "("
-    for (let i = 0; i < cycle.length; i++) {
-        ret += cycle[i].toString()
-        ret += "->"
-    }
-    ret += cycle[0].toString() + ")"
+    ret += cycle.map(String).join(arrow)
+    ret += arrow + cycle[0].toString() + ")"
     return ret
 }
 
@@ -180,23 +178,13 @@ export function per_to_arrow(perm: number[]): string {
     return ret
 }
 
-export function per_to_str(perm: number[]) {
+export function perm_to_str(perm: number[]) {
     let cycles: number[][] = get_cycles_from_permutations(perm)
-    let ret = ""
-    for (let cycle of cycles) {
-        if (cycle.length <= 1) {
-            continue
-        }
-        let cycle_str = ""
-        for (let j = 0; j < cycle.length; j++) {
-            cycle_str += cycle[j]
-        }
-        ret += "(" + cycle_str + ")"
+    let cycle_str: string = cycles.filter((cycle) => cycle.length > 1).map(cycle => "(" + cycle.map(String).join(cycle[cycle.length - 1] > 9 ? "," : "") + ")").join("")
+    if (cycle_str.length == 0) {
+        return "e"
     }
-    if (ret.length == 0) {
-        ret = "e"
-    }
-    return ret
+    return cycle_str
 }
 
 function next_permutation(perm: number[]): number[] {

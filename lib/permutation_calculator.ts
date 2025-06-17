@@ -2,7 +2,7 @@ import {
     get_arrow_string_from_cycle,
     get_permutation_from_cycle,
     is_cycle_valid, per_to_arrow,
-    per_to_str,
+    perm_to_str,
     permutation_multiply
 } from "./math.js";
 
@@ -30,7 +30,7 @@ function update_perm() {
 
     let arrow_str = cycles.map(get_arrow_string_from_cycle).join("*")
     arrow_str += "=" + per_to_arrow(perm)
-    span.innerHTML = arrow_str + "=" + per_to_str(perm)
+    span.innerHTML = arrow_str + "=" + perm_to_str(perm)
 }
 
 function set_up() {

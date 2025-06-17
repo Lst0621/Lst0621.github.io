@@ -1,4 +1,4 @@
-import {get_all_permutations, get_permutation_parity, per_to_str, permutation_multiply} from "./math.js"
+import {get_all_permutations, get_permutation_parity, perm_to_str, permutation_multiply} from "./math.js"
 
 let table_sz: number = 4
 
@@ -27,7 +27,7 @@ export function update_table(sz: number) {
             let cell = row.insertCell()
             if (i != 0) {
                 cell.style.borderStyle = "solid"
-                cell.innerText = per_to_str(perms[i - 1])
+                cell.innerText = perm_to_str(perms[i - 1])
                 if (get_permutation_parity(perms[i - 1])) {
                     cell.style.background = "lightgreen"
                 } else {
@@ -41,7 +41,7 @@ export function update_table(sz: number) {
         let row = table.insertRow()
         let cell = row.insertCell()
         cell.style.borderStyle = "solid"
-        cell.innerText = per_to_str(perms[i - 1])
+        cell.innerText = perm_to_str(perms[i - 1])
         if (get_permutation_parity(perms[i - 1])) {
             cell.style.background = "lightgreen"
         } else {
@@ -51,7 +51,7 @@ export function update_table(sz: number) {
             let cell_product = row.insertCell()
             cell_product.style.borderStyle = "solid"
             let product = permutation_multiply(perms[i - 1], perms[j - 1]);
-            cell_product.innerText = per_to_str(product)
+            cell_product.innerText = perm_to_str(product)
             if (get_permutation_parity(product)) {
                 cell_product.style.background = "lightgreen"
             } else {
