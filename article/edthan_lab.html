@@ -20,6 +20,12 @@
 		<span id="head_span" style="font-size: 24pt">
             Edthan's Lab
 		</span><br>
+    <span id="lab_text">
+        s=0.3
+    </span>
+    <br>
+    <button onclick="increment()">+</button>
+    <button onclick="decrement()">-</button>
 </h1>
 
 <body>
@@ -29,7 +35,11 @@
     </canvas>
 </p>
 
-<script type="module" src="../lib/edthan_lab.js">
+<script type="module">
+    import {increment, decrement, draw_ethan_lab} from "../lib/edthan_lab.js"
+
+    Object.assign(window, {increment, decrement, draw_ethan_lab})
+    draw_ethan_lab()
 </script>
 
 <a href="../index.html">
