@@ -224,3 +224,39 @@ function next_permutation_in_place(nums: number[]): void {
         right--;
     }
 }
+
+export function get_all_dihedral(n: number) {
+    let ans: number[][] = []
+    for (let i = 0; i < n; i++) {
+        ans.push([i, 0])
+    }
+    for (let i = 0; i < n; i++) {
+        ans.push([i, 1])
+    }
+    return ans
+}
+
+export function dihedral_multiply(a: number[], b: number[], n: number) {
+    let r_a = a[0]
+    let s_a = a[1]
+    let r_b = b[0]
+    let s_b = b[1]
+    if (s_a == 0) {
+        return [(r_a + r_b) % n, s_b]
+    } else {
+        return [(r_a + n - r_b) % n, 1 - s_b]
+    }
+
+}
+
+export function dihedral_to_str(a: number[]) {
+    let r = a[0]
+    let s = a[1]
+    if (r == 0 && s == 0) {
+        return "e"
+    }
+    if (r == 0) {
+        return "s"
+    }
+    return "r" + (r == 1 ? "" : ("<sup>" + r.toString() + "</sup>")) + (s == 0 ? "" : "s")
+}
