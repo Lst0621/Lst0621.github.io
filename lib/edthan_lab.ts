@@ -27,7 +27,7 @@ export function draw_ethan_lab() {
         let y = locations[step - 1 - i][1]
         locations.push([y, x])
     }
-    let factor: number = 400
+    let factor: number = canvas.width
 
     console.log(locations)
 
