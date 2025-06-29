@@ -170,7 +170,7 @@ export function get_arrow_string_from_cycle(cycle: number[]): string {
 }
 
 export function get_string_from_cycle(cycle: number[]): string {
-    let join_str = cycle[cycle.length - 1] > 9 ? "," : ""
+    let join_str = cycle.some(value => value > 9) ? "," : ""
     return "(" + cycle.map(String).join(join_str) + ")"
 }
 
