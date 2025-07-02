@@ -18,6 +18,8 @@ export function update_table(sz: number) {
     }
 
     let mod: number = sz + 1
+    let co_prime_color = "#8A6BBE"
+    let not_co_prime_color = "#7B90D2"
 
     {
         let row = table.insertRow()
@@ -25,9 +27,11 @@ export function update_table(sz: number) {
             let cell = row.insertCell()
             if (i != 0) {
                 cell.style.borderStyle = "solid"
-                cell.innerText = i.toString()
+                cell.innerText = "[" + i.toString() + "]"
                 if (are_co_prime(i, mod)) {
-                    cell.style.background = "lightgreen"
+                    cell.style.background = co_prime_color
+                } else{
+                    cell.style.background = not_co_prime_color
                 }
             }
         }
@@ -39,30 +43,32 @@ export function update_table(sz: number) {
         cell.style.borderStyle = "solid"
         let i_co_prime = are_co_prime(i, mod)
         if (i_co_prime) {
-            cell.style.background = "lightgreen"
+            cell.style.background = co_prime_color
+        } else{
+            cell.style.background = not_co_prime_color
         }
 
-        cell.innerText = i.toString()
+        cell.innerText = "[" + i.toString() + "]"
         for (let j = 1; j <= sz; j++) {
             let cell_product = row.insertCell()
             cell_product.style.borderStyle = "solid"
-            cell_product.innerText = (i * j % mod).toString()
+            cell_product.innerText = "[" + (i * j % mod).toString() + "]"
             let j_co_prime = are_co_prime(j, mod)
             if (i_co_prime && j_co_prime) {
-                cell_product.style.background = "gold"
-            } else if (i_co_prime || j_co_prime) {
-                cell_product.style.background = "lightblue"
+                cell_product.style.background = "#E87A90"
+            } else {
+                cell_product.style.background = "#FEDFE1"
             }
         }
     }
 }
 
-export function increment(sz: number) {
+export function increment() {
     table_sz++
     update_table(table_sz)
 }
 
-export function decrement(sz: number) {
+export function decrement() {
     if (table_sz == 2) {
         return
     }
