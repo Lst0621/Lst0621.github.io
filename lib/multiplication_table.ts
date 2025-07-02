@@ -5,7 +5,7 @@ let table_sz: number = 6
 
 export function update_table(sz: number) {
     let mul_text = document.getElementById("mul_text") as HTMLSpanElement
-    mul_text.innerText = "Multiplication for Z" + (sz + 1).toString()
+    mul_text.innerHTML = "Multiplication for Z" + "<sub>" + (sz + 1).toString() + "</sub>"
     let table: HTMLTableElement = document.getElementById("multiplication_table") as HTMLTableElement
     table.style.alignSelf = "center"
     table.style.borderStyle = "solid"
