@@ -3,6 +3,7 @@ export function add_year(year: number) {
     year_div.classList.add("year_style")
     year_div.innerHTML = year.toString();
     document.body.appendChild(year_div)
+    year_div.id = "year-" + year;
 }
 
 function get_month_str(month: number) {
@@ -38,7 +39,7 @@ function add_month(year: number, month: number) {
 
 function add_year_month(year: number) {
     add_year(year)
-    let months = [12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]
+    let months = Array.from({length: 13}, (_, i) => 12 - i);
     for (const idx in months) {
         add_month(year, months[idx])
     }
@@ -49,6 +50,7 @@ function get_div_from_year_month(year: number, month: number) {
 }
 
 function remove_empty_year_month(year: number) {
+    let has_valid_month = false
     for (let month = 0; month <= 12; month++) {
         let div_id: string = get_div_from_year_month(year, month)
         let book_div: HTMLDivElement = document.getElementById(div_id) as HTMLDivElement
@@ -58,8 +60,60 @@ function remove_empty_year_month(year: number) {
                 book_div.parentNode.removeChild(document.getElementById(month_div_id) as HTMLDivElement)
                 book_div.parentNode.removeChild(book_div)
             }
+        } else {
+            has_valid_month = true
         }
     }
+
+    if (!has_valid_month) {
+        remove_year(year)
+    }
+}
+
+function remove_year(year: number) {
+    let year_element = document.getElementById("year-" + year)
+    if (year_element != null && year_element.parentNode != null) {
+        year_element.parentNode.removeChild(year_element)
+    }
+}
+
+function remove_all_year_month(year: number) {
+    for (let month = 0; month <= 12; month++) {
+        let div_id: string = get_div_from_year_month(year, month)
+        let book_div: HTMLDivElement = document.getElementById(div_id) as HTMLDivElement
+        if (book_div != null) {
+            let month_div_id: string = "header-" + year.toString() + "-" + get_month_str(month)
+            if (book_div.parentNode != null) {
+                book_div.parentNode.removeChild(document.getElementById(month_div_id) as HTMLDivElement)
+                book_div.parentNode.removeChild(book_div)
+            }
+        }
+    }
+
+    remove_year(year);
+}
+
+let chosen_tags: string[] = []
+
+function add_button(tag: string) {
+    let button: HTMLButtonElement = document.createElement("button") as HTMLButtonElement
+    button.textContent = tag
+    let not_select_color = "#90B44B"
+    let selected_color = "#f7d94c"
+    button.style.background = not_select_color
+    button.onclick = function () {
+        let select = chosen_tags.includes(tag)
+        if (select) {
+            chosen_tags = chosen_tags.filter(tg => tg != tag)
+            button.style.background = not_select_color
+        } else {
+            chosen_tags.push(tag)
+            button.style.background = selected_color
+        }
+        console.log("tags: " + chosen_tags)
+        show_all_books()
+    }
+    document.body.appendChild(button)
 }
 
 
@@ -96,18 +150,34 @@ export function clear_groups(years: number[]) {
     }
 }
 
+function clean_up() {
+    for (let year = 0; year < years.length; year++) {
+        remove_all_year_month(years[year])
+    }
+}
+
 export function add_footer() {
     // TODO
     // bring back span style="font-family: Courier;font-size: 12pt;"
+    let footer: string = "footer"
+    let prev_footer = document.getElementById(footer)
+    if (prev_footer !== null && prev_footer.parentNode != null) {
+        prev_footer.parentNode.removeChild(prev_footer)
+    }
+
     let anchor: HTMLAnchorElement = document.createElement("a")
+    anchor.id = footer
     anchor.href = "../index.html"
     anchor.textContent = "Back"
     document.body.appendChild(anchor)
 }
 
-function show_all_books(text: string) {
-    let lines: string[] = text.split('\n')
-    let years: number[] = []
+let years: number[] = []
+let lines: string[] = []
+
+function set_up(text: string) {
+    lines = text.split('\n')
+    let tags: string[] = []
     for (let line_idx = 0; line_idx < lines.length; line_idx++) {
         let line = lines[line_idx]
         if (line_idx == 0) {
@@ -122,8 +192,24 @@ function show_all_books(text: string) {
         if (!years.includes(year)) {
             years.push(year)
         }
+
+        let tags_str: string = parts.length >= 6 ? parts[5] : ""
+        for (let tag of tags_str.split(",")) {
+            if (tag.length > 0 && !tags.includes(tag)) {
+                tags.push(tag)
+            }
+        }
     }
 
+    for (let tag of tags) {
+        add_button(tag)
+    }
+
+    show_all_books()
+}
+
+function show_all_books() {
+    clean_up()
     add_groups(years)
 
     for (let line_idx = 0; line_idx < lines.length; line_idx++) {
@@ -135,13 +221,18 @@ function show_all_books(text: string) {
         if (line.length == 0) {
             continue
         }
+
         let parts: string[] = line.split('|')
         let title: string = parts[0]
         let image: string = parts[1]
         let isbn: string = parts[2]
         let year: number = Number(parts[3])
         let month: number = Number(parts[4])
-        add_book(get_div_from_year_month(year, month), title, image, isbn)
+        let tags_str: string = parts.length >= 6 ? parts[5] : ""
+        let tags: string[] = tags_str.split(',').filter(tag => tag.length > 0)
+        if (chosen_tags.length == 0 || tags.some(tag => chosen_tags.includes(tag))) {
+            add_book(get_div_from_year_month(year, month), title, image, isbn)
+        }
     }
 
     clear_groups(years)
@@ -151,7 +242,7 @@ function show_all_books(text: string) {
 export function update_from_file(url: string) {
     let req: XMLHttpRequest = new XMLHttpRequest()
     req.addEventListener("load", function () {
-        show_all_books(this.responseText)
+        set_up(this.responseText)
     });
 
     req.open("GET", url);
