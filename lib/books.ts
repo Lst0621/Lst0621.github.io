@@ -95,17 +95,16 @@ function remove_all_year_month(year: number) {
 
 let chosen_tags: string[] = []
 
-function add_button(tag: string) {
+function add_button(tag: string, not_selected_color: string, selected_color: string) {
     let button: HTMLButtonElement = document.createElement("button") as HTMLButtonElement
     button.textContent = tag
-    let not_select_color = "#90B44B"
-    let selected_color = "#f7d94c"
-    button.style.background = not_select_color
+
+    button.style.background = not_selected_color
     button.onclick = function () {
         let select = chosen_tags.includes(tag)
         if (select) {
             chosen_tags = chosen_tags.filter(tg => tg != tag)
-            button.style.background = not_select_color
+            button.style.background = not_selected_color
         } else {
             chosen_tags.push(tag)
             button.style.background = selected_color
@@ -178,6 +177,7 @@ let lines: string[] = []
 function set_up(text: string) {
     lines = text.split('\n')
     let tags: string[] = []
+    let checkouts: string[] = []
     for (let line_idx = 0; line_idx < lines.length; line_idx++) {
         let line = lines[line_idx]
         if (line_idx == 0) {
@@ -193,19 +193,42 @@ function set_up(text: string) {
             years.push(year)
         }
 
-        let tags_str: string = parts.length >= 6 ? parts[5] : ""
+        let tags_str: string = get_part_by_idx(parts, 5)
         for (let tag of tags_str.split(",")) {
             if (tag.length > 0 && !tags.includes(tag)) {
                 tags.push(tag)
             }
         }
+
+        let checkout_str: string = get_part_by_idx(parts, 6)
+        for (let checkout of checkout_str.split(",")) {
+            if (checkout.length > 0 && !checkouts.includes(checkout)) {
+                checkouts.push(checkout)
+            }
+        }
     }
 
     for (let tag of tags) {
-        add_button(tag)
+        let not_select_color = "#90B44B"
+        let selected_color = "#f7d94c"
+        add_button(tag, not_select_color, selected_color)
+    }
+
+    for (let checkout of checkouts) {
+        let not_select_color = "#986DB2"
+        let selected_color = "#7B90D2"
+        add_button(checkout, not_select_color, selected_color)
     }
 
     show_all_books()
+}
+
+function get_part_by_idx(parts: string[], idx: number): string {
+    if (parts.length < idx + 1) {
+        return ""
+    }
+
+    return parts[idx]
 }
 
 function show_all_books() {
@@ -228,9 +251,11 @@ function show_all_books() {
         let isbn: string = parts[2]
         let year: number = Number(parts[3])
         let month: number = Number(parts[4])
-        let tags_str: string = parts.length >= 6 ? parts[5] : ""
+        let tags_str: string = get_part_by_idx(parts, 5)
         let tags: string[] = tags_str.split(',').filter(tag => tag.length > 0)
-        if (chosen_tags.length == 0 || tags.some(tag => chosen_tags.includes(tag))) {
+        let checkout_str: string = get_part_by_idx(parts, 6)
+        let checkouts: string[] = checkout_str.split(',').filter(checkout => checkout.length > 0)
+        if (chosen_tags.length == 0 || tags.some(tag => chosen_tags.includes(tag)) || checkouts.some(checkout => chosen_tags.includes(checkout))) {
             add_book(get_div_from_year_month(year, month), title, image, isbn)
         }
     }

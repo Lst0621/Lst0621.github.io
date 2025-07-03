@@ -1,4 +1,4 @@
-Title|Image|ISBN|Year|Month|Tag
+Title|Image|ISBN|Year|Month|Tag|Checkout|
 Cellular Automata and Groups|https://m.media-amazon.com/images/I/61uIgEFn7XL.jpg|978-3031433276|2025|6|Math
 Automatic Sequences: Theory, Applications, Generalizations|https://m.media-amazon.com/images/I/81Rdamcj9OL.jpg|978-0521823326|2025|6|Math
 The Blue Lotus|https://m.media-amazon.com/images/I/71rQqQwNnmL.jpg|978-0316358569|2025|6
@@ -10,7 +10,7 @@ Pictures by J.R.R. Tolkien|https://m.media-amazon.com/images/I/71-yRgLkoML.jpg|9
 LEGO Timelines: A Visual Journey Through Ten Decades of LEGO History|https://m.media-amazon.com/images/I/81PtpVxKeyL.jpg|978-0593844168|2025|3
 A Mathematical Introduction To Logic|https://m.media-amazon.com/images/I/41qOkVK59RL.jpg|978-0123958136|2025|3|Math
 Logic for Computer Science: Foundations of Automatic Theorem Proving, Second Edition|https://m.media-amazon.com/images/I/81paInFDVaL.jpg|978-0486780825|2025|3|Computer
-An Introduction to Mathematical Reasoning: Numbers, Sets and Functions 1st Edition |https://m.media-amazon.com/images/I/410saRhfNKL._SY445_SX342_.jpg|978-0521597180|2025|3|Math,SD,JB
+An Introduction to Mathematical Reasoning: Numbers, Sets and Functions 1st Edition |https://m.media-amazon.com/images/I/410saRhfNKL._SY445_SX342_.jpg|978-0521597180|2025|3|Math|JB
 Constructive Real Analysis|https://m.media-amazon.com/images/I/718no2gegrL.jpg|978-0486488790|2025|2|Math
 Introduction to Real Analysis|https://m.media-amazon.com/images/I/71WtX1M11WL.jpg|978-0486469133|2025|2|Math
 Integration, Measure and Probability|https://m.media-amazon.com/images/I/710oxPS8PDL.jpg|978-0486488158|2025|2|Math
@@ -30,7 +30,7 @@ Discrete Mathematics and Its Applications|https://m.media-amazon.com/images/I/41
 Finite-Dimensional Vector Spaces|https://m.media-amazon.com/images/I/71N1jNExbrL.jpg|978-0486814865|2024|6|Math
 An Introduction to Ordinary Differential Equations|https://m.media-amazon.com/images/I/81I8f6Cn-ZL.jpg|978-0486659428|2024|6|Math
 Groups and Symmetry|https://m.media-amazon.com/images/I/61l94jRX8RL._SL1322_.jpg|978-0387966755|2024|6|Math
-Div, Grad, Curl, and All That: An Informal Text on Vector Calculus|https://m.media-amazon.com/images/I/71mVtHgjpgL.jpg|978-0393925166|2024|5|Math,SD,JB
+Div, Grad, Curl, and All That: An Informal Text on Vector Calculus|https://m.media-amazon.com/images/I/71mVtHgjpgL.jpg|978-0393925166|2024|5|Math|JB
 Complex Variables: Second Edition |https://m.media-amazon.com/images/I/61SJ6nHwAiL.jpg|978-0486406794|2024|4|Math
 Distributed Systems|https://m.media-amazon.com/images/I/71SV45P9vwL.jpg|978-1543057386|2024|2|Computer
 How to Lie with Statistics|https://m.media-amazon.com/images/I/71HrHG2145L.jpg|978-0393310726|2024|2|Math
@@ -63,4 +63,4 @@ Introduction to Calculus and Analysis, Vol. 1|https://images-na.ssl-images-amazo
 Introduction to Calculus and Analysis, Vol. II/1|https://m.media-amazon.com/images/I/51HkNDeM1XL.jpg|978-3540665694|2021|9|Math
 Introduction to Calculus and Analysis, Vol. II/2|https://m.media-amazon.com/images/I/51VtJlaAHgL.jpg|978-3540665700|2021|9|Math
 
-毛宗岗批评本·三国演义|https://img.megbook.hk/upload/mall/productImages/15/68/9787553803685.jpg|9787553803685|2019|9|Fiction
+毛宗岗批评本·三国演义|https://img.megbook.hk/upload/mall/productImages/15/68/9787553803685.jpg|9787553803685|2019|9|Fiction|Z
