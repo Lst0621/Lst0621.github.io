@@ -260,3 +260,61 @@ export function dihedral_to_str(a: number[]) {
     }
     return "r" + (r == 1 ? "" : ("<sup>" + r.toString() + "</sup>")) + (s == 0 ? "" : "s")
 }
+
+// relations
+export function is_reflexive(relation: boolean[][]) {
+    let len = relation.length
+    for (let i = 0; i < len; i++) {
+        if (!relation[i][i]) {
+            return false
+        }
+    }
+    return true
+}
+
+export function is_symmetric(relation: boolean[][]) {
+    let len = relation.length
+    for (let i = 0; i < len; i++) {
+        for (let j = i+1; j < relation.length; j++) {
+            if (relation[j][i] != relation[i][j]) {
+                return false
+            }
+        }
+    }
+    return true
+}
+
+export function is_antisymmetric(relation: boolean[][]) {
+    let len = relation.length
+    for (let i = 0; i < len; i++) {
+        for (let j = i+1; j < relation.length; j++) {
+            if (relation[j][i] && relation[i][j]) {
+                return false
+            }
+        }
+    }
+    return true
+}
+
+export function is_transitive(relation: boolean[][]) {
+    let len = relation.length
+    for (let i = 0; i < relation.length; i++) {
+        for (let j = 0; j < relation.length; j++) {
+            if (!relation[i][j]) {
+                continue
+            }
+            for (let k = 0; k < relation.length; k++) {
+                if (relation[j][k]) {
+                    if (!relation[i][k]) {
+                        return false
+                    }
+                }
+            }
+        }
+    }
+    return true
+}
+
+export function is_equivalence(relation: boolean[][]) {
+    return is_reflexive(relation) && is_symmetric(relation) && is_transitive(relation)
+}
