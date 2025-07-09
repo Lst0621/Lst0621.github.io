@@ -1,11 +1,12 @@
-import {get_all_permutations, get_permutation_parity, perm_to_str, permutation_multiply} from "./math.js"
+import {get_all_permutations, get_permutation_parity, perm_to_str, permutation_multiply, totient} from "./math.js"
+import {get_sub} from "./util.js";
 
 let table_sz: number = 4
 
 
 export function update_table(sz: number) {
     let mul_text = document.getElementById("mul_text") as HTMLSpanElement
-    mul_text.innerHTML = "Multiplication for S" + "<sub>" + (sz).toString() + "</sub>"
+    mul_text.innerHTML = "Multiplication for S" + get_sub(sz.toString())
     let table: HTMLTableElement = document.getElementById("multiplication_table") as HTMLTableElement
     table.style.alignSelf = "center"
     table.style.borderStyle = "solid"

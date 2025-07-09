@@ -1,11 +1,13 @@
-import {are_co_prime} from "./math.js"
+import {are_co_prime, totient} from "./math.js"
+import {get_sub} from "./util.js";
 
 let table_sz: number = 6
 
 
 export function update_table(sz: number) {
+    let mod: number = sz + 1
     let mul_text = document.getElementById("mul_text") as HTMLSpanElement
-    mul_text.innerHTML = "Multiplication for Z" + "<sub>" + (sz + 1).toString() + "</sub>"
+    mul_text.innerHTML = "Multiplication for Z" + get_sub(mod.toString()) + ". |U" + get_sub(mod.toString()) + "|=" + totient(mod)
     let table: HTMLTableElement = document.getElementById("multiplication_table") as HTMLTableElement
     table.style.alignSelf = "center"
     table.style.borderStyle = "solid"
@@ -17,7 +19,6 @@ export function update_table(sz: number) {
         table.deleteRow(0)
     }
 
-    let mod: number = sz + 1
     let co_prime_color = "#8A6BBE"
     let not_co_prime_color = "#7B90D2"
 

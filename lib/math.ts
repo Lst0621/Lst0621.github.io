@@ -1,3 +1,5 @@
+import {get_sup} from "./util.js";
+
 export function gcd(a_in: number, b_in: number): number {
     let a: number = Math.abs(a_in);
     let b: number = Math.abs(b_in);
@@ -28,6 +30,16 @@ export function gcd(a_in: number, b_in: number): number {
 
 export function are_co_prime(a: number, b: number): boolean {
     return gcd(a, b) == 1
+}
+
+export function totient(n: number): number {
+    let ans: number = 0
+    for (let i = 1; i <= n; i++) {
+        if (are_co_prime(i, n)) {
+            ans += 1
+        }
+    }
+    return ans
 }
 
 export function permutation_multiply(p1: number[], p2: number[]): number[] {
@@ -258,7 +270,7 @@ export function dihedral_to_str(a: number[]) {
     if (r == 0) {
         return "s"
     }
-    return "r" + (r == 1 ? "" : ("<sup>" + r.toString() + "</sup>")) + (s == 0 ? "" : "s")
+    return "r" + (r == 1 ? "" : get_sup(r.toString())) + (s == 0 ? "" : "s")
 }
 
 // relations
@@ -275,7 +287,7 @@ export function is_reflexive(relation: boolean[][]) {
 export function is_symmetric(relation: boolean[][]) {
     let len = relation.length
     for (let i = 0; i < len; i++) {
-        for (let j = i+1; j < relation.length; j++) {
+        for (let j = i + 1; j < relation.length; j++) {
             if (relation[j][i] != relation[i][j]) {
                 return false
             }
@@ -287,7 +299,7 @@ export function is_symmetric(relation: boolean[][]) {
 export function is_antisymmetric(relation: boolean[][]) {
     let len = relation.length
     for (let i = 0; i < len; i++) {
-        for (let j = i+1; j < relation.length; j++) {
+        for (let j = i + 1; j < relation.length; j++) {
             if (relation[j][i] && relation[i][j]) {
                 return false
             }
