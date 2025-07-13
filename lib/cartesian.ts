@@ -6,7 +6,7 @@ function update_cat() {
     for (let part of parts) {
         inputs.push(part.split(","));
     }
-    span.innerHTML = cartesian_product(inputs);
+    span.innerHTML = to_string_as_set(cartesian_product(inputs).map(to_string_as_tuple))
 }
 
 function set_up() {
@@ -15,9 +15,6 @@ function set_up() {
     let button: HTMLButtonElement = document.getElementById("update_button") as HTMLButtonElement
     button.onclick = update_cat;
 }
-
-set_up();
-
 
 function to_string_as_set(inputs: any[]) {
     let inputs_as_string: string[] = [];
@@ -35,18 +32,20 @@ function to_string_as_tuple(inputs: any[]) {
     return "(" + inputs_as_string.join(",") + ")"
 }
 
-function cartesian_product(inputs: any[][]): string {
-    let all_combinations: string[] = []
-    cartesian_helper(inputs, [], all_combinations)
-    return to_string_as_set(all_combinations);
+function cartesian_product(inputs: any[][]): any[][] {
+    let all_combinations: any[][] = []
+    let l: any[] = []
+    cartesian_helper(inputs, l, all_combinations)
+    console.log(all_combinations)
+    return all_combinations;
 }
 
-function cartesian_helper(inputs: any[][], l: string[], all_combinations: string[]) {
+function cartesian_helper(inputs: any[][], l: any[], all_combinations: any[][]) {
     let index: number = l.length;
     let number_of_sets: number = inputs.length;
     if (number_of_sets == index) {
-        all_combinations.push(to_string_as_tuple(l))
-        return
+        all_combinations.push(Array.from(l));
+        return;
     }
     for (let element of inputs[index]) {
         l.push(element)
@@ -54,3 +53,5 @@ function cartesian_helper(inputs: any[][], l: string[], all_combinations: string
         l.pop()
     }
 }
+
+set_up();
