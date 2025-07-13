@@ -1,3 +1,5 @@
+import {cartesian_product} from "./tsl/math.js";
+
 function update_cat() {
     let cats_input: string = (document.getElementById("cat_input") as HTMLInputElement as HTMLInputElement).value;
     let span: HTMLSpanElement = document.getElementById('cat_text') as HTMLSpanElement;
@@ -30,28 +32,6 @@ function to_string_as_tuple(inputs: any[]) {
         inputs_as_string.push(input.toString());
     }
     return "(" + inputs_as_string.join(",") + ")"
-}
-
-function cartesian_product(inputs: any[][]): any[][] {
-    let all_combinations: any[][] = []
-    let l: any[] = []
-    cartesian_helper(inputs, l, all_combinations)
-    console.log(all_combinations)
-    return all_combinations;
-}
-
-function cartesian_helper(inputs: any[][], l: any[], all_combinations: any[][]) {
-    let index: number = l.length;
-    let number_of_sets: number = inputs.length;
-    if (number_of_sets == index) {
-        all_combinations.push(Array.from(l));
-        return;
-    }
-    for (let element of inputs[index]) {
-        l.push(element)
-        cartesian_helper(inputs, l, all_combinations)
-        l.pop()
-    }
 }
 
 set_up();
