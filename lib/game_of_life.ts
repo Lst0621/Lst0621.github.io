@@ -1,3 +1,5 @@
+import {cartesian_product} from "./tsl/math.js";
+
 let canvas: HTMLCanvasElement = document.getElementById('gol') as
     HTMLCanvasElement;
 let head_span: HTMLSpanElement = document.getElementById("head_span") as HTMLSpanElement
@@ -296,14 +298,11 @@ function fetch_value(i: number, j: number): number {
 
 function get_nb_count(i: number, j: number): number {
     let sum = 0
-    for (let dx of [-1, 0, 1]) {
-        for (let dy of [-1, 0, 1]) {
-            if (dx == 0 && dy == 0) {
-                continue;
-            }
-
-            sum += fetch_value(i + dx, j + dy)
+    for (let [dx, dy] of cartesian_product([[-1, 0, 1], [-1, 0, 1]])) {
+        if (dx == 0 && dy == 0) {
+            continue;
         }
+        sum += fetch_value(i + dx, j + dy)
     }
     return sum
 }
