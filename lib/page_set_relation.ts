@@ -1,4 +1,4 @@
-import {is_symmetric, is_transitive, is_reflexive, is_equivalence, is_antisymmetric} from "./math.js"
+import {is_symmetric, is_transitive, is_reflexive, is_equivalence, is_antisymmetric} from "./tsl/math.js"
 
 let table_sz: number = 3
 

@@ -1,5 +1,5 @@
-import {get_all_permutations, get_permutation_parity, perm_to_str, permutation_multiply, totient} from "./math.js"
-import {get_sub} from "./util.js";
+import {get_all_permutations, get_permutation_parity, perm_to_str, permutation_multiply, totient} from "./tsl/math.js"
+import {get_sub} from "./tsl/util.js";
 
 let table_sz: number = 4
 

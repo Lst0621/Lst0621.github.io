@@ -1,0 +1,3 @@
+[submodule "lib/tsl"]
+	path = lib/tsl
+	url = git@github.com:Lst0621/tsl.git

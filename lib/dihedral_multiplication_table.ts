@@ -1,7 +1,7 @@
 import {
     dihedral_multiply, dihedral_to_str,
     get_all_dihedral
-} from "./math.js"
+} from "./tsl/math.js"
 
 let table_sz: number = 4
 
