@@ -1,5 +1,6 @@
-import {are_co_prime, totient} from "./tsl/math.js"
+import {are_co_prime, get_multiply_mod_n_function, totient} from "./tsl/math.js"
 import {get_sub} from "./tsl/util.js";
+import {draw_multiplication_table} from "./tsl/visual.js";
 
 let table_sz: number = 6
 
@@ -9,61 +10,34 @@ export function update_table(sz: number) {
     let mul_text = document.getElementById("mul_text") as HTMLSpanElement
     mul_text.innerHTML = "Multiplication for Z" + get_sub(mod.toString()) + ". |U" + get_sub(mod.toString()) + "|=" + totient(mod)
     let table: HTMLTableElement = document.getElementById("multiplication_table") as HTMLTableElement
-    table.style.alignSelf = "center"
-    table.style.borderStyle = "solid"
-    table.style.textAlign = "center"
-    while (true) {
-        if (table.rows.length == 0) {
-            break
-        }
-        table.deleteRow(0)
-    }
+    // TODO
 
+    let inputs: number[] = []
+    for (let i = 1; i <= sz; i++) {
+        inputs.push(i)
+    }
     let co_prime_color = "#8A6BBE"
     let not_co_prime_color = "#7B90D2"
 
-    {
-        let row = table.insertRow()
-        for (let i = 0; i <= sz; i++) {
-            let cell = row.insertCell()
-            if (i != 0) {
-                cell.style.borderStyle = "solid"
-                cell.innerText = "[" + i.toString() + "]"
-                if (are_co_prime(i, mod)) {
-                    cell.style.background = co_prime_color
-                } else{
-                    cell.style.background = not_co_prime_color
-                }
+    let identity_color = "#FC9F4D"
+    let unit_group_color = "#E87A90"
+    let other_color = "#FEDFE1"
+    draw_multiplication_table(
+        table,
+        inputs,
+        get_multiply_mod_n_function(mod),
+        (a: number) => "[" + a.toString() + "]",
+        (a: number) => (are_co_prime(a, mod) ? co_prime_color : not_co_prime_color),
+        (a: number, b: number, c: number) => {
+            if (c == 1) {
+                return identity_color
             }
-        }
-    }
-
-    for (let i = 1; i <= sz; i++) {
-        let row = table.insertRow()
-        let cell = row.insertCell()
-        cell.style.borderStyle = "solid"
-        let i_co_prime = are_co_prime(i, mod)
-        if (i_co_prime) {
-            cell.style.background = co_prime_color
-        } else{
-            cell.style.background = not_co_prime_color
-        }
-
-        cell.innerText = "[" + i.toString() + "]"
-        for (let j = 1; j <= sz; j++) {
-            let cell_product = row.insertCell()
-            cell_product.style.borderStyle = "solid"
-            cell_product.innerText = "[" + (i * j % mod).toString() + "]"
-            if (i * j % mod == 1) {
-                cell_product.style.background = "#FC9F4D"
-            } else if (i_co_prime && are_co_prime(j, mod)) {
-                cell_product.style.background = "#E87A90"
+            if (are_co_prime(a, mod) && are_co_prime(b, mod)) {
+                return unit_group_color;
             } else {
-                cell_product.style.background = "#FEDFE1"
-
+                return other_color;
             }
-        }
-    }
+        })
 }
 
 export function increment() {
