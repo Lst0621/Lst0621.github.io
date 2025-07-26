@@ -1,4 +1,4 @@
-import {are_co_prime, get_multiply_mod_n_function, totient} from "./tsl/math.js"
+import {are_co_prime, get_multiply_mod_n_function, get_primitive_roots, totient} from "./tsl/math.js"
 import {get_sub} from "./tsl/util.js";
 import {draw_multiplication_table} from "./tsl/visual.js";
 
@@ -9,6 +9,7 @@ export function update_table(sz: number) {
     let mod: number = sz + 1
     let mul_text = document.getElementById("mul_text") as HTMLSpanElement
     mul_text.innerHTML = "Multiplication for Z" + get_sub(mod.toString()) + ". |U" + get_sub(mod.toString()) + "|=" + totient(mod)
+        + " primitive roots: [" + get_primitive_roots(mod) + "]"
     let table: HTMLTableElement = document.getElementById("multiplication_table") as HTMLTableElement
     // TODO
 

@@ -1,4 +1,4 @@
-import {get_all_permutations, get_permutation_parity, perm_to_str, permutation_multiply, totient} from "./tsl/math.js"
+import {get_all_permutations, get_permutation_parity, perm_to_str, permutation_multiply} from "./tsl/math.js"
 import {get_sub} from "./tsl/util.js";
 import {draw_multiplication_table} from "./tsl/visual.js";
 
