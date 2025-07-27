@@ -15,6 +15,7 @@ Constructive Real Analysis|https://m.media-amazon.com/images/I/718no2gegrL.jpg|9
 Introduction to Real Analysis|https://m.media-amazon.com/images/I/71WtX1M11WL.jpg|978-0486469133|2025|2|Math
 Integration, Measure and Probability|https://m.media-amazon.com/images/I/710oxPS8PDL.jpg|978-0486488158|2025|2|Math
 Functional Programming in C++|https://m.media-amazon.com/images/I/61QiPqQ9omL.jpg|978-1617293818|2025|2|Computer
+Applied Partial Differential Equations with Fourier Series and Boundary Value Problems|https://m.media-amazon.com/images/I/61yCRa9fnvL._SL1500_.jpg|978-0134995434|2025|2|Math|JB
 Introductory Discrete Mathematics|https://m.media-amazon.com/images/I/51KIuuDfCaL.jpg|978-0486691152|2025|1|Math
 Introduction to Stochastic Processes|https://m.media-amazon.com/images/I/71TKSxrQk1L.jpg|978-0486497976|2025|1|Math
 Stochastic Processes|https://m.media-amazon.com/images/I/71Z9R7JPAiL.jpg|978-0486796888|2025|1|Math
@@ -25,42 +26,84 @@ Java Concurrency in Practice|https://m.media-amazon.com/images/I/71ajUjqd3vL.jpg
 Maven: The Definitive Guide|https://m.media-amazon.com/images/I/91O1y+b7YmL.jpg|978-0596517335|2025|1|Computer
 Gradle in Action|https://m.media-amazon.com/images/I/611QmrGM-YL.jpg|978-1617291302|2025|1|Computer
 WebAssembly: The Definitive Guide: Safe, Fast, and Portable Code|https://m.media-amazon.com/images/I/91vhWTofMdL.jpg|978-1492089841|2025|1|Computer
-
 Discrete Mathematics and Its Applications|https://m.media-amazon.com/images/I/41ujd8aCacL.jpg|978-1259676512|2024|10|Math
 Finite-Dimensional Vector Spaces|https://m.media-amazon.com/images/I/71N1jNExbrL.jpg|978-0486814865|2024|6|Math
-An Introduction to Ordinary Differential Equations|https://m.media-amazon.com/images/I/81I8f6Cn-ZL.jpg|978-0486659428|2024|6|Math
-Groups and Symmetry|https://m.media-amazon.com/images/I/61l94jRX8RL._SL1322_.jpg|978-0387966755|2024|6|Math
+An Introduction to Ordinary Differential Equations|https://m.media-amazon.com/images/I/81I8f6Cn-ZL.jpg|978-0486659428|2024|6|Math|JB
+A First Course in Partial Differential Equations: with Complex Variables and Transform Methods (Dover Books on Mathematics)|https://m.media-amazon.com/images/I/61l+occzlzL._SL1500_.jpg|978-0486686400|2024|6|Math|JB
+Groups and Symmetry|https://m.media-amazon.com/images/I/61l94jRX8RL.jpg|978-0387966755|2024|6|Math
 Div, Grad, Curl, and All That: An Informal Text on Vector Calculus|https://m.media-amazon.com/images/I/71mVtHgjpgL.jpg|978-0393925166|2024|5|Math|JB
+ One Two Three . . . Infinity: Facts and Speculations of Science (Dover Books on Mathematics)|https://m.media-amazon.com/images/I/71gimL7Qp2L.jpg|978-0486256641|2024|5|Math
 Complex Variables: Second Edition |https://m.media-amazon.com/images/I/61SJ6nHwAiL.jpg|978-0486406794|2024|4|Math
+ Introduction to Logic (Dover Books on Mathematics)|https://m.media-amazon.com/images/I/71VAkxDWR4L.jpg|978-0486406879|2024|4|Math
+ An Introduction to Formal Logic|https://m.media-amazon.com/images/I/51NBlqLnkDS.jpg|979-8675803941|2024|4|Math
 Distributed Systems|https://m.media-amazon.com/images/I/71SV45P9vwL.jpg|978-1543057386|2024|2|Computer
 How to Lie with Statistics|https://m.media-amazon.com/images/I/71HrHG2145L.jpg|978-0393310726|2024|2|Math
 A Book of Set Theory|https://m.media-amazon.com/images/I/81pZEbrMDHL.jpg|978-0486497082|2024|2|Math
+The Art of UNIX Programming (The Addison-Wesley Professional Computng Series)|https://m.media-amazon.com/images/I/61HYlbR7QrL.jpg|978-0131429017|2024|2|Math
+Real Analysis: Measure Theory, Integration, and Hilbert Spaces (Princeton Lectures in Analysis)|https://m.media-amazon.com/images/I/91pQBhl9iGL.jpg|978-0691113869|2024|2|Math
+Lambda-Calculus and Combinators: An Introduction|https://m.media-amazon.com/images/I/61rkzmzIJ9L.jpg|978-0521898850|2024|2|Math
+Fourier Analysis on Groups|https://m.media-amazon.com/images/I/81ASxhlw3EL.jpg|978-0486813653|2024|2|Math
+Foundations of Mathematical Logic|https://m.media-amazon.com/images/I/719lkKXI8EL.jpg|978-0486634623|2024|2|Math|JB
+Category Theory in Context (Aurora: Dover Modern Math Originals)|https://m.media-amazon.com/images/I/81gZKNmWc1L.jpg|978-0486809038|2024|2|Math
+Algebraic Logic|https://m.media-amazon.com/images/I/51iw8-lxMAL.jpg|978-1614276340|2024|2|Math
 An Introduction to Functional Programming Through Lambda Calculus|https://m.media-amazon.com/images/I/71BDN38eBVL.jpg|978-0486478838|2024|1|Computer
 Elements of Programming|https://m.media-amazon.com/images/I/51TG0kzHi6L.jpg|978-0578222141|2024|1|Computer
-Category Theory I: Notes towards a gentle introduction|https://m.media-amazon.com/images/I/51J4dhgYKnL.jpg|978-1916906372|2024|1|Math
+Category Theory I: Notes towards a gentle introduction|https://m.media-amazon.com/images/I/51J4dhgYKnL.jpg|978-1916906372|2024|1|Math|JB
 Topology: An Introduction to the Point-Set and Algebraic Areas|https://marketing-assets.chegg.com/BDEIAGTK/as/gqr9mfw6fggmmk96wf7s6kh/9780486686097.jpg|978-0486686097|2024|1|Math
-
+Beginning Mathematical Logic: A Study Guide|https://m.media-amazon.com/images/I/5146sd16WHL.jpg|978-1916906334|2024|1|Math
+The Hobbit Sketchbook|https://m.media-amazon.com/images/I/91wwyK+M12L.jpg|978-0358380207|2023|11|Fiction
+Probability and Stochastics|https://m.media-amazon.com/images/I/61rniMrlvCL.jpg|978-0387878584|2023|11|Math
+Polynomials and Polynomial Inequalities|https://m.media-amazon.com/images/I/611WUBqxirL.jpg|978-0387945095|2023|11|Math
+Pointers on C|https://m.media-amazon.com/images/I/51xkw9dXx7L.jpg|978-0673999863|2023|11|Computer
+Matrix Analysis|https://m.media-amazon.com/images/I/51IVLU6yYBL.jpg|978-0387948461|2023|11|Math
+Mathematical Logic|https://m.media-amazon.com/images/I/6166aEk3cJL.jpg|978-0387942582|2023|11|Math
+Linear Algebra (Dover Books on Mathematics)|https://m.media-amazon.com/images/I/A1CKp9NCA3L.jpg|978-0486635187|2023|11|Math
+Lectures in Abstract Algebra III|https://m.media-amazon.com/images/I/616HfFNeM4L.jpg|978-0387901688|2023|11|Math
+Lectures in Abstract Algebra II|https://m.media-amazon.com/images/I/613UB4euWLL.jpg|978-0387901237|2023|11|Math
+Lectures in Abstract Algebra I|https://m.media-amazon.com/images/I/61jdhB5OrkL.jpg|978-0387901817|2023|11|Math
+Inequalities|https://m.media-amazon.com/images/I/61fbSUYEsOL.jpg|978-0521358804|2023|11|Math
+General Topology|https://m.media-amazon.com/images/I/81VuWauzWIL.jpg|978-0486815442|2023|11|Math
+Discrete Mathematics|https://m.media-amazon.com/images/I/516+S988FxL.jpg|978-0134689562|2023|11|Math,Computer
+Deep Learning (Adaptive Computation and Machine Learning series)|https://m.media-amazon.com/images/I/A10G+oKN3LL.jpg|978-0262035613|2023|11|Computer
+Basic Topology|https://m.media-amazon.com/images/I/61HG-iXsLOL.jpg|978-0387908397|2023|11|Math
+Basic Algebra I: Second Edition (Dover Books on Mathematics)|https://m.media-amazon.com/images/I/61-bNMTlbwL.jpg|978-0486471891|2023|11|Math
+Basic Algebra II: Second Edition (Dover Books on Mathematics)|https://m.media-amazon.com/images/I/61z+6InvLFL.jpg|978-0486471877|2023|11|Math
+An Introduction to Manifolds|https://m.media-amazon.com/images/I/51Wl1T+JpZL.jpg|978-1441973993|2023|11|Math
 Number Theory|https://m.media-amazon.com/images/I/61tBtOB1O6L.jpg|978-0486682525|2023|10|Math
 The Art of Proof: Basic Training for Deeper Mathematics|https://m.media-amazon.com/images/I/617FpsDLEBL.jpg|978-1441970220|2023|10|Math
 Linear Algebra Done Rights|https://m.media-amazon.com/images/I/61G5BuihTeL.jpg|978-3319307657|2023|10|Math
 Functional Programming in Java: How functional techniques improve your Java programs|https://m.media-amazon.com/images/I/51Zq7G+uwxL.jpg|978-1617292736|2023|10|Computer
 About Vectors|https://m.media-amazon.com/images/I/61OEjMyt5iL.jpg|978-0486604893|2023|10|Math
 The Vampire Lestat|https://m.media-amazon.com/images/I/618+ykdTRkL.jpg|978-0394534435|2023|10|Fiction
+Abstract Algebra, Fourth Edition|https://m.media-amazon.com/images/I/A17D3vpk7eL.jpg|978-1478638698|2023|10|Math
 Boolean Algebra and Its Applications|https://m.media-amazon.com/images/I/81Lo-WmVpKL.jpg|978-0486477671|2023|9|Math
 Interview with the Vampire|https://m.media-amazon.com/images/I/810+xbiu3vL.jpg|978-0394498218|2023|8|Fiction
 A Book of Abstract Algebra: Second Edition|https://m.media-amazon.com/images/I/71ixgrQG5yL.jpg|978-0486474175|2023|8|Math
 The Silmarillion: Illustrated by J.R.R. Tolkien (Tolkien Editions)|https://m.media-amazon.com/images/I/71q6Uwbhc0L.jpg|978-0063280779|2023|7|Fiction
 Naive Set Theory|https://m.media-amazon.com/images/I/610lIEx2LqL.jpg|978-1614271314|2023|6|Math
 The Filmmaker's Guide to Visual Effects|https://m.media-amazon.com/images/I/71lngDARigL.jpg|978-1032266695|2023|5
-
+Pantone: The Twentieth Century in Color: (Coffee Table Books, Design Books, Best Books About Color)|https://m.media-amazon.com/images/I/71+3SpRxv-L.jpg|978-0811877565|2023|5|Design
+CUV (Simplified Script), NIV, Chinese/English Bilingual Bible, Bonded Leather, Black (Chinese Edition)|https://m.media-amazon.com/images/I/51ucI-SQlBL.jpg|978-1563208232|2023|2|Religion
 Designing Distributed Systems: Patterns and Paradigms for Scalable, Reliable Services|https://m.media-amazon.com/images/I/91CxhyACrlL.jpg|978-1491983645|2022|12|Computer
 The Foundations of Arithmetic: A Logico-Mathematical Enquiry into the Concept of Number|https://m.media-amazon.com/images/I/51mVW605ekL.jpg|978-0810106055|2022|12|Math
+Transactional Information Systems: Theory, Algorithms, and the Practice of Concurrency Control and Recovery (The Morgan Kaufmann Series in Data Management Systems)|https://m.media-amazon.com/images/I/61Q0EViYbYL.jpg|978-1558605084|2022|12
+The Dream of Enlightenment: The Rise of Modern Philosophy|https://m.media-amazon.com/images/I/71QNMI5fZoL.jpg|978-0871404435|2022|12
+The Complete History of Middle-earth Box Set: Three Volumes Comprising All Twelve Books of The History of Middle-earth|https://m.media-amazon.com/images/I/71gOnHo9mFL.jpg|978-0358381747|2022|12
 What Is the Name of This Book?: The Riddle of Dracula and Other Logical Puzzles|https://m.media-amazon.com/images/I/41MSBTWNIML.jpg|978-0486481982|2022|8|Math
 System Design Interview – An Insider's Guide: Volume 2|https://m.media-amazon.com/images/I/51lJolln98L.jpg|978-1736049112|2022|8|Computer
 Applied Mathematics for Database Professionals|https://m.media-amazon.com/images/I/41iFKLYdZhL.jpg|978-1430211846|2022|8|Computer
-
+Introduction to the Theory of Computation|https://m.media-amazon.com/images/I/51FrXXE3j7L.jpg|978-1133187790|2022|8|Computer
+Practical Foundations for Programming Languages|https://m.media-amazon.com/images/I/61mhpMM4PEL.jpg|978-1107150300|2022|5
+Effective TypeScript: 62 Specific Ways to Improve Your TypeScript|https://m.media-amazon.com/images/I/81sJB+PbfEL.jpg|978-1492053743|2021|12
+C++ Concurrency in Action|https://m.media-amazon.com/images/I/71WDl8EY-kL.jpg|978-1617294693|2021|11
 Introduction to Calculus and Analysis, Vol. 1|https://images-na.ssl-images-amazon.com/images/I/51RfQvDridL.jpg|978-3540650584|2021|9|Math
 Introduction to Calculus and Analysis, Vol. II/1|https://m.media-amazon.com/images/I/51HkNDeM1XL.jpg|978-3540665694|2021|9|Math
 Introduction to Calculus and Analysis, Vol. II/2|https://m.media-amazon.com/images/I/51VtJlaAHgL.jpg|978-3540665700|2021|9|Math
-
+Complex Variables: An Introduction|https://m.media-amazon.com/images/I/51-6GCNCiyL.jpg|978-1461277651|2021|9|Math
+Algebra|https://m.media-amazon.com/images/I/51KqeXuGD-L.jpg|978-0387953854|2021|9|Math
+Real Analysis: Modern Techniques and Their Applications|https://m.media-amazon.com/images/I/71vr4blWnuL.jpg|978-0471317166|2020|6|Math
+Fundamentals of Differential Geometry (Graduate Texts in Mathematics, 191)|https://m.media-amazon.com/images/I/61BvtBIFxuL.jpg|978-0387985930|2020|6|Math
+Functional Analysis|https://img3m8.ddimg.cn/82/30/28556038-1_w_3.jpg|9787111654742|2020|6|Math
+ESPN Kobe Bryant|https://m.media-amazon.com/images/I/41EaPDMLfsL.jpg|978-1547853038|2020|2
 毛宗岗批评本·三国演义|https://img.megbook.hk/upload/mall/productImages/15/68/9787553803685.jpg|9787553803685|2019|9|Fiction|Z
+Physically Based Rendering: From Theory to Implementation|https://m.media-amazon.com/images/I/614B4dIbfwL.jpg|978-0128006450|2018|7
