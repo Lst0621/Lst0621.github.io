@@ -4,8 +4,9 @@ import {
     get_all_dihedral,
     get_permutation_parity, perm_to_str,
     permutation_multiply
-} from "./tsl/math.js"
-import {draw_multiplication_table} from "./tsl/visual.js";
+} from "../tsl/math.js"
+import {draw_multiplication_table} from "../tsl/visual.js";
+import {always} from "../tsl/func.js";
 
 let table_sz: number = 4
 
@@ -22,8 +23,8 @@ export function update_table(sz: number) {
         dihedrals,
         (a, b) => dihedral_multiply(a, b, sz),
         dihedral_to_str,
-        (a: number[]) => "lightblue",
-        (a: number[], b: number[], c: number[]) => "lightgreen")
+        always("lightblue"),
+        always("lightyellow"))
 
     draw_multiplication_table(
         table2,
