@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<head>
+    <title>Tips Calculator</title>
+    <link rel="icon" href="../img/flame1.png">
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-9BLVHLETMC"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+
+        function gtag() {
+            dataLayer.push(arguments);
+        }
+
+        gtag('js', new Date());
+        gtag('config', 'G-9BLVHLETMC');
+    </script>
+</head>
+<body>
+<h1 style="margin-top: 10;font-size: 18pt;font-weight:normal;font-family: Courier;" align="center">
+    Tips
+</h1>
+<p align="center">
+    Appreciated
+</p>
+<p align="center">
+    <span id="mul_text">
+    Tips
+    </span>
+</p>
+<label for="total">total</label>
+<input type="number" id="total" name="total" value="30">
+<br>
+<label for="tax">tax</label>
+<input type="number" id="tax" name="tax" value="2.7">
+<br>
+<button onclick="draw()">Calculate</button>
+<br>
+<table id="tip_table" align="center"></table>
+<br>
+
+
+
+<script type="module">
+    import {draw} from "../lib/page/tip.js"
+
+    Object.assign(window, {draw})
+    draw()
+</script>
+
+<a href="../index.html">
+    Back
+</a>
+
+</body>
