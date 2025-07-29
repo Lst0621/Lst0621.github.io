@@ -10,10 +10,10 @@ function get_float(element_id: string) {
 export function draw() {
     let tip_table = document.getElementById("tip_table") as HTMLTableElement;
     let columns_text: string[] =
-        ["subtotal", "tax", "total",
-            "tips on subtotal", "total plus tips", "tips on tax", "total plus tips plus tips on tax"];
+        ["food", "tax", "food+tax",
+            "tips on food", "food+tax+tips", "tips on tax", "food+tax+tips+tips on tax",];
     // TODO
-    let subtotal = get_float("total")
+    let subtotal = get_float("food")
     let tax = get_float("tax")
     let tips = [0, 5, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25];
 
@@ -42,6 +42,12 @@ export function draw() {
     }
 
     draw_table(tip_table, tips, columns_text, get_element, (x: number) => x.toString() + "%", x => x, x => x.toFixed(2).toString(),
-        always("lightgreen"), always("yellow"), always("pink"));
+        (row: number) => (row % 2 == 0 ? "lightgreen" : "white"), always("lightyellow"), (row, col) => row % 2 == 0 ? "lightblue" : "white");
 }
 
+document.addEventListener('keydown', (event: KeyboardEvent) => {
+    if (event.key === 'Enter') {
+        console.log('Enter was pressed anywhere');
+        draw()
+    }
+});
