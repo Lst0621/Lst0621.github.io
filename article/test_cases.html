@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<head>
+    <title>Tests</title>
+    <link rel="icon" href="../img/flame1.png">
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-9BLVHLETMC"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+
+        function gtag() {
+            dataLayer.push(arguments);
+        }
+
+        gtag('js', new Date());
+        gtag('config', 'G-9BLVHLETMC');
+    </script>
+</head>
+<body>
+<h1 style="margin-top: 10;font-size: 18pt;font-weight:normal;font-family: Courier;" align="center">
+    Test Cases
+</h1>
+<table id="test_case_table" align="center"></table>
+
+<script type="module">
+    import {update_table} from "../lib/page/test_case.js"
+
+    Object.assign(window, {update_table})
+    update_table()
+</script>
+
+<a href="../index.html">
+    Back
+</a>
+
+</body>
