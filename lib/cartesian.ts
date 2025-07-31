@@ -6,7 +6,7 @@ function update_cat() {
     let parts: string[] = cats_input.split(";");
     let inputs: string[][] = []
     for (let part of parts) {
-        inputs.push(part.split(","));
+        inputs.push(part.split(",").filter(x => x.length > 0));
     }
     span.innerHTML = to_string_as_set(cartesian_product(inputs).map(to_string_as_tuple))
 }
