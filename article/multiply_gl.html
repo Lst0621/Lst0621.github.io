@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<head>
+    <title>Multiplication Table for General Linear Group</title>
+    <link rel="icon" href="../img/flame1.png">
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-9BLVHLETMC"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+
+        function gtag() {
+            dataLayer.push(arguments);
+        }
+
+        gtag('js', new Date());
+        gtag('config', 'G-9BLVHLETMC');
+    </script>
+</head>
+<body>
+<h1 style="margin-top: 10;font-size: 18pt;font-weight:normal;font-family: Courier;" align="center">
+    Multiplication Table for General Linear Group
+</h1>
+<p align="center">
+    The perfect model of truth is the multiplication table, which is precise and certain and free from all temporal
+    dross -- Bertrand Russell.
+</p>
+<p align="center">
+    <span id="mul_text">
+    Multiplication for General Linear
+    </span>
+    <br>
+    <button onclick="increment()">+</button>
+    <button onclick="decrement()">-</button>
+</p>
+<table id="multiplication_table" align="center"></table>
+<br>
+<table id="multiplication_table_perm" align="center"></table>
+
+<script type="module">
+    import {increment, decrement, update_table} from "../lib/page/gl_multiplication_table.js"
+
+    Object.assign(window, {increment, decrement, update_table})
+    update_table()
+</script>
+
+<a href="../index.html">
+    Back
+</a>
+
+</body>
