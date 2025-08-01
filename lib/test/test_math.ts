@@ -1,9 +1,9 @@
 import {
     array_eq_2d,
-    cartesian_product, gen_general_linear_zn_m_by_m,
+    cartesian_product, gen_general_linear_zn_m_by_m, generate_group,
     get_add_inverse_mod_n_function,
     inner_product,
-    matrix_multiply_number
+    matrix_multiply_number, matrix_multiply_zn
 } from "../tsl/math.js";
 
 export function test_matrix_multiply() {
@@ -48,6 +48,33 @@ export function test_generate_general_linear_group_zn_m() {
     if (gl_z2_2.length != 6) {
         return false
     }
+    let gl_z2_2_to_group = generate_group(gl_z2_2, (a: number[][], b: number[][]) => matrix_multiply_zn(a, b, 2), array_eq_2d,
+        20)
+    if (gl_z2_2_to_group.length != gl_z2_2.length) {
+        return false
+    }
+
+    let gl_z2_3 = gen_general_linear_zn_m_by_m(2, 3)
+    if (gl_z2_3.length != 168) {
+        return false
+    }
+    let gl_z2_3_to_group = generate_group(gl_z2_3, (a: number[][], b: number[][]) => matrix_multiply_zn(a, b, 2), array_eq_2d,
+        1000)
+    if (gl_z2_3_to_group.length != gl_z2_3.length) {
+        return false
+    }
+
+    let gl_z3_2 = gen_general_linear_zn_m_by_m(3, 2)
+    if (gl_z3_2.length != 48) {
+        return false
+    }
+    let gl_z3_2_to_group = generate_group(gl_z3_2, (a: number[][], b: number[][]) => matrix_multiply_zn(a, b, 3), array_eq_2d,
+        1000)
+    if (gl_z3_2_to_group.length != gl_z3_2.length) {
+        return false
+    }
+
+
     let gl_z3_3 = gen_general_linear_zn_m_by_m(3, 3)
     if (gl_z3_3.length != 11232) {
         return false
