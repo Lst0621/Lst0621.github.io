@@ -1,6 +1,6 @@
 import {
     array_eq_2d,
-    cartesian_product, gen_general_linear_zn_m_by_m, generate_group,
+    cartesian_product, gen_general_linear_n_zm, generate_group,
     get_add_inverse_mod_n_function,
     inner_product,
     matrix_multiply_number, matrix_multiply_zn
@@ -44,38 +44,38 @@ export function test_mod() {
 }
 
 export function test_generate_general_linear_group_zn_m() {
-    let gl_z2_2 = gen_general_linear_zn_m_by_m(2, 2)
-    if (gl_z2_2.length != 6) {
+    let gl_2_z2 = gen_general_linear_n_zm(2, 2)
+    if (gl_2_z2.length != 6) {
         return false
     }
-    let gl_z2_2_to_group = generate_group(gl_z2_2, (a: number[][], b: number[][]) => matrix_multiply_zn(a, b, 2), array_eq_2d,
+    let gl_z2_2_to_group = generate_group(gl_2_z2, (a: number[][], b: number[][]) => matrix_multiply_zn(a, b, 2), array_eq_2d,
         20)
-    if (gl_z2_2_to_group.length != gl_z2_2.length) {
+    if (gl_z2_2_to_group.length != gl_2_z2.length) {
         return false
     }
 
-    let gl_z2_3 = gen_general_linear_zn_m_by_m(2, 3)
-    if (gl_z2_3.length != 168) {
+    let gl_3_z2 = gen_general_linear_n_zm(3, 2)
+    if (gl_3_z2.length != 168) {
         return false
     }
-    let gl_z2_3_to_group = generate_group(gl_z2_3, (a: number[][], b: number[][]) => matrix_multiply_zn(a, b, 2), array_eq_2d,
+    let gl_3_z2_to_group = generate_group(gl_3_z2, (a: number[][], b: number[][]) => matrix_multiply_zn(a, b, 2), array_eq_2d,
         1000)
-    if (gl_z2_3_to_group.length != gl_z2_3.length) {
+    if (gl_3_z2_to_group.length != gl_3_z2.length) {
         return false
     }
 
-    let gl_z3_2 = gen_general_linear_zn_m_by_m(3, 2)
-    if (gl_z3_2.length != 48) {
+    let gl_2_z3 = gen_general_linear_n_zm(2, 3)
+    if (gl_2_z3.length != 48) {
         return false
     }
-    let gl_z3_2_to_group = generate_group(gl_z3_2, (a: number[][], b: number[][]) => matrix_multiply_zn(a, b, 3), array_eq_2d,
+    let gl_2_z3_to_group = generate_group(gl_2_z3, (a: number[][], b: number[][]) => matrix_multiply_zn(a, b, 3), array_eq_2d,
         1000)
-    if (gl_z3_2_to_group.length != gl_z3_2.length) {
+    if (gl_2_z3_to_group.length != gl_2_z3.length) {
         return false
     }
 
 
-    let gl_z3_3 = gen_general_linear_zn_m_by_m(3, 3)
+    let gl_z3_3 = gen_general_linear_n_zm(3, 3)
     if (gl_z3_3.length != 11232) {
         return false
     }
