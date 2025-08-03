@@ -1,4 +1,4 @@
-import {gen_general_linear_n_zm, matrix_multiply_zn} from "../tsl/math.js"
+import {array_eq_2d, gen_general_linear_n_zm, matrix_multiply_zn} from "../tsl/math.js"
 import {draw_multiplication_table, matrix_to_cell} from "../tsl/visual.js";
 import {always} from "../tsl/func.js";
 import {get_sub} from "../tsl/util.js";
@@ -19,7 +19,8 @@ export function update_table() {
         (a: number[][], b: number[][]) => matrix_multiply_zn(a, b, m),
         matrix_to_cell,
         always("lightblue"),
-        always("lightyellow")
+        (a, b, c) =>
+            (array_eq_2d(c, [[1, 0], [0, 1]])) ? "lightgreen" : "lightblue"
     )
 }
 
