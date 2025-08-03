@@ -1,6 +1,7 @@
 import {
+    array_eq,
     array_eq_2d,
-    cartesian_product, gen_general_linear_n_zm, generate_group,
+    cartesian_product, complex_multiply, gen_general_linear_n_zm, generate_group,
     get_add_inverse_mod_n_function,
     inner_product,
     matrix_multiply_number, matrix_multiply_zn
@@ -78,6 +79,22 @@ export function test_generate_general_linear_group_zn_m() {
     let gl_z3_3 = gen_general_linear_n_zm(3, 3)
     if (gl_z3_3.length != 11232) {
         return false
+    }
+    return true;
+}
+
+export function test_complex_numbers() {
+    let a = [1, 2]
+    let b = [3, 4]
+    let c = 4
+    let ab = complex_multiply(a, b)
+    if (!array_eq([-5, 10], ab)) {
+        return false;
+    }
+    let ac = complex_multiply(a, c)
+    if (!array_eq([4, 8], ac)) {
+        console.log(ac)
+        return false;
     }
     return true;
 }

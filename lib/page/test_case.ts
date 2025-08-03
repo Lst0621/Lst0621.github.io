@@ -1,5 +1,5 @@
 import {
-    test_cartesian_product,
+    test_cartesian_product, test_complex_numbers,
     test_generate_general_linear_group_zn_m,
     test_inner_product,
     test_matrix_multiply,
@@ -85,7 +85,7 @@ export function draw_test_cases_table(table: HTMLTableElement, tests: (() => boo
 export function update_table() {
     let table: HTMLTableElement = document.getElementById("test_case_table") as HTMLTableElement
 
-    let tests = [test_matrix_multiply, test_cartesian_product, test_inner_product, test_mod,test_generate_general_linear_group_zn_m]
+    let tests = [test_matrix_multiply, test_cartesian_product, test_inner_product, test_mod, test_generate_general_linear_group_zn_m, test_complex_numbers]
     tests.push(test_failure, test_error)
     draw_test_cases_table(table, tests)
 }
