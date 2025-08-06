@@ -1,4 +1,4 @@
-import {cartesian_product} from "./tsl/math.js";
+import {cartesian_product} from "./tsl/math/set.js";
 
 let canvas: HTMLCanvasElement = document.getElementById('gol') as
     HTMLCanvasElement;

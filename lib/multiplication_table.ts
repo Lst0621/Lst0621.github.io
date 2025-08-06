@@ -1,6 +1,7 @@
-import {are_co_prime, get_multiply_mod_n_function, get_primitive_roots, totient} from "./tsl/math.js"
 import {get_sub} from "./tsl/util.js";
 import {draw_multiplication_table} from "./tsl/visual.js";
+import {are_co_prime, get_multiply_mod_n_function, totient} from "./tsl/math/number.js";
+import {get_primitive_roots} from "./tsl/math/group.js";
 
 let table_sz: number = 6
 

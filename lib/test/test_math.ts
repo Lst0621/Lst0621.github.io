@@ -1,25 +1,39 @@
 import {
     array_eq,
     array_eq_2d,
-    cartesian_product,
-    complex_multiply,
-    gen_general_linear_n_zm,
-    generate_group,
-    get_add_inverse_mod_n_function,
-    get_add_mod_n_function,
+
+} from "../tsl/math/math.js";
+import {
     get_inverse,
-    get_mul_inverse_mod_n_function,
-    get_multiply_mod_n_function,
     inner_product,
+    matrix_add_number,
     matrix_multiply_number,
     matrix_multiply_zn
-} from "../tsl/math.js";
+} from "../tsl/math/matrix.js";
+import {
+    complex_add,
+    complex_multiply,
+    get_add_inverse_mod_n_function,
+    get_add_mod_n_function,
+    get_mul_inverse_mod_n_function,
+    get_multiply_mod_n_function
+} from "../tsl/math/number.js";
+import {cartesian_product} from "../tsl/math/set.js";
+import {gen_general_linear_n_zm, generate_group} from "../tsl/math/group.js";
 
 export function test_matrix_multiply() {
     let a: number[][] = [[1, 2], [3, 4]]
     let b: number[][] = [[5, 6], [7, 8]]
     let c = matrix_multiply_number(a, b)
     let d = [[19, 22], [43, 50]]
+    return array_eq_2d(c, d)
+}
+
+export function test_matrix_add() {
+    let a: number[][] = [[1, 2], [3, 4]]
+    let b: number[][] = [[5, 6], [7, 8]]
+    let c = matrix_add_number(a, b)
+    let d = [[6, 8], [10, 12]]
     return array_eq_2d(c, d)
 }
 
@@ -131,6 +145,11 @@ export function test_complex_numbers() {
     let ac = complex_multiply(a, c)
     if (!array_eq([4, 8], ac)) {
         console.log(ac)
+        return false;
+    }
+    let a_plus_b = complex_add(a, b)
+    if (!array_eq([4, 6], a_plus_b)) {
+        console.log(a_plus_b)
         return false;
     }
     return true;
