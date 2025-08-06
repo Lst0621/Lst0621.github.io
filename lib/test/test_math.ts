@@ -1,20 +1,17 @@
+import {array_eq, array_eq_2d} from "../tsl/math/math.js";
 import {
-    array_eq,
-    array_eq_2d,
-
-} from "../tsl/math/math.js";
-import {
-    get_inverse,
     inner_product,
     matrix_add_number,
+    matrix_inverse, matrix_inverse_number,
     matrix_multiply_number,
     matrix_multiply_zn
 } from "../tsl/math/matrix.js";
 import {
-    complex_add,
+    complex_add, complex_inverse,
     complex_multiply,
     get_add_inverse_mod_n_function,
     get_add_mod_n_function,
+    get_conjugate,
     get_mul_inverse_mod_n_function,
     get_multiply_mod_n_function
 } from "../tsl/math/number.js";
@@ -35,6 +32,12 @@ export function test_matrix_add() {
     let c = matrix_add_number(a, b)
     let d = [[6, 8], [10, 12]]
     return array_eq_2d(c, d)
+}
+
+export function test_matrix_inverse() {
+    let a: number[][] = [[1, 0], [0, -1]]
+    let a_inverse: number[][] = matrix_inverse_number(a)
+    return array_eq_2d(a, a_inverse)
 }
 
 export function test_cartesian_product() {
@@ -94,7 +97,7 @@ export function test_generate_general_linear_group_zn_m() {
 
     for (let i = 0; i < gl_2_z3.length; ++i) {
         let mat = gl_2_z3[i]
-        let inv = get_inverse(mat,
+        let inv = matrix_inverse(mat,
             get_add_mod_n_function(3),
             get_multiply_mod_n_function(3),
             get_add_inverse_mod_n_function(3),
@@ -120,7 +123,7 @@ export function test_generate_general_linear_group_zn_m() {
     let step = 40;
     for (let i = 0; step * i < gl_z3_3.length; ++i) {
         let mat = gl_z3_3[step * i]
-        let inv = get_inverse(mat,
+        let inv = matrix_inverse(mat,
             get_add_mod_n_function(3),
             get_multiply_mod_n_function(3),
             get_add_inverse_mod_n_function(3),
@@ -138,19 +141,37 @@ export function test_complex_numbers() {
     let a = [1, 2]
     let b = [3, 4]
     let c = 4
+    let i: number[] = [0, 1]
     let ab = complex_multiply(a, b)
     if (!array_eq([-5, 10], ab)) {
         return false;
     }
+
     let ac = complex_multiply(a, c)
     if (!array_eq([4, 8], ac)) {
         console.log(ac)
         return false;
     }
+
     let a_plus_b = complex_add(a, b)
     if (!array_eq([4, 6], a_plus_b)) {
         console.log(a_plus_b)
         return false;
     }
+
+    let a_conjugate = get_conjugate(a)
+    if (!array_eq([1, -2], a_conjugate)) {
+        return false;
+    }
+
+    let minus_i = complex_inverse(i)
+    if (!array_eq(minus_i, [0, -1])) {
+        return false;
+    }
+
+    if (!array_eq([1, 0], complex_inverse(1))) {
+        return false;
+    }
+
     return true;
 }
