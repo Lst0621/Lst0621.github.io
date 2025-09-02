@@ -11,7 +11,7 @@ import {
     complex_multiply,
     get_add_inverse_mod_n_function,
     get_add_mod_n_function,
-    get_conjugate,
+    get_conjugate, get_first_n_primes,
     get_mul_inverse_mod_n_function,
     get_multiply_mod_n_function
 } from "../tsl/math/number.js";
@@ -174,4 +174,11 @@ export function test_complex_numbers() {
     }
 
     return true;
+}
+
+export function test_gen_primes() {
+    let primes = get_first_n_primes(10)
+    let expected = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29]
+    console.log(primes, expected);
+    return array_eq(primes, expected)
 }
