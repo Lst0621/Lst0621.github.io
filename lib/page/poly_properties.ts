@@ -1,4 +1,4 @@
-import {poly_eval, poly_to_html, poly_to_latex} from "../tsl/math/polynomial.js";
+import {poly_eval, poly_to_html, poly_to_latex_high_to_low, poly_to_latex_low_to_high} from "../tsl/math/polynomial.js";
 import {gen_prime} from "../tsl/math/number.js";
 import {range} from "../tsl/util.js";
 import {clear_table, draw_table} from "../tsl/visual.js";
@@ -8,7 +8,8 @@ function update_poly() {
     let poly_input: string = (document.getElementById("poly_input") as HTMLInputElement as HTMLInputElement).value;
     let span: HTMLSpanElement = document.getElementById('poly_text') as HTMLSpanElement;
     let poly: number[] = poly_input.split(";").map(Number);
-    span.innerHTML = "Latex: " + poly_to_latex(poly) + "<br>"
+    span.innerHTML = "Latex: " + poly_to_latex_low_to_high(poly) + "<br>"
+        + "Latex: " + poly_to_latex_high_to_low(poly) + "<br>"
         + "HTML: " + poly_to_html(poly);
 
     let table = document.getElementById("poly_eval_table") as HTMLTableElement;
