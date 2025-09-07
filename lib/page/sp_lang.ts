@@ -42,7 +42,8 @@ function update(s1: string, s2: string) {
         let s2: string = pre2[b]
         draw_state(ctx, "(" + s1 + "," + s2 + ")",
             [scale + a * scale, scale + b * scale],
-            radius, visited[a][b] == 0 ? "lightgrey" : (a == l1 - 1 || b == l2 - 1 ? "orange" : "lightgreen"))
+            radius, a + b == 0 ? "lightblue" : visited[a][b] == 0 ? "lightgrey" :
+                (a == l1 - 1 || b == l2 - 1 ? "orange" : "lightgreen"))
     }
     for (let i = 0; i < arrows.length; i++) {
         let arrow = arrows[i]
