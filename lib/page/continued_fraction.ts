@@ -1,15 +1,16 @@
 import {get_sup} from "../tsl/util.js";
 import {draw_table} from "../tsl/visual.js";
 import {always, function_power} from "../tsl/func.js";
+import {complex_add, complex_inverse} from "../tsl/math/number.js";
 
-function iter(x: number) {
-    return 3 + 1 / x
+function iter(x: number | number[]): number | number[] {
+    return complex_add(3, complex_inverse(x))
 }
 
 function update() {
     let table: HTMLTableElement = document.getElementById("cf_table") as HTMLTableElement
 
-    let inits = [-10, -1, (3 - Math.sqrt(13)) / 2, -0.01, 0.01, 0.1, 0.2, 0.5, 0.8, 1, 2, 3, 4, 5, 10, 20, 100]
+    let inits = [-10, -1, (3 - Math.sqrt(13)) / 2, -0.01, 0.01, 0.1, 0.5, 1, 3, 5, 10, 20, [0, 1], [3, 4], [2, 100]]
     let iters = [0, 1, 2, 3, 4, 5, 10, 20, 100, 1000]
     draw_table(table, iters, inits,
         (row: number, col: number) => {
@@ -20,13 +21,25 @@ function update() {
 
         },
         iter => "f" + get_sup(iter.toString()),
-        init => init.toString(),
-        z => new Intl.NumberFormat("US", {
-            maximumFractionDigits: 6,
-        }).format(z),
+        init => fmt(init),
+        z => fmt(z),
         always("yellow"),
         always("lightblue"),
-        always("lightgreen"))
+        always("lightgreen")
+    )
+}
+
+function fmt(x: number | number[]): string {
+    if (x instanceof Array) {
+        if (Math.abs(x[1]) <= 0.001) {
+            return fmt(x[0])
+        } else {
+            return fmt(x[0]) + (x[1] > 0 ? "+" : "") + fmt(x[1]) + "i"
+        }
+    }
+    return new Intl.NumberFormat("US", {
+        maximumFractionDigits: 3,
+    }).format(x)
 }
 
 update();
