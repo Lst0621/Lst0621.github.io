@@ -1,27 +1,43 @@
 import {
     concat_same_string_lists_leq_n_times,
     get_all_prefixes,
-    get_alphabet_from_strings, get_regex_for_disalloweb_sub_seq, get_sub_seq_regex
+    get_alphabet_from_strings, get_regex_for_disallowed_sub_seq, sub_empty_with_ep
 } from "../tsl/lang/string.js";
 import {create_2d_array, range} from "../tsl/util.js";
 import {cartesian_product} from "../tsl/math/set.js";
+import {draw_table} from "../tsl/visual.js";
+import {always} from "../tsl/func.js";
 
-function update(s1: string, s2: string) {
-    const canvas: HTMLCanvasElement = document.getElementById("canvas_id_sp") as HTMLCanvasElement
-    const ctx: CanvasRenderingContext2D = canvas.getContext("2d") as CanvasRenderingContext2D;
+function init() {
+    let init_subs: string = "abcda,bacbb,accb";
+    // init_subs = "abc,cba";
+    (document.getElementById("sp_input") as HTMLInputElement as HTMLInputElement).value = init_subs
+    let button: HTMLButtonElement = document.getElementById("update_button") as HTMLButtonElement
+    button.onclick = update;
+    update()
+}
+
+function update() {
+
+
+    let sp_input: string = (document.getElementById("sp_input") as HTMLInputElement as HTMLInputElement).value;
     let span: HTMLSpanElement = document.getElementById('sp_span') as HTMLSpanElement;
     let span2: HTMLSpanElement = document.getElementById('sp_span_2') as HTMLSpanElement;
 
-    let disallowed = [s1, s2]
+    let subs = sp_input.split(",");
+    let s1 = subs[0];
+    let s2 = subs.length == 1 ? s1 : subs[1]
+    let disallowed = subs
     let l = Math.max(s1.length, s2.length);
-    let alphabet = get_alphabet_from_strings([s1, s2]);
+    let alphabet = get_alphabet_from_strings(subs);
     console.log(alphabet)
-    let all_sub_seq = concat_same_string_lists_leq_n_times(alphabet, l)
-    let allowed_seq = Array.from(all_sub_seq).filter(x => !disallowed.includes(x))
 
     span.innerHTML = "Disallowed subsequences: " + disallowed + "<br>"
-    span.innerHTML += "Regex: " + get_regex_for_disalloweb_sub_seq(disallowed) + "<br>"
-    span2.innerHTML += "Allowed subsequences: " + allowed_seq + "<br>"
+    span.innerHTML += "Regex: " + get_regex_for_disallowed_sub_seq(disallowed) + "<br>"
+
+    let all_sub_seq = concat_same_string_lists_leq_n_times(alphabet, l)
+    // let allowed_seq = Array.from(all_sub_seq).filter(x => !disallowed.includes(x))
+    // span2.innerHTML += "Allowed subsequences: " + allowed_seq + "<br>"
 
     let pre1: string[] = get_all_prefixes(s1)
     let pre2: string[] = get_all_prefixes(s2)
@@ -34,13 +50,16 @@ function update(s1: string, s2: string) {
     let radius = 50
     let arrows: any[][] = []
     let visited: number[][] = create_2d_array(l1, l2, 0)
+    const canvas: HTMLCanvasElement = document.getElementById("canvas_id_sp") as HTMLCanvasElement
+    const ctx: CanvasRenderingContext2D = canvas.getContext("2d") as CanvasRenderingContext2D;
+    ctx.clearRect(0, 0, canvas.width, canvas.width)
     travel(0, 0, pre1, pre2, arrows, visited)
     for (let i = 0; i < idx.length; i++) {
         let a = idx[i][0]
         let b = idx[i][1]
         let s1: string = pre1[a]
         let s2: string = pre2[b]
-        draw_state(ctx, "(" + s1 + "," + s2 + ")",
+        draw_state(ctx, [s1, s2].map(sub_empty_with_ep).join(","),
             [scale + a * scale, scale + b * scale],
             radius, a + b == 0 ? "lightblue" : visited[a][b] == 0 ? "lightgrey" :
                 (a == l1 - 1 || b == l2 - 1 ? "orange" : "lightgreen"))
@@ -51,6 +70,49 @@ function update(s1: string, s2: string) {
         let to: number[] = arrow[1]
         draw_arrow(ctx, [(from[0] + 1) * scale, (from[1] + 1) * scale], [(to[0] + 1) * scale, (to[1] + 1) * scale], arrow[2])
     }
+
+    let all_pres = subs.map(get_all_prefixes)
+    let all_states = cartesian_product(all_pres)
+    let table = document.getElementById("multiplication_table") as HTMLTableElement;
+    draw_table(
+        table,
+        all_states,
+        alphabet,
+        (row: number, col: number): string[] => {
+            return get_next_state(all_states[row], alphabet[col], all_pres)
+        },
+        a => a.map(sub_empty_with_ep).toString(),
+        sub_empty_with_ep,
+        a => a.map(sub_empty_with_ep).toString(),
+        always("lightgreen"),
+        always("lightblue"),
+        (row: number, col: number) => {
+            let next = get_next_state(all_states[row], alphabet[col], all_pres)
+            return range(0, next.length).some(i => {
+                return subs[i] === next[i]
+            }) ? "orange" : "lightgrey"
+        }
+    )
+}
+
+function get_next_state(states: string[], ch: string, all_pres: string[][]) {
+    let len = all_pres.length;
+    let next_state = []
+    for (let i = 0; i < len; i++) {
+        let state = states[i]
+        let pre = all_pres[i]
+        let w = state.length
+        if (pre.length == w + 1) {
+            next_state.push(state)
+            continue
+        }
+        if (pre[w + 1].slice(-1) == ch) {
+            next_state.push(state + ch)
+        } else {
+            next_state.push(state)
+        }
+    }
+    return next_state
 }
 
 
@@ -125,4 +187,4 @@ function draw_state(ctx: CanvasRenderingContext2D, name: string, pos: number[], 
     ctx.fillText(name, pos[0], pos[1]);
 }
 
-update("abcda", "bacbb")
+init()
