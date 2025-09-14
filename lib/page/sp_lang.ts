@@ -1,7 +1,8 @@
 import {
+    cat_subseq_of_blocklist,
     concat_same_string_lists_leq_n_times,
-    get_all_prefixes,
-    get_alphabet_from_strings, get_regex_for_disallowed_sub_seq, sub_empty_with_ep
+    get_all_prefixes, get_all_subseq_for_blocks,
+    get_alphabet_from_strings, get_regex_for_disallowed_sub_seq, sub_empty_with_ep, subseq_remove_short
 } from "../tsl/lang/string.js";
 import {create_2d_array, range} from "../tsl/util.js";
 import {cartesian_product} from "../tsl/math/set.js";
@@ -9,8 +10,8 @@ import {draw_table} from "../tsl/visual.js";
 import {always} from "../tsl/func.js";
 
 function init() {
-    let init_subs: string = "abcda,bacbb,accb";
-    // init_subs = "abc,cba";
+    // let init_subs: string = "abcda,bacbb,accb";
+    let init_subs: string = "abc,cba";
     (document.getElementById("sp_input") as HTMLInputElement as HTMLInputElement).value = init_subs
     let button: HTMLButtonElement = document.getElementById("update_button") as HTMLButtonElement
     button.onclick = update;
@@ -18,11 +19,8 @@ function init() {
 }
 
 function update() {
-
-
     let sp_input: string = (document.getElementById("sp_input") as HTMLInputElement as HTMLInputElement).value;
     let span: HTMLSpanElement = document.getElementById('sp_span') as HTMLSpanElement;
-    let span2: HTMLSpanElement = document.getElementById('sp_span_2') as HTMLSpanElement;
 
     let subs = sp_input.split(",");
     let s1 = subs[0];
@@ -73,9 +71,8 @@ function update() {
 
     let all_pres = subs.map(get_all_prefixes)
     let all_states = cartesian_product(all_pres)
-    let table = document.getElementById("multiplication_table") as HTMLTableElement;
     draw_table(
-        table,
+        document.getElementById("multiplication_table_1") as HTMLTableElement,
         all_states,
         alphabet,
         (row: number, col: number): string[] => {
@@ -91,6 +88,30 @@ function update() {
             return range(0, next.length).some(i => {
                 return subs[i] === next[i]
             }) ? "orange" : "lightgrey"
+        }
+    )
+
+    let all_block_seq = get_all_subseq_for_blocks(subs)
+    let len = Math.max(...(subs.map(s => s.length)))
+    draw_table(
+        document.getElementById("multiplication_table_2") as HTMLTableElement,
+        all_block_seq,
+        alphabet,
+        (row: number, col: number): string[] => {
+            return cat_subseq_of_blocklist(all_block_seq[row], ["", alphabet[col]], len, subs)
+        },
+        a => subseq_remove_short(a).toString(),
+        sub_empty_with_ep,
+        a => subseq_remove_short(a).toString(),
+        always("lightgreen"),
+        always("lightblue"),
+        (row: number, col: number) => {
+            let next = cat_subseq_of_blocklist(all_block_seq[row], ["", alphabet[col]], len, subs)
+            if(next.some(x=>subs.some(y=>y==x))){
+                return "orange"
+            }else{
+                return "lightgreen"
+            }
         }
     )
 }
