@@ -4,7 +4,7 @@
 // @version      2025-07-22
 // @description  foo
 // @author       You
-// @match        http://*/*
+// @match        https://www.amazon.com/*
 // @icon         data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==
 // @grant        none
 // ==/UserScript==
