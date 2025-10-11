@@ -1,4 +1,5 @@
 import {cartesian_product} from "./tsl/math/set.js";
+import {random_fill} from "./tsl/util.js";
 
 let canvas: HTMLCanvasElement = document.getElementById('gol') as
     HTMLCanvasElement;
@@ -78,13 +79,7 @@ function clear() {
 }
 
 function random_start() {
-    for (let i: number = 0; i < len; i++) {
-        for (let j: number = 0; j < len; j++) {
-            if (Math.random() < thres) {
-                cells[i][j] = 1
-            }
-        }
-    }
+    cells = random_fill(cells, thres)
 }
 
 
