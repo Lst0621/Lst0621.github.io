@@ -18,21 +18,22 @@ function update_poly() {
         let vars = range(0, prime).map(n => poly_eval(poly, n) % prime);
         console.log(vars);
         if (vars.every(v => v != 0)) {
-
+            let mods = range(1, prime + 1)
+            let rows = [0].concat(mods)
             draw_table(
                 table,
-                [(poly_to_html(poly)),
-                    ("(" + poly_to_html(poly) + ") mod " + prime.toString())],
+                rows,
                 range(0, prime),
                 (row: number, col: number) => {
                     let value = poly_eval(poly, col);
                     if (row == 0) {
                         return value
                     } else {
-                        return value % prime
+                        return value % row
                     }
                 },
-                i => i,
+                i =>
+                    "(" + poly_to_html(poly) + ")" + (i > 0 ? (" mod " + i.toString()) : ""),
                 c => c.toString(),
                 e => e.toString(),
                 always("lightgreen"),
