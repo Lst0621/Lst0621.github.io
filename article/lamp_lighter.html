@@ -11,6 +11,10 @@
         gtag('js', new Date());
         gtag('config', 'G-9BLVHLETMC');
     </script>
+    <script>
+        window.MathJax = {tex: {inlineMath: [['$', '$']]}};
+    </script>
+    <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 </head>
 
 <h1 style="margin-top: 10;" align="center">
@@ -20,6 +24,11 @@
 </h1>
 
 <body>
+<p align="center" style="font-family: Arial, sans-serif; color: #333; margin-top: 10px;">
+    A lamp lighter travelling on a $\mathbb{Z}_7 \times \mathbb{Z}_7$ grid/ donut, turning on/off lamps.<br>
+    The grid with the lamps can be viewed as an element of $\{0,1\}^{\mathbb{Z}_7 \times \mathbb{Z}_7}\times(\mathbb{Z}_7 \times \mathbb{Z}_7)$.<br>
+    In group theory, the lamplighter group is a special case of a wreath product.<br>
+</p>
 <p align="center">
     <canvas id="lamp_lighter_canvas" width="600" height="600">
     </canvas>
@@ -28,11 +37,12 @@
 <p align="center" style="font-family: Arial, sans-serif; color: #333; margin-top: 20px;">
     <strong>Controls:</strong><br>
     Use <strong>W/A/S/D</strong> to move (Up/Left/Down/Right)<br>
-    Press <strong>T</strong> to toggle lamp on/off
+    Press <strong>T</strong> to toggle lamp on/off<br>
+    Try to turn off all the lamps and move to the blue box.<br>
 </p>
 
 <p align="center" id="lamp_lighter_counter" style="font-family: Arial, sans-serif; color: #333; margin-top: 10px;">
-    Total moves: 0 | Lights on: 17
+    Total moves: 0 | Lamps on: 17
 </p>
 <script src="https://emgithub.com/embed.js?target=https://github.com/Lst0621/Lst0621.github.io/blob/master/lib/page/lamp_lighter.ts&style=solarized-light&showBorder=on&showLineNumbers=on&showFileMeta=on"></script>
 <a href="../index.html">
