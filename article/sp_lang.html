@@ -14,6 +14,10 @@
         gtag('js', new Date());
         gtag('config', 'G-9BLVHLETMC');
     </script>
+    <script>
+        window.MathJax = {tex: {inlineMath: [['$', '$']]}};
+    </script>
+    <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 </head>
 
 <h1 style="margin-top: 10;" align="center">
@@ -24,6 +28,23 @@
 
 <body>
 <p align="center">
+    Strictly Piecewise Language is a subclass of Subregular Languages.
+    It is defined by a set of forbidden subsequences.<br><br>
+    We can map the monoid of words to the monoid of sets of subsequences of length up to k.<br><br>
+    $\begin{CD}
+    \Sigma^*\times \Sigma^* @>\circ>> \Sigma^* \\
+    @Vf \times fVV   @VVfV \\
+    \mathbb{P}(\Sigma^{\leq k})\times \mathbb{P}(\Sigma^{\leq k}) @>\oplus>>\mathbb{P}(\Sigma^{\leq k})
+    \end{CD}$<br><br>
+    $ \begin{CD}
+    (w_1,w_2) @>\circ>> w_1 \circ w_2 \\
+    @VP_{\leq k} \times P_{\leq k}VV   @VVP_{\leq k}V \\
+    (P_{\leq k}(w_1),P_{\leq k}(w_2)) @>\oplus>>P_{\leq k}(w_1 \circ w_2)
+    \end{CD}\\$<br><br>
+    $S_1 \oplus S_2=\cup(P_{\leq k}(S_1 \circ S_2))$<br><br>
+    $P_{\leq k}(w_1 \circ w_2)=P_{\leq k}(w_1) \oplus P_{\leq k}(w_2) = \cup(P_{\leq k}(P_{\leq k}(w_1) \circ P_{\leq k}(w_2)))$<br><br>
+</p>
+<p align="center">
     <label for="sp_input"></label>
     <input type="text" id="sp_input"><br><br>
     <button id="update_button">Update</button>
@@ -33,11 +54,11 @@
             style="border: 15px solid black;">
     </canvas>
     <br>
+</p>
 <table id="multiplication_table_2" align="center"></table>
 <br>
 <table id="multiplication_table_1" align="center"></table>
 <br>
-</p>
 <script src="../lib/page/sp_lang.js" type="module"></script>
 <a href="../index.html">
     Back
