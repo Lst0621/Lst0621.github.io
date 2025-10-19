@@ -1,6 +1,41 @@
 import {add_mod_n, add_inverse_mod_n} from "../tsl/math/number.js";
 import {create_2d_array, random_fill} from "../tsl/util.js";
 
+// Create player image element
+const playerImage = new Image();
+playerImage.src = 'https://media.tenor.com/fXVhjC7EAOAAAAAi/the-binding-of-isaac.gif';
+playerImage.id = 'player-image';
+playerImage.style.position = 'absolute';
+playerImage.style.pointerEvents = 'none';
+playerImage.style.zIndex = '1000';
+
+// Simplified approach to add image to DOM
+window.addEventListener('load', () => {
+    const canvas = document.getElementById('lamp_lighter_canvas') as HTMLCanvasElement;
+    if (!canvas) return;
+    if (canvas && canvas.parentNode) {
+        // Create a wrapper div that will contain both the canvas and the image
+        const wrapper = document.createElement('div');
+        wrapper.id = 'game-wrapper';
+        wrapper.style.position = 'relative';
+        wrapper.style.width = canvas.width + 'px';
+        wrapper.style.height = canvas.height + 'px';
+
+        // Replace canvas with wrapper and move canvas inside it
+        canvas.parentNode.replaceChild(wrapper, canvas);
+        wrapper.appendChild(canvas);
+        wrapper.appendChild(playerImage);
+
+        // Canvas should fill the wrapper
+        canvas.style.position = 'absolute';
+        canvas.style.top = '0';
+        canvas.style.left = '0';
+
+        // Initial position
+        updatePlayerImagePosition();
+    }
+});
+
 class LampLighterGame {
     map_size: number;
     lamp_status: number[][];
@@ -74,6 +109,21 @@ function update_lamp_lighter_counter() {
     }
 }
 
+function updatePlayerImagePosition() {
+    const canvas = document.getElementById('lamp_lighter_canvas') as HTMLCanvasElement;
+    if (!canvas) return;
+
+    const cell_width = Math.floor(canvas.width / game.map_size);
+
+    // Position the player image at the current location
+    playerImage.style.width = `${cell_width}px`;
+    playerImage.style.height = `${cell_width}px`;
+    playerImage.style.top = `${game.current_location[0] * cell_width}px`;
+    playerImage.style.left = `${game.current_location[1] * cell_width}px`;
+
+    console.log(`Player positioned at ${playerImage.style.left}, ${playerImage.style.top}`);
+}
+
 function draw_lamp_lighter_canvas() {
     let canvas: HTMLCanvasElement = document.getElementById('lamp_lighter_canvas') as
         HTMLCanvasElement;
@@ -103,11 +153,14 @@ function draw_lamp_lighter_canvas() {
     context.lineWidth = 3;
     context.strokeRect(game.target_location[1] * cell_width, game.target_location[0] * cell_width, cell_width, cell_width);
 
-    // Draw current location boundary on top of everything (highest priority)
-    context.strokeStyle = "red";
-    context.lineWidth = 3;
-    context.strokeRect(game.current_location[1] * cell_width, game.current_location[0] * cell_width, cell_width, cell_width);
+    // Instead of drawing to canvas, update the position of the image element
+    updatePlayerImagePosition();
 }
+
+// Make sure to redraw when image loads
+// playerImage.onload = () => {
+//     draw_lamp_lighter_canvas();
+// };
 
 draw_lamp_lighter_canvas();
 update_lamp_lighter_counter();
