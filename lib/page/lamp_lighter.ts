@@ -4,6 +4,7 @@ import {create_2d_array, random_fill} from "../tsl/util.js";
 
 // Player image container (we will create one img per mirrored visual cell)
 const PLAYER_GIF_SRC = 'https://media.tenor.com/fXVhjC7EAOAAAAAi/the-binding-of-isaac.gif';
+const PLAYER2_GIF_SRC = 'https://media.tenor.com/0UFf9tLiZqcAAAAi/binding-of.gif'
 
 // Simplified approach to add image to DOM
 window.addEventListener('load', () => {
@@ -312,7 +313,7 @@ class LampLighterGame {
                 indicator.style.position = 'absolute';
                 indicator.style.top = '10px';
                 indicator.style.right = '10px';
-                indicator.style.backgroundColor = 'rgba(76, 175, 80, 0.8)';  // Changed color to green
+                indicator.style.backgroundColor = 'rgba(76, 175, 80, 0.8)';  // Changed to green
                 indicator.style.color = '#ffffff';
                 indicator.style.padding = '5px 10px';
                 indicator.style.borderRadius = '5px';
@@ -333,6 +334,9 @@ class LampLighterGame {
                 indicator.parentNode.removeChild(indicator);
             }
         }
+
+        // Immediately redraw the canvas with the new color scheme
+        draw_lamp_lighter_canvas();
 
         // Update the counter to show greedy mode status
         update_lamp_lighter_counter();
@@ -542,7 +546,8 @@ function update_player_image_position() {
 
             if (actual_i === game.current_location[0] && actual_j === game.current_location[1]) {
                 const img = document.createElement('img');
-                img.src = PLAYER_GIF_SRC;
+                // Use different image based on greedy mode
+                img.src = game.greedy_mode ? PLAYER2_GIF_SRC : PLAYER_GIF_SRC;
                 img.style.position = 'absolute';
                 img.style.width = `${cell_width}px`;
                 img.style.height = `${cell_width}px`;
@@ -565,6 +570,25 @@ function draw_lamp_lighter_canvas() {
     // Calculate cell width based on (size+2)×(size+2) grid
     let cell_width = Math.floor(w / (game.map_size + 2));
 
+    // Define color schemes for normal and greedy modes with higher contrast
+    const colorScheme = {
+        normal: {
+            lampOn: "#7e57c2",     // Brighter purple for lamps that are on
+            lampOff: "#263238",     // Darker blue-gray for lamps that are off
+            borderCell: "#050708",  // Original nearly black for border cells
+            mainGrid: "#050708"     // Original very dark blue-gray for main grid
+        },
+        greedy: {
+            lampOn: "#4CAF50",      // Bright green for lamps that are on
+            lampOff: "#1B5E20",     // Dark green for lamps that are off
+            borderCell: "#050708",  // Use the same dark teal for all borders in greedy mode
+            mainGrid: "#050708"     // Very dark teal for main grid
+        }
+    };
+
+    // Select the color scheme based on mode
+    const colors = game.greedy_mode ? colorScheme.greedy : colorScheme.normal;
+
     // Draw the expanded grid with wrapping visualization
     for (let vis_i = 0; vis_i < game.map_size + 2; vis_i++) {
         for (let vis_j = 0; vis_j < game.map_size + 2; vis_j++) {
@@ -586,20 +610,20 @@ function draw_lamp_lighter_canvas() {
                 actual_j = 0;
             }     // Right border maps to leftmost column
 
-            // Set the cell color based on lamp status
+            // Set the cell color based on lamp status and mode
             if (game.lamp_status[actual_i][actual_j] == 1) {
-                context.fillStyle = "#7e57c2";
+                context.fillStyle = colors.lampOn;  // Color for lamps that are on
             } else {
-                context.fillStyle = "#263238";
+                context.fillStyle = colors.lampOff;  // Color for lamps that are off
             }
             context.fillRect(vis_j * cell_width, vis_i * cell_width, cell_width, cell_width);
 
-            // Draw border slightly darker for border cells
+            // Draw border with appropriate colors based on mode
             if (vis_i === 0 || vis_i === game.map_size + 1 || vis_j === 0 || vis_j === game.map_size + 1) {
-                context.strokeStyle = "#050708"; // Darker stroke for border
+                context.strokeStyle = colors.borderCell; // Border cell color
                 context.lineWidth = 1.5;
             } else {
-                context.strokeStyle = "#0d1214"; // Regular stroke for main grid
+                context.strokeStyle = colors.mainGrid; // Main grid color
                 context.lineWidth = 3;
             }
             context.strokeRect(vis_j * cell_width, vis_i * cell_width, cell_width, cell_width);
@@ -626,13 +650,14 @@ function draw_lamp_lighter_canvas() {
             }
 
             if (actual_i === game.target_location[0] && actual_j === game.target_location[1]) {
-                context.strokeStyle = "#26a69a";
-                context.lineWidth = 3;
+                // Use a more visible color for the target box that works with both color schemes
+                context.strokeStyle = game.greedy_mode ? "#FFEB3B" : "#4CAF50";
+                context.lineWidth = 4;
                 context.strokeRect(
-                    vis_j * cell_width,
-                    vis_i * cell_width,
-                    cell_width,
-                    cell_width
+                    vis_j * cell_width + 1,
+                    vis_i * cell_width + 1,
+                    cell_width - 2,
+                    cell_width - 2
                 );
             }
         }
