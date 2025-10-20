@@ -53,6 +53,8 @@ class LampLighterGame {
     total_key_count: number;
     is_level_transitioning: boolean;
     level: number; // Track the current level
+    greedy_mode: boolean; // Track if greedy mode is active (renamed from random_mode)
+    greedy_timer: number | null; // Timer ID for greedy mode actions (renamed from random_timer)
 
     constructor(map_size: number = 3) {  // Start with 3x3 grid at level 1
         this.level = 1;
@@ -62,6 +64,8 @@ class LampLighterGame {
         this.target_location = [0, 0];
         this.total_key_count = 0;
         this.is_level_transitioning = false;
+        this.greedy_mode = false;
+        this.greedy_timer = null;
     }
 
     // Get map size based on level
@@ -111,6 +115,11 @@ class LampLighterGame {
 
         this.total_key_count = 0;
         this.is_level_transitioning = false;
+        this.greedy_mode = false;
+        if (this.greedy_timer !== null) {
+            clearInterval(this.greedy_timer);
+            this.greedy_timer = null;
+        }
 
         render_description();
     }
@@ -197,8 +206,180 @@ class LampLighterGame {
         return true;
     }
 
+    // Helper method to find the closest lit light
+    findClosestLitLight(): [number, number] | null {
+        // If no lights are on, return null
+        let litLightsExist = false;
+        for (let i = 0; i < this.map_size; i++) {
+            for (let j = 0; j < this.map_size; j++) {
+                if (this.lamp_status[i][j] === 1) {
+                    litLightsExist = true;
+                    break;
+                }
+            }
+            if (litLightsExist) break;
+        }
+
+        if (!litLightsExist) return null;
+
+        // Find the closest lit light considering torus topology
+        const [playerRow, playerCol] = this.current_location;
+        let minDistance = Infinity;
+        let closestLight: [number, number] = [-1, -1];
+
+        for (let i = 0; i < this.map_size; i++) {
+            for (let j = 0; j < this.map_size; j++) {
+                if (this.lamp_status[i][j] === 1) {
+                    // Calculate distance on torus (taking the shortest path around)
+                    const rowDist = Math.min(
+                        Math.abs(i - playerRow),
+                        this.map_size - Math.abs(i - playerRow)
+                    );
+
+                    const colDist = Math.min(
+                        Math.abs(j - playerCol),
+                        this.map_size - Math.abs(j - playerCol)
+                    );
+
+                    // Using Manhattan distance
+                    const distance = rowDist + colDist;
+
+                    if (distance < minDistance) {
+                        minDistance = distance;
+                        closestLight = [i, j];
+                    }
+                }
+            }
+        }
+
+        return closestLight;
+    }
+
+    // Move toward a target position taking the shortest path on the torus
+    moveToward(targetPos: [number, number]) {
+        const [currentRow, currentCol] = this.current_location;
+        const [targetRow, targetCol] = targetPos;
+
+        // Calculate the shortest path on a torus
+        let rowDiff = targetRow - currentRow;
+        let colDiff = targetCol - currentCol;
+
+        // Adjust for torus topology
+        if (Math.abs(rowDiff) > this.map_size / 2) {
+            rowDiff = rowDiff > 0 ? rowDiff - this.map_size : rowDiff + this.map_size;
+        }
+
+        if (Math.abs(colDiff) > this.map_size / 2) {
+            colDiff = colDiff > 0 ? colDiff - this.map_size : colDiff + this.map_size;
+        }
+
+        // Prioritize the largest difference
+        if (Math.abs(rowDiff) >= Math.abs(colDiff)) {
+            // Move vertically
+            if (rowDiff > 0) {
+                this.move('s'); // Down
+            } else if (rowDiff < 0) {
+                this.move('w'); // Up
+            }
+        } else {
+            // Move horizontally
+            if (colDiff > 0) {
+                this.move('d'); // Right
+            } else if (colDiff < 0) {
+                this.move('a'); // Left
+            }
+        }
+    }
+
+    toggleGreedyMode() {
+        // Don't toggle during transitions
+        if (this.is_level_transitioning) {
+            return;
+        }
+
+        this.greedy_mode = !this.greedy_mode;
+
+        if (this.greedy_mode) {
+            // Start the timer for greedy actions
+            this.greedy_timer = window.setInterval(() => this.performGreedyAction(), 200);
+
+            // Show a visual indicator that greedy mode is active
+            const wrapper = document.getElementById('game-wrapper');
+            if (wrapper) {
+                const indicator = document.createElement('div');
+                indicator.id = 'greedy-mode-indicator';
+                indicator.textContent = 'GREEDY MODE';
+                indicator.style.position = 'absolute';
+                indicator.style.top = '10px';
+                indicator.style.right = '10px';
+                indicator.style.backgroundColor = 'rgba(76, 175, 80, 0.8)';  // Changed color to green
+                indicator.style.color = '#ffffff';
+                indicator.style.padding = '5px 10px';
+                indicator.style.borderRadius = '5px';
+                indicator.style.fontWeight = 'bold';
+                indicator.style.zIndex = '2000';
+                wrapper.appendChild(indicator);
+            }
+        } else {
+            // Stop the timer
+            if (this.greedy_timer !== null) {
+                clearInterval(this.greedy_timer);
+                this.greedy_timer = null;
+            }
+
+            // Remove the visual indicator
+            const indicator = document.getElementById('greedy-mode-indicator');
+            if (indicator && indicator.parentNode) {
+                indicator.parentNode.removeChild(indicator);
+            }
+        }
+
+        // Update the counter to show greedy mode status
+        update_lamp_lighter_counter();
+    }
+
+    performGreedyAction() {
+        // Skip actions if the game is transitioning between levels
+        if (this.is_level_transitioning) {
+            return;
+        }
+
+        const [row, col] = this.current_location;
+
+        // If standing on a lit light, turn it off
+        if (this.lamp_status[row][col] === 1) {
+            this.toggleLamp();
+        } else {
+            // Find closest lit light
+            const closestLight = this.findClosestLitLight();
+
+            if (closestLight) {
+                // Move toward the closest lit light
+                this.moveToward(closestLight);
+            } else {
+                // No lit lights, move toward target
+                this.moveToward(this.target_location);
+            }
+        }
+
+        // Increment move counter
+        this.incrementTotalKeyCount();
+
+        // Update the display
+        draw_lamp_lighter_canvas();
+        update_lamp_lighter_counter();
+
+        // Check for win condition
+        check_game_completion();
+    }
+
     restart() {
         this.is_level_transitioning = true;
+
+        // Disable greedy mode when restarting
+        if (this.greedy_mode) {
+            this.toggleGreedyMode(); // Use the method to properly clean up
+        }
 
         // Increment level when restarting after a win
         this.level += 1;
@@ -293,7 +474,8 @@ function update_lamp_lighter_counter() {
         let lights_on = game.lamp_status
             .map(row => row.reduce((a, b) => a + b, 0))
             .reduce((a, b) => a + b, 0);
-        counterElem.textContent = `Level: ${game.level} | Total moves: ${game.getTotalKeyCount()} | Lamps on: ${lights_on}`;
+        let greedyModeText = game.greedy_mode ? ' | GREEDY MODE ACTIVE' : '';
+        counterElem.textContent = `Level: ${game.level} | Total moves: ${game.getTotalKeyCount()} | Lamps on: ${lights_on}${greedyModeText}`;
     }
 }
 
@@ -485,6 +667,20 @@ document.addEventListener('keydown', (event) => {
     }
 
     const key = event.key.toLowerCase();
+
+    // Handle the 'g' key to toggle greedy mode (changed from 'r')
+    if (key === 'g') {
+        game.toggleGreedyMode();
+        event.preventDefault();
+        return;
+    }
+
+    // Block other key inputs when in greedy mode
+    if (game.greedy_mode) {
+        event.preventDefault();
+        return;
+    }
+
     if (key === 'w' || key === 'a' || key === 's' || key === 'd') {
         game.move(key);
         game.incrementTotalKeyCount();
