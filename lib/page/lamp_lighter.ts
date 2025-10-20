@@ -70,10 +70,10 @@ class LampLighterGame {
 
     // Get map size based on level
     get_level_map_size(): number {
-        const map_sizes = [3, 5, 7, 11, 13];
+        const map_sizes = [3, 5, 7, 11, 13, 17, 19];
         // If level is greater than array length, return the maximum size (13)
         if (this.level > map_sizes.length) {
-            return 13;
+            return map_sizes[map_sizes.length - 1];
         }
         // Levels are 1-indexed, so subtract 1 for array access
         return map_sizes[this.level - 1];
@@ -633,6 +633,39 @@ function draw_lamp_lighter_canvas() {
                     vis_i * cell_width,
                     cell_width,
                     cell_width
+                );
+            }
+        }
+    }
+
+    // Draw player location marker on every mirrored visual cell that maps to the player
+    for (let vis_i = 0; vis_i < game.map_size + 2; vis_i++) {
+        for (let vis_j = 0; vis_j < game.map_size + 2; vis_j++) {
+            let actual_i = vis_i - 1;
+            let actual_j = vis_j - 1;
+
+            if (actual_i < 0) {
+                actual_i = game.map_size - 1;
+            }
+            if (actual_i >= game.map_size) {
+                actual_i = 0;
+            }
+            if (actual_j < 0) {
+                actual_j = game.map_size - 1;
+            }
+            if (actual_j >= game.map_size) {
+                actual_j = 0;
+            }
+
+            if (actual_i === game.current_location[0] && actual_j === game.current_location[1]) {
+                // Use a distinct color for the player's box
+                context.strokeStyle = "#ff5722";  // Orange color for player
+                context.lineWidth = 3;
+                context.strokeRect(
+                    vis_j * cell_width + 2,  // Offset by 2 pixels to avoid exact overlap with cell border
+                    vis_i * cell_width + 2,
+                    cell_width - 4,
+                    cell_width - 4
                 );
             }
         }
