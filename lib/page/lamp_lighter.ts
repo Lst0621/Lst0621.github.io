@@ -111,6 +111,8 @@ class LampLighterGame {
 
         this.total_key_count = 0;
         this.is_level_transitioning = false;
+
+        render_description();
     }
 
     // Helper method to count lit lights
@@ -249,13 +251,14 @@ class LampLighterGame {
             update_player_image_position();
             draw_lamp_lighter_canvas();
             update_lamp_lighter_counter();
+            render_description(); // <-- update description after level/map change
         }, 0);
 
         // Show a brief congratulatory message
         const game_wrapper = document.getElementById('game-wrapper');
         if (game_wrapper) {
             const message = document.createElement('div');
-            message.textContent = `Level ${this.level-1} Complete! Moving to ${this.map_size}x${this.map_size} grid...`;
+            message.textContent = `Level ${this.level - 1} Complete! Moving to ${this.map_size}x${this.map_size} grid...`;
             message.style.position = 'absolute';
             message.style.top = '50%';
             message.style.left = '50%';
@@ -284,22 +287,49 @@ class LampLighterGame {
 let game = new LampLighterGame();
 game.init()
 
-
 function update_lamp_lighter_counter() {
     let counterElem = document.getElementById('lamp_lighter_counter');
     if (counterElem) {
         let lights_on = game.lamp_status
             .map(row => row.reduce((a, b) => a + b, 0))
             .reduce((a, b) => a + b, 0);
-        // Include level in the counter display
         counterElem.textContent = `Level: ${game.level} | Total moves: ${game.getTotalKeyCount()} | Lamps on: ${lights_on}`;
     }
+}
+
+
+declare global {
+    interface Window {
+        MathJax: {
+            typesetPromise: (elements?: Element[]) => Promise<void>;
+        };
+    }
+}
+
+function render_description(size?: number) {
+    const n = (size ?? game.map_size).toString();
+    const html = `
+        A lamp lighter travelling on a $\\mathbb{Z}_{${n}} \\times \\mathbb{Z}_{${n}}\$ grid/ donut, turning on/off lamps.<br>
+        The grid with the lamps can be viewed as an element of $\\{0,1\\}^{\\mathbb{Z}_{${n}} \\times \\mathbb{Z}_{${n}}}\\times(\\mathbb{Z}_{${n}} \\times \\mathbb{Z}_{${n}})$.<br>
+        In group theory, the lamplighter group is a special case of a wreath product.<br>
+    `;
+
+    let el = document.getElementById('lamp_lighter_description');
+    if (!el) {
+        return;
+    }
+    el.innerHTML = html;
+    window.MathJax.typesetPromise([el]).then(() => {
+        console.log("MathJax rendering complete!");
+    });
 }
 
 function update_player_image_position() {
     const canvas = document.getElementById('lamp_lighter_canvas') as HTMLCanvasElement;
     const container = document.getElementById('player-image-container');
-    if (!canvas || !container) return;
+    if (!canvas || !container) {
+        return;
+    }
 
     const cell_width = Math.floor(canvas.width / (game.map_size + 2));
 
@@ -315,10 +345,18 @@ function update_player_image_position() {
             let actual_i = vis_i - 1;
             let actual_j = vis_j - 1;
 
-            if (actual_i < 0) actual_i = game.map_size - 1;
-            if (actual_i >= game.map_size) actual_i = 0;
-            if (actual_j < 0) actual_j = game.map_size - 1;
-            if (actual_j >= game.map_size) actual_j = 0;
+            if (actual_i < 0) {
+                actual_i = game.map_size - 1;
+            }
+            if (actual_i >= game.map_size) {
+                actual_i = 0;
+            }
+            if (actual_j < 0) {
+                actual_j = game.map_size - 1;
+            }
+            if (actual_j >= game.map_size) {
+                actual_j = 0;
+            }
 
             if (actual_i === game.current_location[0] && actual_j === game.current_location[1]) {
                 const img = document.createElement('img');
@@ -337,8 +375,7 @@ function update_player_image_position() {
 }
 
 function draw_lamp_lighter_canvas() {
-    let canvas: HTMLCanvasElement = document.getElementById('lamp_lighter_canvas') as
-        HTMLCanvasElement;
+    let canvas: HTMLCanvasElement = document.getElementById('lamp_lighter_canvas') as HTMLCanvasElement;
     let context: CanvasRenderingContext2D = canvas.getContext("2d") as CanvasRenderingContext2D;
     context.clearRect(0, 0, canvas.width, canvas.height);
     let w = canvas.width;
@@ -354,10 +391,18 @@ function draw_lamp_lighter_canvas() {
             let actual_j = vis_j - 1;
 
             // Handle the wrapping for the border cells
-            if (actual_i < 0) actual_i = game.map_size - 1; // Top border maps to bottom row
-            if (actual_i >= game.map_size) actual_i = 0;     // Bottom border maps to top row
-            if (actual_j < 0) actual_j = game.map_size - 1; // Left border maps to rightmost column
-            if (actual_j >= game.map_size) actual_j = 0;     // Right border maps to leftmost column
+            if (actual_i < 0) {
+                actual_i = game.map_size - 1;
+            } // Top border maps to bottom row
+            if (actual_i >= game.map_size) {
+                actual_i = 0;
+            }     // Bottom border maps to top row
+            if (actual_j < 0) {
+                actual_j = game.map_size - 1;
+            } // Left border maps to rightmost column
+            if (actual_j >= game.map_size) {
+                actual_j = 0;
+            }     // Right border maps to leftmost column
 
             // Set the cell color based on lamp status
             if (game.lamp_status[actual_i][actual_j] == 1) {
@@ -379,15 +424,37 @@ function draw_lamp_lighter_canvas() {
         }
     }
 
-    // Draw target location marker (adjusted for the border offset)
-    context.strokeStyle = "#26a69a";
-    context.lineWidth = 3;
-    context.strokeRect(
-        (game.target_location[1] + 1) * cell_width,
-        (game.target_location[0] + 1) * cell_width,
-        cell_width,
-        cell_width
-    );
+    // Draw target location marker on every mirrored visual cell that maps to the target
+    for (let vis_i = 0; vis_i < game.map_size + 2; vis_i++) {
+        for (let vis_j = 0; vis_j < game.map_size + 2; vis_j++) {
+            let actual_i = vis_i - 1;
+            let actual_j = vis_j - 1;
+
+            if (actual_i < 0) {
+                actual_i = game.map_size - 1;
+            }
+            if (actual_i >= game.map_size) {
+                actual_i = 0;
+            }
+            if (actual_j < 0) {
+                actual_j = game.map_size - 1;
+            }
+            if (actual_j >= game.map_size) {
+                actual_j = 0;
+            }
+
+            if (actual_i === game.target_location[0] && actual_j === game.target_location[1]) {
+                context.strokeStyle = "#26a69a";
+                context.lineWidth = 3;
+                context.strokeRect(
+                    vis_j * cell_width,
+                    vis_i * cell_width,
+                    cell_width,
+                    cell_width
+                );
+            }
+        }
+    }
 
     // Update the player image position
     update_player_image_position();
@@ -396,6 +463,7 @@ function draw_lamp_lighter_canvas() {
 // No single image to wait for; draw now
 draw_lamp_lighter_canvas();
 update_lamp_lighter_counter();
+render_description(); // ensure description and MathJax are updated on load
 
 // Handle game completion check after actions
 function check_game_completion() {
