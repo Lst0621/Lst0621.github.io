@@ -1,5 +1,5 @@
 Title|Image|ISBN|Year|Month|Tag|Checkout|
-Office Hours with a Geometric Group Theorist|https://m.media-amazon.com/images/I/71A3SppW6kL.jpg|978-0691158662|2025|10|Math
+Office Hours with a Geometric Group Theorist|https://m.media-amazon.com/images/I/71A3SppW6kL.jpg|978-0691158662|2025|10|Geometry,Algebra
 Introducing Category Theory|https://m.media-amazon.com/images/I/51qrxqaNBQL.jpg|978-1068346705|2025|9|Math
 Gödel, Escher, Bach: An Eternal Golden Braid|https://m.media-amazon.com/images/I/51zU0Zk9zLL.jpg|978-0465026562|2025|8
 Simulacra and Simulation (The Body, In Theory: Histories Of Cultural Materialism)|https://m.media-amazon.com/images/I/61OhrED6UwL.jpg|978-0472065219|2025|8
@@ -25,22 +25,22 @@ p-adic Numbers: An Introduction|https://m.media-amazon.com/images/I/51Hz+JfXgpL.
 A Course in Probability Theory|https://m.media-amazon.com/images/I/71KFEF1et5L.jpg|978-0121741518|2025|1|Math
 Algebra|https://m.media-amazon.com/images/I/210xAMO58yL.jpg|978-0132413770|2025|1|Algebra
 First Course in Probability|https://m.media-amazon.com/images/I/713Fo0RvvvL.jpg|978-0134753119|2025|1|Math
-Introductory Discrete Mathematics|https://m.media-amazon.com/images/I/51KIuuDfCaL.jpg|978-0486691152|2025|1|Math
+Introductory Discrete Mathematics|https://m.media-amazon.com/images/I/51KIuuDfCaL.jpg|978-0486691152|2025|1|Discrete
 Introduction to Stochastic Processes|https://m.media-amazon.com/images/I/71TKSxrQk1L.jpg|978-0486497976|2025|1|Math
 Stochastic Processes|https://m.media-amazon.com/images/I/71Z9R7JPAiL.jpg|978-0486796888|2025|1|Math
-Lectures on Classical Differential Geometry: Second Edition|https://m.media-amazon.com/images/I/71HN0s5GhmL.jpg|978-0486656090|2025|1|Math
-Differential Geometry|https://m.media-amazon.com/images/I/71oE43XwhtL.jpg|978-0486667218|2025|1|Math
+Lectures on Classical Differential Geometry: Second Edition|https://m.media-amazon.com/images/I/71HN0s5GhmL.jpg|978-0486656090|2025|1|Geometry
+Differential Geometry|https://m.media-amazon.com/images/I/71oE43XwhtL.jpg|978-0486667218|2025|1|Geometry
 Analysis (2)|https://m.media-amazon.com/images/I/51N+ur8FoNL.jpg|978-8195196128|2025|1|Analysis
 Java Concurrency in Practice|https://m.media-amazon.com/images/I/71ajUjqd3vL.jpg|978-0321349606|2025|1|Computer
 Maven: The Definitive Guide|https://m.media-amazon.com/images/I/91O1y+b7YmL.jpg|978-0596517335|2025|1|Computer
 Gradle in Action|https://m.media-amazon.com/images/I/611QmrGM-YL.jpg|978-1617291302|2025|1|Computer
 WebAssembly: The Definitive Guide: Safe, Fast, and Portable Code|https://m.media-amazon.com/images/I/91vhWTofMdL.jpg|978-1492089841|2025|1|Computer
-Discrete Mathematics and Its Applications|https://m.media-amazon.com/images/I/41ujd8aCacL.jpg|978-1259676512|2024|10|Math
-Finite-Dimensional Vector Spaces|https://m.media-amazon.com/images/I/71N1jNExbrL.jpg|978-0486814865|2024|6|Math
+Discrete Mathematics and Its Applications|https://m.media-amazon.com/images/I/41ujd8aCacL.jpg|978-1259676512|2024|10|Discrete
+Finite-Dimensional Vector Spaces|https://m.media-amazon.com/images/I/71N1jNExbrL.jpg|978-0486814865|2024|6|Algebra
 An Introduction to Ordinary Differential Equations|https://m.media-amazon.com/images/I/81I8f6Cn-ZL.jpg|978-0486659428|2024|6|Math|JB
 A First Course in Partial Differential Equations: with Complex Variables and Transform Methods (Dover Books on Mathematics)|https://m.media-amazon.com/images/I/61l+occzlzL.jpg|978-0486686400|2024|6|Math|JB
 Groups and Symmetry|https://m.media-amazon.com/images/I/61l94jRX8RL.jpg|978-0387966755|2024|6|Math
-Monoids, Acts and Categories: With Applications to Wreath Products and Graphs. A Handbook for Students and Researchers (De Gruyter Expositions in Mathematics, 29)|https://m.media-amazon.com/images/I/51OjH5ALDpL.jpg|978-3110152487|2024|6|Math
+Monoids, Acts and Categories: With Applications to Wreath Products and Graphs. A Handbook for Students and Researchers (De Gruyter Expositions in Mathematics, 29)|https://m.media-amazon.com/images/I/51OjH5ALDpL.jpg|978-3110152487|2024|6|Algebra,Category
 Div, Grad, Curl, and All That: An Informal Text on Vector Calculus|https://m.media-amazon.com/images/I/71mVtHgjpgL.jpg|978-0393925166|2024|5|Math|JB
  One Two Three . . . Infinity: Facts and Speculations of Science (Dover Books on Mathematics)|https://m.media-amazon.com/images/I/71gimL7Qp2L.jpg|978-0486256641|2024|5|Math
 Complex Variables: Second Edition |https://m.media-amazon.com/images/I/61SJ6nHwAiL.jpg|978-0486406794|2024|4|Math
@@ -73,7 +73,7 @@ Lectures in Abstract Algebra II|https://m.media-amazon.com/images/I/613UB4euWLL.
 Lectures in Abstract Algebra I|https://m.media-amazon.com/images/I/61jdhB5OrkL.jpg|978-0387901817|2023|11|Algebra
 Inequalities|https://m.media-amazon.com/images/I/61fbSUYEsOL.jpg|978-0521358804|2023|11|Math
 General Topology|https://m.media-amazon.com/images/I/81VuWauzWIL.jpg|978-0486815442|2023|11|Math
-Discrete Mathematics|https://m.media-amazon.com/images/I/516+S988FxL.jpg|978-0134689562|2023|11|Math,Computer
+Discrete Mathematics|https://m.media-amazon.com/images/I/516+S988FxL.jpg|978-0134689562|2023|11|Discrete
 Deep Learning (Adaptive Computation and Machine Learning series)|https://m.media-amazon.com/images/I/A10G+oKN3LL.jpg|978-0262035613|2023|11|Computer
 Basic Topology|https://m.media-amazon.com/images/I/61HG-iXsLOL.jpg|978-0387908397|2023|11|Math
 Basic Algebra I: Second Edition (Dover Books on Mathematics)|https://m.media-amazon.com/images/I/61-bNMTlbwL.jpg|978-0486471891|2023|11|Algebra
@@ -112,7 +112,7 @@ Introduction to Calculus and Analysis, Vol. II/2|https://m.media-amazon.com/imag
 Complex Variables: An Introduction|https://m.media-amazon.com/images/I/51-6GCNCiyL.jpg|978-1461277651|2021|9|Math
 Algebra|https://m.media-amazon.com/images/I/51KqeXuGD-L.jpg|978-0387953854|2021|9|Algebra
 Real Analysis: Modern Techniques and Their Applications|https://m.media-amazon.com/images/I/71vr4blWnuL.jpg|978-0471317166|2020|6|Analysis
-Fundamentals of Differential Geometry (Graduate Texts in Mathematics, 191)|https://m.media-amazon.com/images/I/61BvtBIFxuL.jpg|978-0387985930|2020|6|Math
+Fundamentals of Differential Geometry (Graduate Texts in Mathematics, 191)|https://m.media-amazon.com/images/I/61BvtBIFxuL.jpg|978-0387985930|2020|6|Geometry
 Functional Analysis|https://img3m8.ddimg.cn/82/30/28556038-1_w_3.jpg|9787111654742|2020|6|Math
 ESPN Kobe Bryant|https://m.media-amazon.com/images/I/41EaPDMLfsL.jpg|978-1547853038|2020|2
 毛宗岗批评本·三国演义|https://img.megbook.hk/upload/mall/productImages/15/68/9787553803685.jpg|9787553803685|2019|9|Fiction
