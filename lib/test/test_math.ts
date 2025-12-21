@@ -16,7 +16,8 @@ import {
     get_multiply_mod_n_function
 } from "../tsl/math/number.js";
 import {cartesian_product} from "../tsl/math/set.js";
-import {gen_general_linear_n_zm, generate_group} from "../tsl/math/group.js";
+import {gen_general_linear_n_zm} from "../tsl/math/group.js";
+import {generate_semigroup} from "../tsl/math/semigroup.js";
 
 export function test_matrix_multiply() {
     let a: number[][] = [[1, 2], [3, 4]]
@@ -74,7 +75,7 @@ export function test_generate_general_linear_group_zn_m() {
     if (gl_2_z2.length != 6) {
         return false
     }
-    let gl_z2_2_to_group = generate_group(gl_2_z2, (a: number[][], b: number[][]) => matrix_multiply_zn(a, b, 2), array_eq_2d,
+    let gl_z2_2_to_group = generate_semigroup(gl_2_z2, (a: number[][], b: number[][]) => matrix_multiply_zn(a, b, 2), array_eq_2d,
         20)
     if (gl_z2_2_to_group.length != gl_2_z2.length) {
         return false
@@ -84,7 +85,7 @@ export function test_generate_general_linear_group_zn_m() {
     if (gl_3_z2.length != 168) {
         return false
     }
-    let gl_3_z2_to_group = generate_group(gl_3_z2, (a: number[][], b: number[][]) => matrix_multiply_zn(a, b, 2), array_eq_2d,
+    let gl_3_z2_to_group = generate_semigroup(gl_3_z2, (a: number[][], b: number[][]) => matrix_multiply_zn(a, b, 2), array_eq_2d,
         1000)
     if (gl_3_z2_to_group.length != gl_3_z2.length) {
         return false
@@ -108,7 +109,7 @@ export function test_generate_general_linear_group_zn_m() {
         }
     }
 
-    let gl_2_z3_to_group = generate_group(gl_2_z3, (a: number[][], b: number[][]) => matrix_multiply_zn(a, b, 3), array_eq_2d,
+    let gl_2_z3_to_group = generate_semigroup(gl_2_z3, (a: number[][], b: number[][]) => matrix_multiply_zn(a, b, 3), array_eq_2d,
         1000)
     if (gl_2_z3_to_group.length != gl_2_z3.length) {
         return false
