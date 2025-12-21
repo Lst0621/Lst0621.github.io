@@ -10,10 +10,11 @@ import {
     test_matrix_multiply,
     test_mod
 } from "./test_math.js";
+import {test_definite_k} from "./test_lang.js";
 
 
 export function get_tests() {
-    let tests = [test_matrix_multiply, test_matrix_add, test_matrix_inverse, test_cartesian_product, test_inner_product, test_mod, test_generate_general_linear_group_zn_m, test_complex_numbers, test_gen_primes, test_get_primitive_root]
+    let tests = [test_matrix_multiply, test_matrix_add, test_matrix_inverse, test_cartesian_product, test_inner_product, test_mod, test_generate_general_linear_group_zn_m, test_complex_numbers, test_gen_primes, test_get_primitive_root, test_definite_k]
     return tests
 }
 
@@ -29,4 +30,4 @@ function test_all() {
     }
 }
 
-test(() => test_get_primitive_root(10))
+test_all()
