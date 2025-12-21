@@ -25,6 +25,7 @@ set -x
 mv $history_file "$history_file_target"
 
 cd "$history_repo" || return
+git pull
 git status
 git --no-pager diff "$history_file_target"
 
