@@ -16,7 +16,7 @@ import {
     get_multiply_mod_n_function
 } from "../tsl/math/number.js";
 import {cartesian_product} from "../tsl/math/set.js";
-import {gen_general_linear_n_zm} from "../tsl/math/group.js";
+import {gen_general_linear_n_zm, get_primitive_roots, get_u_n} from "../tsl/math/group.js";
 import {generate_semigroup} from "../tsl/math/semigroup.js";
 
 export function test_matrix_multiply() {
@@ -180,6 +180,19 @@ export function test_complex_numbers() {
 export function test_gen_primes() {
     let primes = get_first_n_primes(10)
     let expected = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29]
-    console.log(primes, expected);
     return array_eq(primes, expected)
+}
+
+export function test_get_primitive_root() {
+    for (let n = 2; n <= 15; n++) {
+        let u = get_u_n(n)
+        let roots = get_primitive_roots(n)
+        for (let root of roots) {
+            let g = generate_semigroup([root], get_multiply_mod_n_function(n), (a, b) => a == b, n)
+            if (g.length != u.length) {
+                return false;
+            }
+        }
+    }
+    return true;
 }
