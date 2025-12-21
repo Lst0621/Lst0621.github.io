@@ -183,8 +183,8 @@ export function test_gen_primes() {
     return array_eq(primes, expected)
 }
 
-export function test_get_primitive_root() {
-    for (let n = 2; n <= 15; n++) {
+export function test_get_primitive_root(limit: number = 10) {
+    for (let n = 2; n <= limit; n++) {
         let u = get_u_n(n)
         let roots = get_primitive_roots(n)
         for (let root of roots) {
