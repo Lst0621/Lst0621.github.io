@@ -11,28 +11,36 @@ function test_error() {
     return false;
 }
 
-export function draw_test_cases_table(table: HTMLTableElement, tests: (() => boolean)[]) {
+async function draw_test_cases_table(table: HTMLTableElement, tests: (() => boolean)[]) {
 
-    let results: boolean[] = []
+    let l = tests.length;
+    let results: (boolean | null)[] = Array(l).fill(null);
     let test_names = tests.map(test => test.name)
-    console.log(test_names)
-    let errors: string[] = []
+    let errors: string[] = Array(l).fill("");
+    console.log(results);
+    console.log(errors);
     for (let i = 0; i < tests.length; i++) {
         let test_case = tests[i]
         try {
-            results.push(test_case())
-            errors.push("")
+            results[i] = test_case()
         } catch (err: any) {
             console.log(err)
-            results.push(false)
-            // TODO type
-            errors.push(err.message)
+            results[i] = false
+            errors[i] = err.message
         }
         console.log("test: " + test_case.name + " " + results[i])
+        await update(results, errors, table, test_names)
+        await new Promise<void>(resolve => requestAnimationFrame(() => resolve()))
     }
+}
+
+async function update(results: (boolean | null)[], errors: string[], table: HTMLTableElement, test_names: string[]) {
     let columns = ["PASS", "FAILED", "ERROR"]
 
     function get_element(i: number, j: number) {
+        if (results[i] == null) {
+            return "";
+        }
         if (results[i]) {
             return j == 0 ? "pass" : "";
         } else {
@@ -66,7 +74,7 @@ export function draw_test_cases_table(table: HTMLTableElement, tests: (() => boo
             if (results[row] && col == 0) {
                 return pass_color;
             }
-            if (!results[row] && col == 1) {
+            if (results[row] == false && col == 1) {
                 return fail_color;
             }
             if (errors[row].length > 0 && col == 2) {
@@ -76,9 +84,9 @@ export function draw_test_cases_table(table: HTMLTableElement, tests: (() => boo
         })
 }
 
-export function update_table() {
+export async function update_table() {
     let table: HTMLTableElement = document.getElementById("test_case_table") as HTMLTableElement
     let tests = get_tests()
     tests.push(test_failure, test_error)
-    draw_test_cases_table(table, tests)
+    await draw_test_cases_table(table, tests)
 }

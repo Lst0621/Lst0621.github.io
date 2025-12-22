@@ -29,5 +29,3 @@ function test_all() {
         test(test_case)
     }
 }
-
-test_all()
