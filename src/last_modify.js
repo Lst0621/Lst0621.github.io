@@ -32,7 +32,7 @@ function fetch_last_modify_and_update_text(text, filenames, para_id) {
         console.log("No data found!");
         return;
     }
-    var last_modify_info = "This page was last modified on  " + last_modify_time + ".";
+    var last_modify_info = "This page was last modified on  ".concat(last_modify_time, ".");
     console.log(last_modify_info);
     var paragraphElement = document.createElement("p");
     paragraphElement.appendChild(document.createTextNode(last_modify_info));
