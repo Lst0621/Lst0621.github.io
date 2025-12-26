@@ -3,7 +3,7 @@ import {
     generate_semigroup,
     get_all_idempotent_elements,
     get_definite_k,
-    get_highest_idempotent_power, is_abelian
+    get_highest_idempotent_power, is_abelian, is_monoid
 } from "../tsl/math/semigroup.js";
 import {equals} from "../tsl/func.js";
 
@@ -28,6 +28,12 @@ export function test_definite_k() {
     }
     if (is_abelian(strs, concat_with_suffix, equals)) {
         console.log("failed at abelian")
+        return false
+    }
+    let identity_element = is_monoid(strs, concat_with_suffix, equals)[1]
+    console.log(identity_element)
+    if (identity_element != null) {
+        console.log("failed at monoid")
         return false
     }
     return true

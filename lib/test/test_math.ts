@@ -21,7 +21,7 @@ import {
     generate_semigroup,
     get_definite_k,
     get_highest_idempotent_power,
-    is_abelian, is_aperiodic
+    is_abelian, is_aperiodic, is_monoid
 } from "../tsl/math/semigroup.js";
 import {get_alphabet_from_strings} from "../tsl/lang/string.js";
 
@@ -244,6 +244,13 @@ export function test_set_union() {
     if (aperiod != 1) {
         console.log("Set union should be aperiodic with 1, got " + aperiod)
         return false
+    }
+
+    let identity_element = is_monoid(all_sets, union_sets, set_eq)[1]
+
+    if (identity_element == null || identity_element.size != 0) {
+        console.log("identity element should be empty set")
+        return false;
     }
 
     return true
