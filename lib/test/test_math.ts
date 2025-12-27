@@ -21,7 +21,7 @@ import {
     generate_semigroup,
     get_definite_k,
     get_highest_idempotent_power,
-    is_abelian, is_aperiodic, is_monoid
+    is_abelian, is_aperiodic, is_group, is_monoid
 } from "../tsl/math/semigroup.js";
 import {get_alphabet_from_strings} from "../tsl/lang/string.js";
 
@@ -84,6 +84,11 @@ export function test_generate_general_linear_group_zn_m() {
     let gl_z2_2_to_group = generate_semigroup(gl_2_z2, (a: number[][], b: number[][]) => matrix_multiply_zn(a, b, 2), array_eq_2d,
         20)
     if (gl_z2_2_to_group.length != gl_2_z2.length) {
+        return false
+    }
+
+    if (!is_group(gl_z2_2_to_group, (a: number[][], b: number[][]) => matrix_multiply_zn(a, b, 2), array_eq_2d)) {
+        console.log("gl_z2_2_to_group should be a group")
         return false
     }
 
