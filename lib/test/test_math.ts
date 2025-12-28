@@ -87,7 +87,7 @@ export function test_generate_general_linear_group_zn_m() {
         return false
     }
 
-    if (!is_group(gl_z2_2_to_group, (a: number[][], b: number[][]) => matrix_multiply_zn(a, b, 2), array_eq_2d)) {
+    if (!is_group(gl_z2_2_to_group, (a: number[][], b: number[][]) => matrix_multiply_zn(a, b, 2), array_eq_2d)[0]) {
         console.log("gl_z2_2_to_group should be a group")
         return false
     }
@@ -99,6 +99,11 @@ export function test_generate_general_linear_group_zn_m() {
     let gl_3_z2_to_group = generate_semigroup(gl_3_z2, (a: number[][], b: number[][]) => matrix_multiply_zn(a, b, 2), array_eq_2d,
         1000)
     if (gl_3_z2_to_group.length != gl_3_z2.length) {
+        return false
+    }
+
+    if (!is_group(gl_3_z2, (a: number[][], b: number[][]) => matrix_multiply_zn(a, b, 2), array_eq_2d)[0]) {
+        console.log("gl_3_z2 should be a group")
         return false
     }
 
