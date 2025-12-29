@@ -15,7 +15,7 @@ import {
     get_mul_inverse_mod_n_function,
     get_multiply_mod_n_function
 } from "../tsl/math/number.js";
-import {cartesian_product, set_eq, union_sets} from "../tsl/math/set.js";
+import {cartesian_product, EndoFunction, gen_monoid_from_endofuncs, set_eq, union_sets} from "../tsl/math/set.js";
 import {gen_general_linear_n_zm, get_primitive_roots, get_u_n} from "../tsl/math/group.js";
 import {
     generate_semigroup,
@@ -24,6 +24,7 @@ import {
     is_abelian, is_aperiodic, is_associative, is_group, is_monoid
 } from "../tsl/math/semigroup.js";
 import {get_alphabet_from_strings} from "../tsl/lang/string.js";
+import {range} from "../tsl/util.js";
 
 export function test_matrix_multiply() {
     let a: number[][] = [[1, 2], [3, 4]]
@@ -269,5 +270,25 @@ export function test_set_union() {
         return false;
     }
 
+    return true
+}
+
+export function test_endo_function() {
+    let underlying_set = range(1, 5)
+    let identity = new EndoFunction<number>(underlying_set, underlying_set, "")
+    let is_trivial_a_group = is_group([identity], (a, b) => a.multiply(b), (a, b) => a.eq(b))[0]
+    if (!is_trivial_a_group) {
+        console.log("identity endofunction should form a trivial group")
+        return false
+    }
+    let shift_one = new EndoFunction<number>(underlying_set, [2, 3, 4, 1], "a")
+    let swap_1_2 = new EndoFunction<number>(underlying_set, [2, 1, 3, 4], "b")
+    let endo_funcs_group = gen_monoid_from_endofuncs([shift_one, swap_1_2])
+    console.log("Generated endofunctions group of size " + endo_funcs_group.length)
+    let is_group_result = is_group(endo_funcs_group, (a, b) => a.multiply(b), (a, b) => a.eq(b))[0]
+    if (!is_group_result) {
+        console.log("this should be a group")
+        return false
+    }
     return true
 }
