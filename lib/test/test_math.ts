@@ -21,7 +21,7 @@ import {
     generate_semigroup,
     get_definite_k,
     get_highest_idempotent_power,
-    is_abelian, is_aperiodic, is_group, is_monoid
+    is_abelian, is_aperiodic, is_associative, is_group, is_monoid
 } from "../tsl/math/semigroup.js";
 import {get_alphabet_from_strings} from "../tsl/lang/string.js";
 
@@ -220,6 +220,12 @@ export function test_set_union() {
     let singletons = alphabet.map(c => new Set([c]))
     let generators = Array.from(singletons)
     generators.push(new Set())
+
+    let associative = is_associative(generators, union_sets, set_eq)
+    if (!associative) {
+        console.log("set union is not associative")
+        return false
+    }
 
     let all_sets = generate_semigroup(generators, union_sets, set_eq, 5000)
 
