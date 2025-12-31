@@ -13,6 +13,12 @@ history_file_target="$history_repo"/history.csv
 git_files=$(git ls-tree -r master --name-only)
 
 set -x
+
+cd "$history_repo" ||return
+git checkout main
+git pull
+cd -
+
 rm -f "$history_file"
 set +x
 for fn in $git_files
