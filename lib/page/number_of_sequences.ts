@@ -1,4 +1,5 @@
 import { wasmNumberOfSequencesAll } from "../../lib/tsl/wasm_api.js";
+import { draw_table, adjust_table_cell_width } from "../../lib/tsl/visual.js";
 
 function parseArray(input: string): number[] {
     return input.split(',').map(s => s.trim()).filter(s => s.length > 0).map(s => parseInt(s));
@@ -67,60 +68,26 @@ export function updateTable() {
 
         const result = wasmNumberOfSequencesAll(arr, [seq1, seq2]);
 
-        // Clear existing table
-        while (resultsTable.rows.length > 0) {
-            resultsTable.deleteRow(0);
-        }
+        // Create row and column arrays for indices
+        const rowIndices = Array.from({ length: seq1 + 1 }, (_, i) => i);
+        const colIndices = Array.from({ length: seq2 + 1 }, (_, i) => i);
 
-        // Build table header
-        const thead = resultsTable.querySelector('thead') as HTMLTableSectionElement;
-        thead.innerHTML = '';
-        const headerRow = thead.insertRow();
-        headerRow.style.backgroundColor = "#333";
-        headerRow.style.color = "white";
-        headerRow.style.fontWeight = "bold";
+        // Use draw_table to render the results
+        draw_table(
+            resultsTable,
+            rowIndices,
+            colIndices,
+            (row: number, col: number) => result[row][col],
+            (a: number) => a.toString(),
+            (a: number) => a.toString(),
+            (a: number) => a.toString(),
+            (_a: number) => "#e0e0e0", // Row header color (light grey)
+            (_a: number) => "#e0e0e0", // Column header color (light grey)
+            (row: number, _col: number) => row % 2 === 0 ? "#f9f9f9" : "#ffffff" // Alternating row colors
+        );
 
-        const headerCell = headerRow.insertCell();
-        headerCell.innerText = "\\";
-        headerCell.style.border = "1px solid black";
-        headerCell.style.padding = "8px";
-
-        for (let j = 0; j <= seq2; j++) {
-            const cell = headerRow.insertCell();
-            cell.innerText = j.toString();
-            cell.style.border = "1px solid black";
-            cell.style.padding = "8px";
-            cell.style.textAlign = "center";
-            cell.style.minWidth = "60px";
-        }
-
-        // Build table body
-        const tbody = resultsTable.querySelector('tbody') as HTMLTableSectionElement;
-        tbody.innerHTML = '';
-
-        for (let i = 0; i <= seq1; i++) {
-            const row = tbody.insertRow();
-            row.style.backgroundColor = i % 2 === 0 ? "#f9f9f9" : "#ffffff";
-
-            // Row header
-            const rowHeader = row.insertCell();
-            rowHeader.innerText = i.toString();
-            rowHeader.style.border = "1px solid black";
-            rowHeader.style.padding = "8px";
-            rowHeader.style.fontWeight = "bold";
-            rowHeader.style.backgroundColor = "#e0e0e0";
-            rowHeader.style.textAlign = "center";
-
-            // Data cells
-            for (let j = 0; j <= seq2; j++) {
-                const cell = row.insertCell();
-                const value = result[i][j];
-                cell.innerText = value.toString();
-                cell.style.border = "1px solid black";
-                cell.style.padding = "8px";
-                cell.style.textAlign = "right";
-            }
-        }
+        // Set uniform cell width for all table cells
+        adjust_table_cell_width(resultsTable);
 
         statusElement.innerText = `✓ Calculated ${(seq1 + 1) * (seq2 + 1)} entries successfully`;
         statusElement.style.color = "green";
@@ -138,8 +105,8 @@ export function updateTable() {
     }
 }
 
-// Auto-initialize with default values when page loads
-window.addEventListener('DOMContentLoaded', () => {
-    updateTable();
-});
+// // Auto-initialize with default values when page loads
+// window.addEventListener('DOMContentLoaded', () => {
+//     updateTable();
+// });
 
