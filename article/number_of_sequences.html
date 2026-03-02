@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<head>
+    <title>Number of Sequences All</title>
+    <link rel="icon" href="../img/flame1.png">
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-9BLVHLETMC"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+
+        function gtag() {
+            dataLayer.push(arguments);
+        }
+
+        gtag('js', new Date());
+        gtag('config', 'G-9BLVHLETMC');
+    </script>
+</head>
+
+<h1 style="margin-top: 10;" align="center">
+    <span id="head_span" style="font-size: 24pt">
+        Number of Sequences
+    </span><br>
+</h1>
+
+<body>
+<p align="center" style="max-width: 800px; margin: 20px auto; line-height: 1.8;">
+    In a game, one player can score any value from a given array in one play.
+    The final score is determined by multiple plays within specified limits.
+    <br><br>
+    For example: if one player can score <span id="example_arr">[2, 3, 6, 7, 8]</span> in each play,
+    and the final score is <span id="example_limits">[7, 10]</span>,
+    this calculates the total number of different sequences that can reach each combination.
+</p>
+
+<p align="center">
+    <label for="arr_input">Array (comma-separated):</label>
+    <input type="text" id="arr_input" value="2,3,6,7,8" style="width: 300px;"><br><br>
+
+    <label for="seq1_input">Sequence Limit 1:</label>
+    <input type="number" id="seq1_input" value=7 min="0"><br><br>
+
+    <label for="seq2_input">Sequence Limit 2:</label>
+    <input type="number" id="seq2_input" value=10 min="0"><br><br>
+
+    <button onclick="updateTable()">Calculate</button>
+    <br>
+</p>
+
+<p align="center" id="status" style="color: blue; font-weight: bold;"></p>
+
+<div align="center">
+    <table id="results" style="border-collapse: collapse; border: 2px solid black; margin: 20px auto;">
+        <thead></thead>
+        <tbody></tbody>
+    </table>
+</div>
+
+<a href="../index.html">
+    Back
+</a>
+
+<script type="module">
+    import { updateTable, updateExample } from "../lib/page/number_of_sequences.js"
+    Object.assign(window, { updateTable, updateExample })
+    updateTable()
+</script>
+
+</body>
+</html>
+
