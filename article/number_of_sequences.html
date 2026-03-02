@@ -1,7 +1,13 @@
 <!DOCTYPE html>
 <head>
-    <title>Number of Sequences All</title>
+    <title>Number of Sequences</title>
     <link rel="icon" href="../img/flame1.png">
+    <!-- MathJax configuration -->
+    <script>
+        window.MathJax = {tex: {inlineMath: [['$', '$']]}};
+    </script>
+    <!-- MathJax for LaTeX rendering -->
+    <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <!-- Global site tag (gtag.js) - Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-9BLVHLETMC"></script>
     <script>
@@ -31,6 +37,20 @@
     and the final score is <span id="example_limits">[7, 10]</span>,
     this calculates the total number of different sequences that can reach each combination.
 </p>
+
+<h2 style="text-align: center; margin-top: 40px;">Formula</h2>
+<p align="center" style="font-family: Arial, sans-serif; color: #333; margin-top: 10px;">
+    $g(m,n) = \begin{cases} 0 & \text{if } m<0 \lor n<0 \\ 1 & \text{if } m=n=0 \\ g(m,n-2)+g(m,n-3)+g(m,n-6)+g(m,n-7)+g(m,n-8)+g(m-2,n)+g(m-3,n)+g(m-6,n)+g(m-7,n)+g(m-8,n) & \text{otherwise} \end{cases}$
+</p>
+
+<div style="max-width: 800px; margin: 20px auto; background-color: #fffacd; padding: 20px; border-radius: 5px; border-left: 4px solid #FFD700;">
+    <p style="margin: 0; font-family: monospace; font-size: 14px;">
+        <span id="formula_display">Hover over a cell to see its formula breakdown</span>
+    </p>
+    <p style="margin: 10px 0 0 0; font-family: monospace; font-size: 13px; color: #666;">
+        <span id="formula_substitution"></span>
+    </p>
+</div>
 
 <p align="center">
     <label for="arr_input">Array (comma-separated):</label>

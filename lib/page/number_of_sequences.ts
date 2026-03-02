@@ -89,6 +89,12 @@ export function updateTable() {
         // Set uniform cell width for all table cells
         adjust_table_cell_width(resultsTable);
 
+        // Update LaTeX formula with actual array values
+        updateLaTeXFormula(arr);
+
+        // Add hover effects to highlight dependencies
+        addCellHoverEffects(resultsTable, arr, seq1, seq2, result);
+
         statusElement.innerText = `✓ Calculated ${(seq1 + 1) * (seq2 + 1)} entries successfully`;
         statusElement.style.color = "green";
 
@@ -105,8 +111,192 @@ export function updateTable() {
     }
 }
 
-// // Auto-initialize with default values when page loads
-// window.addEventListener('DOMContentLoaded', () => {
-//     updateTable();
-// });
+function getCellAt(table: HTMLTableElement, row: number, col: number): HTMLTableCellElement | null {
+    // Get all rows in the table (including header)
+    const allRows = table.querySelectorAll('tr');
+
+    // Data row index + 1 for header row
+    const targetRowIdx = row + 1;
+
+    if (targetRowIdx < allRows.length) {
+        const targetRow = allRows[targetRowIdx];
+        const cells = targetRow.querySelectorAll('td');
+
+        // Data column index + 1 for header column
+        const targetCellIdx = col + 1;
+
+        if (targetCellIdx < cells.length) {
+            return cells[targetCellIdx] as HTMLTableCellElement;
+        }
+    }
+    return null;
+}
+
+function updateFormulaDisplay(row: number, col: number, arr: number[], resultValue: number, result: number[][]) {
+    const formulaDisplay = document.getElementById("formula_display") as HTMLParagraphElement;
+    const formulaSubstitution = document.getElementById("formula_substitution") as HTMLParagraphElement;
+    if (!formulaDisplay) return;
+
+    // Build the formula breakdown with actual values
+    const terms: string[] = [];
+    const values: number[] = [];
+
+    // Add row dependencies
+    arr.forEach((val: number) => {
+        if (row >= val) {
+            const depRow = row - val;
+            const depValue = result[depRow][col];
+            terms.push(`g(${depRow},${col})`);
+            values.push(depValue);
+        }
+    });
+
+    // Add column dependencies
+    arr.forEach((val: number) => {
+        if (col >= val) {
+            const depCol = col - val;
+            const depValue = result[row][depCol];
+            terms.push(`g(${row},${depCol})`);
+            values.push(depValue);
+        }
+    });
+
+    // Build the formula string
+    let formulaStr = `g(${row},${col}) = `;
+
+    if (terms.length === 0) {
+        formulaStr += "1 (base case)";
+        if (formulaSubstitution) {
+            formulaSubstitution.innerText = `${resultValue}`;
+        }
+    } else {
+        formulaStr += terms.join(" + ");
+        // Add substitution line showing the values and result (swapped: result = values)
+        const valuesStr = values.join(" + ");
+        if (formulaSubstitution) {
+            formulaSubstitution.innerText = `${resultValue} = ${valuesStr}`;
+        }
+    }
+
+    formulaDisplay.innerText = formulaStr;
+}
+
+function updateLaTeXFormula(arr: number[]) {
+    // Build the row and column dependency terms
+    const rowTerms: string[] = [];
+    const colTerms: string[] = [];
+
+    arr.forEach((val: number) => {
+        rowTerms.push(`g(m,n-${val})`);
+        colTerms.push(`g(m-${val},n)`);
+    });
+
+    // Combine all terms
+    const rowTermsStr = rowTerms.join('+');
+    const colTermsStr = colTerms.join('+');
+    const allTerms = `${rowTermsStr}+${colTermsStr}`;
+
+    // Build the HTML with LaTeX formula
+    const html = `$g(m,n) = \\begin{cases} 0 & \\text{if } m<0 \\lor n<0 \\\\ 1 & \\text{if } m=n=0 \\\\ ${allTerms} & \\text{otherwise} \\end{cases}$`;
+
+    // Find and update the formula paragraph
+    const el = document.querySelector('p[align="center"][style*="Arial"]') as HTMLElement;
+    if (!el) {
+        return;
+    }
+
+    el.innerHTML = html;
+
+    // Trigger MathJax to re-render
+    const MathJaxInstance = (window as any).MathJax;
+    if (MathJaxInstance && MathJaxInstance.typesetPromise) {
+        MathJaxInstance.typesetPromise([el]).then(() => {
+            console.log("MathJax rendering complete!");
+        });
+    }
+}
+
+function addCellHoverEffects(table: HTMLTableElement, arr: number[], _maxRow: number, _maxCol: number, result: number[][]) {
+    // Get all rows including header
+    const allRows = table.querySelectorAll('tr');
+
+    allRows.forEach((row: Element, rowIdx: number) => {
+        const cells = row.querySelectorAll('td');
+        cells.forEach((cell: Element, colIdx: number) => {
+            const cellElement = cell as HTMLTableCellElement;
+
+            // Skip header row (rowIdx === 0) and header column (colIdx === 0)
+            if (rowIdx === 0 || colIdx === 0) {
+                return; // Don't add hover effects to headers
+            }
+
+            cellElement.addEventListener('mouseenter', () => {
+                // Highlight the hovered cell
+                cellElement.style.backgroundColor = "#FFD700"; // Gold color
+                cellElement.style.cursor = "pointer";
+
+                // Convert table indices to data indices
+                // rowIdx includes header, so data row = rowIdx - 1
+                // colIdx includes header, so data col = colIdx - 1
+                const actualRow = rowIdx - 1;
+                const actualCol = colIdx - 1;
+
+                // Get the actual value from the result
+                const resultValue = result[actualRow][actualCol];
+
+                // Update dynamic formula display with dependency values
+                updateFormulaDisplay(actualRow, actualCol, arr, resultValue, result);
+
+                // Highlight dependency cells based on formula:
+                // g(m,n) depends on g(m-arr[i], n) and g(m, n-arr[i])
+                arr.forEach((dependency: number) => {
+                    // Dependencies in row direction: (row - arrayValue, col)
+                    if (actualRow >= dependency) {
+                        const dependencyRow = actualRow - dependency;
+                        const dependencyCell = getCellAt(table, dependencyRow, actualCol);
+                        if (dependencyCell) {
+                            dependencyCell.style.backgroundColor = "#87CEEB"; // Light blue
+                        }
+                    }
+
+                    // Dependencies in column direction: (row, col - arrayValue)
+                    if (actualCol >= dependency) {
+                        const dependencyCol = actualCol - dependency;
+                        const dependencyCell = getCellAt(table, actualRow, dependencyCol);
+                        if (dependencyCell) {
+                            dependencyCell.style.backgroundColor = "#87CEEB"; // Light blue
+                        }
+                    }
+                });
+            });
+
+            cellElement.addEventListener('mouseleave', () => {
+                // Restore original colors to all cells
+                const allCells = table.querySelectorAll('td');
+                allCells.forEach((c: Element) => {
+                    const tc = c as HTMLTableCellElement;
+                    const tr = tc.parentElement;
+                    if (tr) {
+                        // Get all rows to find the index
+                        const allTableRows = Array.from(table.querySelectorAll('tr'));
+                        const trIdx = allTableRows.indexOf(tr as HTMLTableRowElement);
+
+                        // Get all cells in this row
+                        const cellsInRow = tr.querySelectorAll('td');
+                        const cellIdx = Array.from(cellsInRow).indexOf(tc);
+
+                        // Header row or header column cells
+                        if (trIdx === 0 || cellIdx === 0) {
+                            tc.style.backgroundColor = "#e0e0e0";
+                        } else {
+                            // Data cells - alternating colors based on actual data row
+                            const dataRowIdx = trIdx - 1; // Subtract 1 for header row
+                            tc.style.backgroundColor = dataRowIdx % 2 === 0 ? "#f9f9f9" : "#ffffff";
+                        }
+                    }
+                });
+            });
+        });
+    });
+}
 
