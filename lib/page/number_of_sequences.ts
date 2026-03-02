@@ -1,4 +1,4 @@
-import { wasmNumberOfSequencesAll } from "../../lib/tsl/wasm_api.js";
+import { wasm_number_of_sequences_all } from "../../lib/tsl/wasm_api.js";
 import { draw_table, adjust_table_cell_width } from "../../lib/tsl/visual.js";
 
 function parseArray(input: string): number[] {
@@ -66,7 +66,7 @@ export function updateTable() {
         statusElement.innerText = "Calculating...";
         statusElement.style.color = "blue";
 
-        const result = wasmNumberOfSequencesAll(arr, [seq1, seq2]);
+        const result = wasm_number_of_sequences_all(arr, [seq1, seq2]);
 
         // Create row and column arrays for indices
         const rowIndices = Array.from({ length: seq1 + 1 }, (_, i) => i);
