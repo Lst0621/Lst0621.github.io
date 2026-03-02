@@ -1,4 +1,4 @@
-import { wasmNumberOfSequences, wasmNumberOfSequencesAll } from "../tsl/wasm_api.js";
+import { wasmNumberOfSequences, wasmNumberOfSequencesAll, wasmGetGlNZmSize, modulePromise } from "../tsl/wasm_api.js";
 
 export function test_wasm_number_of_sequences() {
     try {
@@ -56,6 +56,31 @@ export function test_wasm_number_of_sequences_all() {
         return isArray && hasCorrectRows && hasCorrectCols && allMatch;
     } catch (err: any) {
         console.error("test_wasm_number_of_sequences_all error:", err.message);
+        return false;
+    }
+}
+
+export function test_wasmGetGlNZmSize() {
+    try {
+        // Test cases with expected sizes from test_generate_general_linear_group_zn_m
+        let test_cases = [
+            { n: 2, m: 2, expected: 6 },        // gl_2_z2.length
+            { n: 3, m: 2, expected: 168 },      // gl_3_z2.length
+            { n: 2, m: 3, expected: 48 },       // gl_2_z3.length
+            { n: 3, m: 3, expected: 11232 },    // gl_z3_3.length
+        ];
+
+        for (let { n, m, expected } of test_cases) {
+            let result = wasmGetGlNZmSize(n, m);
+            if (result !== expected) {
+                console.error(`Mismatch: wasmGetGlNZmSize(${n}, ${m}): expected ${expected}, got ${result}`);
+                return false;
+            }
+        }
+
+        return true;
+    } catch (err: any) {
+        console.error("test_wasmGetGlNZmSize error:", err.message);
         return false;
     }
 }
