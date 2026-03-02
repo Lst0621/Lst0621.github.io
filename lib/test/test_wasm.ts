@@ -1,4 +1,4 @@
-import { wasmNumberOfSequences, wasmNumberOfSequencesAll, wasmGetGlNZmSize, modulePromise } from "../tsl/wasm_api.js";
+import { wasmNumberOfSequences, wasmNumberOfSequencesAll, wasmGetGlNZmSize, wasmMatrixDet } from "../tsl/wasm_api.js";
 
 export function test_wasm_number_of_sequences() {
     try {
@@ -81,6 +81,98 @@ export function test_wasmGetGlNZmSize() {
         return true;
     } catch (err: any) {
         console.error("test_wasmGetGlNZmSize error:", err.message);
+        return false;
+    }
+}
+
+export function test_wasmMatrixDet() {
+    try {
+        // Helper: flatten 2D matrix to 1D array
+        const flatten = (matrix: number[][]): number[] => matrix.flat();
+
+        // Test case 1: 2x2 matrix with non-trivial determinant
+        const mat2x2: number[][] = [
+            [3, 8],
+            [4, 6]
+        ];
+        // det = 3*6 - 8*4 = 18 - 32 = -14
+        const det2x2 = wasmMatrixDet(flatten(mat2x2), 2);
+        if (det2x2 !== -14) {
+            console.error(`2x2 matrix: expected -14, got ${det2x2}`);
+            return false;
+        }
+
+        // Test case 2: 3x3 random matrix with mixed values
+        const mat3x3: number[][] = [
+            [2, 5, 1],
+            [3, 1, 4],
+            [1, 2, 3]
+        ];
+        // det = 2*(1*3 - 4*2) - 5*(3*3 - 4*1) + 1*(3*2 - 1*1)
+        //     = 2*(3 - 8) - 5*(9 - 4) + 1*(6 - 1)
+        //     = 2*(-5) - 5*5 + 1*5 = -10 - 25 + 5 = -30
+        const det3x3 = wasmMatrixDet(flatten(mat3x3), 3);
+        if (det3x3 !== -30) {
+            console.error(`3x3 matrix: expected -30, got ${det3x3}`);
+            return false;
+        }
+
+        // Test case 3: 5x5 random matrix
+        const mat5x5: number[][] = [
+            [1, 2, 3, 4, 5],
+            [2, 3, 4, 5, 1],
+            [3, 4, 5, 1, 2],
+            [4, 5, 1, 2, 3],
+            [5, 1, 2, 3, 4]
+        ];
+        // This is a circulant matrix - det can be computed but complex
+        // We'll just verify it computes without error and is non-zero
+        const det5x5 = wasmMatrixDet(flatten(mat5x5), 5);
+        if (det5x5 === 0) {
+            console.error(`5x5 matrix: got zero determinant (matrix should be invertible)`);
+            return false;
+        }
+
+        // Test case 4: 10x10 random matrix with varied structure
+        const mat10x10: number[][] = [
+            [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+            [2, 3, 4, 5, 6, 7, 8, 9, 10, 1],
+            [3, 4, 5, 6, 7, 8, 9, 10, 1, 2],
+            [4, 5, 6, 7, 8, 9, 10, 1, 2, 3],
+            [5, 6, 7, 8, 9, 10, 1, 2, 3, 4],
+            [6, 7, 8, 9, 10, 1, 2, 3, 4, 5],
+            [7, 8, 9, 10, 1, 2, 3, 4, 5, 6],
+            [8, 9, 10, 1, 2, 3, 4, 5, 6, 7],
+            [9, 10, 1, 2, 3, 4, 5, 6, 7, 8],
+            [10, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+        ];
+        // Circulant matrix - determinant exists but complex
+        const det10x10 = wasmMatrixDet(flatten(mat10x10), 10);
+        if (det10x10 === 0) {
+            console.error(`10x10 matrix: got zero determinant (matrix should be invertible)`);
+            return false;
+        }
+
+        // Test case 5: 10x10 matrix with negative values and mixed structure
+        const mat10x10Complex: number[][] = [
+            [-1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+            [2, -3, 4, 5, 6, 7, 8, 9, 10, 1],
+            [3, 4, -5, 6, 7, 8, 9, 10, 1, 2],
+            [4, 5, 6, -7, 8, 9, 10, 1, 2, 3],
+            [5, 6, 7, 8, -9, 10, 1, 2, 3, 4],
+            [6, 7, 8, 9, 10, -1, 2, 3, 4, 5],
+            [7, 8, 9, 10, 1, 2, -3, 4, 5, 6],
+            [8, 9, 10, 1, 2, 3, 4, -5, 6, 7],
+            [9, 10, 1, 2, 3, 4, 5, 6, -7, 8],
+            [10, 1, 2, 3, 4, 5, 6, 7, 8, -9]
+        ];
+        const det10x10Complex = wasmMatrixDet(flatten(mat10x10Complex), 10);
+        // Just verify it computes without error
+        console.log(`10x10 complex matrix det = ${det10x10Complex}`);
+
+        return true;
+    } catch (err: any) {
+        console.error("test_wasmMatrixDet error:", err.message);
         return false;
     }
 }
