@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<head>
+    <title>Game of Life (C++)</title>
+    <link rel="icon" href="../img/flame1.png">
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-9BLVHLETMC"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-9BLVHLETMC');
+    </script>
+</head>
+
+<h1 style="margin-top: 10;" align="center">
+    <span id="head_span" style="font-size: 24pt">Game of Life (C++ / WASM)</span>
+</h1>
+
+<body>
+<p align="center">
+    <canvas id="gol-cpp" width="640" height="640" style="border: 15px solid black;"></canvas>
+    <br>
+    <button type="button" id="gol-cpp-random">Random</button>
+    <button type="button" id="gol-cpp-reset">Reset</button>
+    <span> Scale: <button type="button" id="gol-cpp-scale-down">−</button> <span id="gol-cpp-scale-value">2</span> <button type="button" id="gol-cpp-scale-up">+</button></span>
+</p>
+
+<script type="module" src="../lib/page/game_of_life_cpp.js"></script>
+
+<p style="white-space:pre-wrap">
+    Conway's Game of Life driven by C++ (WASM). Same rules; grid runs in WebAssembly.
+    <a href="gol.html">TypeScript version</a> · <a href="hex_gol.html">Hex Grid</a>
+</p>
+<a href="../index.html">Back</a>
+
+</body>
