@@ -29,6 +29,16 @@ const FPS_SAMPLES = 30;
 const SCALE_FACTORS = [1, 2, 4];
 let scaleIndex = 1; // nFactor = SCALE_FACTORS[scaleIndex] = 2
 
+/** Checkerboard block size at scale 2 (reference); other scales use same pixel size. */
+const CHECKER_SIZE_AT_SCALE_2 = 8;
+function getCheckerSize(): number {
+    return CHECKER_SIZE_AT_SCALE_2 * getNFactor() / 2;
+}
+/** Checkerboard regions: background color per region (only bg differs; live cell color is uniform). */
+const REGION_BG = ["#1a1a1a", "#2d2d2d"];
+/** Live cell: same rgba for all; alpha high enough that different region backgrounds still show through. */
+const LIVE_CELL_RGBA = "rgba(160, 160, 160, 0.82)";
+
 function getNFactor(): number {
     return SCALE_FACTORS[scaleIndex];
 }
@@ -65,10 +75,20 @@ function draw(liveCells: { x: number; y: number }[]): void {
     if (!ctx) return;
     const size = golGetSize();
     const scale = canvas.width / size;
+    const checkerSize = getCheckerSize();
+    const blockPx = checkerSize * scale;
 
-    ctx.fillStyle = "black";
+    ctx.fillStyle = REGION_BG[0];
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = "darkgray";
+    ctx.fillStyle = REGION_BG[1];
+    const nBlock = Math.ceil(size / checkerSize);
+    for (let bi = 0; bi < nBlock; bi++) {
+        for (let bj = 0; bj < nBlock; bj++) {
+            if ((bi + bj) % 2 !== 1) continue;
+            ctx.fillRect(bi * blockPx, bj * blockPx, blockPx, blockPx);
+        }
+    }
+    ctx.fillStyle = LIVE_CELL_RGBA;
     for (const { x, y } of liveCells) {
         ctx.fillRect(x * scale, y * scale, scale, scale);
     }
@@ -122,9 +142,13 @@ function updateStatsDisplay(liveCount: number, deadCount: number, seed: number |
     const genStr = String(gen).padStart(GEN_WIDTH, " ");
     const aliveStr = String(liveCount).padStart(ALIVE_DEAD_WIDTH, " ");
     const deadStr = String(deadCount).padStart(ALIVE_DEAD_WIDTH, " ");
+    const mono = "font-family: ui-monospace, monospace; font-variant-numeric: tabular-nums";
+    const line1 = `gen: ${genStr} alive: ${aliveStr} dead: ${deadStr} total: ${total}`;
+    const line2 = `scale: ${getNFactor()} Seed: ${seedStr} fps: ${fpsStr}`;
     el.innerHTML =
         "Game of Life (C++ / WASM)<br>" +
-        `gen: ${genStr} alive: ${aliveStr} dead: ${deadStr} total: ${total} scale: ${getNFactor()} Seed: ${seedStr} fps: ${fpsStr}`;
+        `<span style="${mono}">${line1}</span><br>` +
+        `<span style="${mono}">${line2}</span>`;
 }
 
 function updateScaleDisplay(): void {
