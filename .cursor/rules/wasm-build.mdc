@@ -1,0 +1,19 @@
+---
+description: How to build the WASM module (Emscripten, wasm_out_v1)
+globs: lib/tsl/wasm/**
+alwaysApply: false
+---
+
+# WASM build
+
+Build the WASM module from the project root or from `lib/tsl/wasm`:
+
+```bash
+cd lib/tsl/wasm && ./build.sh
+```
+
+- **Build directory**: `lib/tsl/wasm/wasm_out_v1` (configured in `build.sh` via `cmake -B wasm_out_v1`).
+- **Compilers**: Emscripten (`emcc` / `em++`); do not use the system `cc`/`c++` for this target.
+- **Output**: Artifacts (e.g. `wasm_sample.js`, `.wasm`) are produced under `lib/tsl/wasm/wasm_out_v1/`.
+
+Do not configure or build using a generic `cmake -B build` in this directory; use `build.sh` so the build uses `wasm_out_v1` and Emscripten.
