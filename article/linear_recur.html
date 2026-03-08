@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<head>
+    <title>Linear Recurrence</title>
+    <link rel="icon" href="../img/flame1.png">
+    <script>
+        window.MathJax = { tex: { inlineMath: [['$', '$']] } };
+    </script>
+    <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-9BLVHLETMC"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+        gtag('config', 'G-9BLVHLETMC');
+    </script>
+</head>
+<body>
+<h1 style="margin-top: 10;" align="center">
+    <span style="font-size: 24pt">Linear Recurrence</span><br>
+</h1>
+<p align="center" style="max-width: 800px; margin: 20px auto;">
+    Define a sequence by linear recurrence: next term = factors · (previous terms).
+    Default is Fibonacci: a(n) = a(n−1) + a(n−2) with a(0)=0, a(1)=1.
+</p>
+
+<div align="center" style="max-width: 700px; margin: 20px auto;">
+    <label for="lr_factors">Factors (coefficients, CSV):</label>
+    <input type="text" id="lr_factors" value="1,1" style="width: 200px;"><br><br>
+    <label for="lr_inits">Initial values (CSV):</label>
+    <input type="text" id="lr_inits" value="0,1" style="width: 200px;"><br><br>
+    <label for="lr_num_terms">Number of terms (if “Terms of interest” is empty):</label>
+    <input type="number" id="lr_num_terms" value="10" min="1" style="width: 80px;"><br><br>
+    <label for="lr_terms_interest">Terms of interest (CSV indices, optional):</label>
+    <input type="text" id="lr_terms_interest" value="" placeholder="e.g. 0,1,2,5,10" style="width: 200px;"><br><br>
+    <button type="button" id="lr_calc_btn">Calculate</button>
+</div>
+
+<p align="center" id="lr_status" style="color: blue; font-weight: bold;"></p>
+
+<h2 align="center">Recurrence formula</h2>
+<p align="center" id="lr_recur_formula" style="font-size: 1.1em;"></p>
+
+<h2 align="center">Sequence</h2>
+<div align="center">
+    <table id="lr_seq_table" style="border-collapse: collapse; border: 2px solid black; margin: 10px auto;"></table>
+</div>
+
+<h2 align="center">Transition matrix M</h2>
+<p align="center" id="lr_matrix_latex" style="font-size: 1.1em;"></p>
+
+<h2 align="center">Characteristic polynomial</h2>
+<p align="center" id="lr_poly_latex" style="font-size: 1.1em;"></p>
+
+<h2 align="center">Matrix powers and p(M)</h2>
+<div align="center" style="max-width: 800px; margin: 0 auto; text-align: left;">
+    <p id="lr_poly_M_formula" style="font-size: 1.1em; margin: 8px 0;"></p>
+    <p id="lr_poly_subst" style="font-size: 1.05em; margin: 8px 0;"></p>
+    <p id="lr_poly_terms" style="font-size: 1.05em; margin: 8px 0;"></p>
+    <p id="lr_poly_result" style="font-size: 1.05em; margin: 8px 0;"></p>
+    <p id="lr_poly_zero" style="font-size: 1.05em; margin: 8px 0;"></p>
+</div>
+
+<p align="center"><a href="../index.html">Back</a></p>
+
+<script type="module">
+    import { updateLinearRecur } from "../lib/page/linear_recur.js";
+    document.getElementById("lr_calc_btn").onclick = updateLinearRecur;
+    updateLinearRecur();
+</script>
+</body>
+</html>
