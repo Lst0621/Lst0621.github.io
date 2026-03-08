@@ -1,0 +1,23 @@
+---
+description: How to compile TypeScript in lib so .js stays next to .ts
+globs: lib/**/*.ts
+alwaysApply: false
+---
+
+# TypeScript build (lib)
+
+When compiling a single TS file in `lib/` (e.g. `lib/page/game_of_life_cpp.ts`), **do not use `--outDir`**. Emit the `.js` in the same folder as the `.ts`:
+
+From project root:
+```bash
+cd lib && npx tsc page/game_of_life_cpp.ts --esModuleInterop --target es2019 --module esnext --skipLibCheck --strict
+```
+
+Or from `lib/`:
+```bash
+npx tsc page/game_of_life_cpp.ts --esModuleInterop --target es2019 --module esnext --skipLibCheck --strict
+```
+
+Output: `lib/page/game_of_life_cpp.js` (same folder as the source).
+
+Using `--outDir page` can place the .js in a subfolder; omit it so output stays alongside the .ts.
