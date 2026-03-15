@@ -9,9 +9,9 @@ import {
     test_matrix_inverse,
     test_matrix_multiply,
     test_mod, test_set_union
-} from "./test_math.js";
-import {test_definite_k} from "./test_lang.js";
-import {test_wasm_number_of_sequences, test_wasm_number_of_sequences_all, test_wasm_get_gl_n_zm_size, test_wasm_matrix_det} from "./test_wasm.js";
+} from "./test_math";
+import {test_definite_k} from "./test_lang";
+import {test_wasm_number_of_sequences, test_wasm_number_of_sequences_all, test_wasm_get_gl_n_zm_size, test_wasm_matrix_det} from "./test_wasm";
 
 
 export function get_tests() {

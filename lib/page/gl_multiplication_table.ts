@@ -1,9 +1,9 @@
-import {array_eq_2d} from "../tsl/math/math.js"
-import {draw_multiplication_table, matrix_to_cell} from "../tsl/visual.js";
-import {always} from "../tsl/func.js";
-import {get_sub} from "../tsl/util.js";
-import {gen_general_linear_n_zm} from "../tsl/math/group.js";
-import {matrix_multiply_zn} from "../tsl/math/matrix.js";
+import {array_eq_2d} from "../tsl/math/math"
+import {draw_multiplication_table, matrix_to_cell} from "../tsl/visual";
+import {always} from "../tsl/func";
+import {get_sub} from "../tsl/util";
+import {gen_general_linear_n_zm} from "../tsl/math/group";
+import {matrix_multiply_zn} from "../tsl/math/matrix";
 
 let m: number = 2
 let n: number = 2

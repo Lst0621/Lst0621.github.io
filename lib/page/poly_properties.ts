@@ -1,8 +1,8 @@
-import {poly_eval, poly_to_html, poly_to_latex_high_to_low, poly_to_latex_low_to_high} from "../tsl/math/polynomial.js";
-import {gen_prime} from "../tsl/math/number.js";
-import {range} from "../tsl/util.js";
-import {clear_table, draw_table} from "../tsl/visual.js";
-import {always} from "../tsl/func.js";
+import {poly_eval, poly_to_html, poly_to_latex_high_to_low, poly_to_latex_low_to_high} from "../tsl/math/polynomial";
+import {gen_prime} from "../tsl/math/number";
+import {range} from "../tsl/util";
+import {clear_table, draw_table} from "../tsl/visual";
+import {always} from "../tsl/func";
 
 function update_poly() {
     let poly_input: string = (document.getElementById("poly_input") as HTMLInputElement as HTMLInputElement).value;

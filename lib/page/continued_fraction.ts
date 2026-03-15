@@ -1,7 +1,7 @@
-import {get_sup} from "../tsl/util.js";
-import {draw_table} from "../tsl/visual.js";
-import {always, function_power} from "../tsl/func.js";
-import {complex_add, complex_inverse} from "../tsl/math/number.js";
+import {get_sup} from "../tsl/util";
+import {draw_table} from "../tsl/visual";
+import {always, function_power} from "../tsl/func";
+import {complex_add, complex_inverse} from "../tsl/math/number";
 
 function iter(x: number | number[]): number | number[] {
     return complex_add(3, complex_inverse(x))

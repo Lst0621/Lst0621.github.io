@@ -1,4 +1,4 @@
-function add_disclaimer(para_id: string) {
+export function add_disclaimer(para_id: string) {
     let paragraphElement: HTMLParagraphElement = document.createElement("p");
     paragraphElement.appendChild(document.createTextNode("Disclaimer"))
     paragraphElement.appendChild(document.createElement('br'))

@@ -1,4 +1,4 @@
-import {is_antisymmetric, is_equivalence, is_reflexive, is_symmetric, is_transitive} from "../tsl/math/set.js";
+import {is_antisymmetric, is_equivalence, is_reflexive, is_symmetric, is_transitive} from "../tsl/math/set";
 
 let table_sz: number = 3
 

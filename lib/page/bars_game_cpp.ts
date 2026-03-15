@@ -13,7 +13,7 @@ import {
     barsGameIsEnded,
     barsGameStateSize,
     barsGameMaxVal,
-} from "../tsl/wasm_api.js";
+} from "../tsl/wasm_api";
 
 const CANVAS_ID = "bars-game-canvas";
 const BTN_0_ID = "bars-game-btn-0";

@@ -1,25 +1,27 @@
 ---
-description: How to compile TypeScript in lib so .js stays next to .ts
+description: How to build TypeScript in lib (esbuild for entries; tsc for single non-entry)
 globs: lib/**/*.ts
 alwaysApply: false
 ---
 
 # TypeScript build (lib)
 
-**After editing any `.ts` file in `lib/` that has a co-located `.js` (e.g. `lib/page/*.ts`), run the compile command below** so the browser loads the updated code. Do not forget to recompile.
-
-When compiling a single TS file in `lib/` (e.g. `lib/page/game_of_life_cpp.ts`), **do not use `--outDir`**. Emit the `.js` in the same folder as the `.ts`:
+**Entry points** (scripts loaded by HTML): `lib/page/*.ts` and `lib/common/*.ts`. After editing any of these or any `.ts` they import (e.g. under `lib/tsl/`), run the build so the browser gets updated code:
 
 From project root:
 ```bash
-cd lib && npx tsc page/game_of_life_cpp.ts --esModuleInterop --target es2019 --module esnext --skipLibCheck --strict
+cd lib && npm run build
 ```
 
-Or from `lib/`:
+Or: `node lib/build.js` from project root.
+
+This uses **esbuild** to bundle each entry; output stays alongside source (`lib/page/*.js`, `lib/common/*.js`). **Imports in TS can be extensionless** (e.g. `from "../tsl/visual"` instead of `from "../tsl/visual.js"`); the bundler resolves them.
+
+**Single file not used in HTML** (e.g. `lib/test/test_math.ts`): you can still compile with tsc if you need a standalone .js:
+
+From project root:
 ```bash
-npx tsc page/game_of_life_cpp.ts --esModuleInterop --target es2019 --module esnext --skipLibCheck --strict
+cd lib && npx tsc test/test_math.ts --esModuleInterop --target es2019 --module esnext --skipLibCheck --strict
 ```
 
-Output: `lib/page/game_of_life_cpp.js` (same folder as the source).
-
-Using `--outDir page` can place the .js in a subfolder; omit it so output stays alongside the .ts.
+Do not use `--outDir` so the .js is emitted next to the .ts.

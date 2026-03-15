@@ -20,10 +20,10 @@
     Test Cases
 </h1>
 <p id="modify_time"></p>
-<script src="../lib/last_modify.js"></script>
-<script>
+<script type="module">
+    import { get_last_modify } from "../lib/common/last_modify.js";
     get_last_modify(
-        ["article/test_cases.html", "lib/test/tests.ts", "lib/test/test_math.ts", "lib/page/test_case.ts"], "modify_time")
+        ["article/test_cases.html", "lib/test/tests.ts", "lib/test/test_math.ts", "lib/page/test_case.ts"], "modify_time");
 </script>
 <table id="test_case_table" align="center"></table>
 

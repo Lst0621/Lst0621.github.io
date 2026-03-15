@@ -4,7 +4,7 @@ import {
     get_string_from_cycle, is_cycle_valid,
     per_to_arrow,
     perm_to_str, permutation_multiply
-} from "../tsl/math/group.js";
+} from "../tsl/math/group";
 
 function update_perm() {
     let perm_input: string = (document.getElementById("perm_input") as HTMLInputElement as HTMLInputElement).value;

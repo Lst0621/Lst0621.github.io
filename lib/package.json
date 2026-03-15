@@ -2,11 +2,15 @@
   "name": "lib",
   "version": "1.0.0",
   "scripts": {
+    "build": "node build.js",
     "test": "js test/tests.js"
   },
   "type": "module",
   "keywords": [],
   "author": "Haojun Lu",
   "license": "",
-  "description": ""
+  "description": "",
+  "devDependencies": {
+    "esbuild": "^0.27.4"
+  }
 }

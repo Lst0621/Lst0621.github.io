@@ -8,9 +8,9 @@ import {
     wasmMatrixAdd,
     wasmMatrixPower,
     wasmMatrixTimesConst,
-} from "../tsl/wasm_api.js";
-import { array_to_matrix } from "../tsl/math/matrix.js";
-import { draw_table } from "../tsl/visual.js";
+} from "../tsl/wasm_api";
+import { array_to_matrix } from "../tsl/math/matrix";
+import { draw_table } from "../tsl/visual";
 
 /** LaTeX for a matrix (for MathJax). Returns string to wrap in $ $ */
 function matrix_to_latex(M: number[][]): string {

@@ -1,4 +1,4 @@
-import {cartesian_product} from "../tsl/math/set.js";
+import {cartesian_product} from "../tsl/math/set";
 
 function update_cat() {
     let cats_input: string = (document.getElementById("cat_input") as HTMLInputElement as HTMLInputElement).value;

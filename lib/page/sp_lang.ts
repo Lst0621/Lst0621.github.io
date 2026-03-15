@@ -3,11 +3,11 @@ import {
     concat_same_string_lists_leq_n_times,
     get_all_prefixes, get_all_subseq_for_blocks,
     get_alphabet_from_strings, get_regex_for_disallowed_sub_seq, sub_empty_with_ep, subseq_remove_short
-} from "../tsl/lang/string.js";
-import {create_2d_array, range} from "../tsl/util.js";
-import {cartesian_product} from "../tsl/math/set.js";
-import {draw_table} from "../tsl/visual.js";
-import {always} from "../tsl/func.js";
+} from "../tsl/lang/string";
+import {create_2d_array, range} from "../tsl/util";
+import {cartesian_product} from "../tsl/math/set";
+import {draw_table} from "../tsl/visual";
+import {always} from "../tsl/func";
 
 function init() {
     // let init_subs: string = "abcda,bacbb,accb";

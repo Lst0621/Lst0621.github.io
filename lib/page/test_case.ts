@@ -1,6 +1,6 @@
-import {always} from "../tsl/func.js";
-import {draw_table} from "../tsl/visual.js";
-import {get_tests} from "../test/tests.js";
+import {always} from "../tsl/func";
+import {draw_table} from "../tsl/visual";
+import {get_tests} from "../test/tests";
 
 function test_failure() {
     return false;

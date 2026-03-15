@@ -1,12 +1,12 @@
-import {draw_multiplication_table} from "../tsl/visual.js";
-import {always} from "../tsl/func.js";
+import {draw_multiplication_table} from "../tsl/visual";
+import {always} from "../tsl/func";
 import {
     dihedral_multiply,
     dihedral_to_permutation,
     dihedral_to_str,
     get_all_dihedral, get_permutation_parity,
     perm_to_str, permutation_multiply
-} from "../tsl/math/group.js";
+} from "../tsl/math/group";
 
 let table_sz: number = 4
 

@@ -1,6 +1,6 @@
-import {get_sub} from "../tsl/util.js";
-import {draw_multiplication_table} from "../tsl/visual.js";
-import {get_all_permutations, get_permutation_parity, perm_to_str, permutation_multiply} from "../tsl/math/group.js";
+import {get_sub} from "../tsl/util";
+import {draw_multiplication_table} from "../tsl/visual";
+import {get_all_permutations, get_permutation_parity, perm_to_str, permutation_multiply} from "../tsl/math/group";
 
 let table_sz: number = 4
 

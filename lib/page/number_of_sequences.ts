@@ -1,5 +1,5 @@
-import { wasm_number_of_sequences_all } from "../tsl/wasm_api.js";
-import { draw_table, adjust_table_cell_width } from "../tsl/visual.js";
+import { wasm_number_of_sequences_all } from "../tsl/wasm_api";
+import { draw_table, adjust_table_cell_width } from "../tsl/visual";
 
 function parseArray(input: string): number[] {
     return input.split(',').map(s => s.trim()).filter(s => s.length > 0).map(s => parseInt(s));

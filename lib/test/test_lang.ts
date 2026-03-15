@@ -1,11 +1,11 @@
-import {get_alphabet_from_strings, get_concat_and_suffix_func} from "../tsl/lang/string.js";
+import {get_alphabet_from_strings, get_concat_and_suffix_func} from "../tsl/lang/string";
 import {
     generate_semigroup,
     get_all_idempotent_elements,
     get_definite_k,
     get_highest_idempotent_power, is_abelian, is_group, is_monoid
-} from "../tsl/math/semigroup.js";
-import {equals} from "../tsl/func.js";
+} from "../tsl/math/semigroup";
+import {equals} from "../tsl/func";
 
 export function test_definite_k() {
     let alphabet = get_alphabet_from_strings(["abcd"])

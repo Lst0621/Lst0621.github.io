@@ -12,7 +12,7 @@ import {
     golGetLiveCells,
     golGetSize,
     golIsCreated,
-} from "../tsl/wasm_api.js";
+} from "../tsl/wasm_api";
 
 const CANVAS_ID = "gol-cpp";
 const BTN_RANDOM_ID = "gol-cpp-random";

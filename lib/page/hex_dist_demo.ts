@@ -1,4 +1,4 @@
-import {drawHexGrid, hex_dist} from "../hex.js"
+import {drawHexGrid, hex_dist} from "../hex"
 
 let canvas: HTMLCanvasElement = document.getElementById('hexCanvas') as
     HTMLCanvasElement;

@@ -1,11 +1,11 @@
-import {array_eq, array_eq_2d} from "../tsl/math/math.js";
+import {array_eq, array_eq_2d} from "../tsl/math/math";
 import {
     inner_product,
     matrix_add_number,
     matrix_inverse, matrix_inverse_number,
     matrix_multiply_number,
     matrix_multiply_zn
-} from "../tsl/math/matrix.js";
+} from "../tsl/math/matrix";
 import {
     complex_add, complex_inverse,
     complex_multiply,
@@ -14,17 +14,17 @@ import {
     get_conjugate, get_first_n_primes,
     get_mul_inverse_mod_n_function,
     get_multiply_mod_n_function
-} from "../tsl/math/number.js";
-import {cartesian_product, EndoFunction, gen_monoid_from_endofuncs, set_eq, union_sets} from "../tsl/math/set.js";
-import {gen_general_linear_n_zm, get_primitive_roots, get_u_n} from "../tsl/math/group.js";
+} from "../tsl/math/number";
+import {cartesian_product, EndoFunction, gen_monoid_from_endofuncs, set_eq, union_sets} from "../tsl/math/set";
+import {gen_general_linear_n_zm, get_primitive_roots, get_u_n} from "../tsl/math/group";
 import {
     generate_semigroup,
     get_definite_k,
     get_highest_idempotent_power,
     is_abelian, is_aperiodic, is_associative, is_group, is_monoid
-} from "../tsl/math/semigroup.js";
-import {get_alphabet_from_strings} from "../tsl/lang/string.js";
-import {range} from "../tsl/util.js";
+} from "../tsl/math/semigroup";
+import {get_alphabet_from_strings} from "../tsl/lang/string";
+import {range} from "../tsl/util";
 
 export function test_matrix_multiply() {
     let a: number[][] = [[1, 2], [3, 4]]

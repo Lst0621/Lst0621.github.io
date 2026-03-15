@@ -1,5 +1,5 @@
-import {draw_table} from "../tsl/visual.js";
-import {always} from "../tsl/func.js";
+import {draw_table} from "../tsl/visual";
+import {always} from "../tsl/func";
 
 // TODO move to some common
 function get_float(element_id: string) {

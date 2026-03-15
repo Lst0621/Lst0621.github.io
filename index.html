@@ -76,14 +76,11 @@
 <div id="site-pages"></div>
 <script type="module" src="lib/page/pages.js"></script>
 
-<script src="lib/last_modify.js"></script>
-<script>
-	get_last_modify(["index.html"], "modify_time")
-</script>
-
-<script src="lib/update_color_meta.js"></script>
-<script>
-	update_theme_color_as_bg_color()
+<script type="module">
+	import { get_last_modify } from "./lib/common/last_modify.js";
+	import { update_theme_color_as_bg_color } from "./lib/common/update_color_meta.js";
+	get_last_modify(["index.html"], "modify_time");
+	update_theme_color_as_bg_color();
 </script>
 
 <h1>

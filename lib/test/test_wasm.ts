@@ -3,7 +3,7 @@ import {
     wasm_number_of_sequences_all,
     wasm_get_gl_n_zm_size,
     wasm_matrix_det
-} from "../tsl/wasm_api.js";
+} from "../tsl/wasm_api";
 
 export function test_wasm_number_of_sequences() {
     try {

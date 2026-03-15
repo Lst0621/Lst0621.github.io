@@ -47,7 +47,7 @@ function fetch_last_modify_and_update_text(text: string, filenames: Array<string
     }
 }
 
-function get_last_modify(filenames: Array<string>, para_id: string) {
+export function get_last_modify(filenames: Array<string>, para_id: string) {
     let req: XMLHttpRequest = new XMLHttpRequest()
     req.addEventListener("load", function () {
         fetch_last_modify_and_update_text(this.responseText, filenames, para_id)
