@@ -6,6 +6,8 @@ alwaysApply: false
 
 # TypeScript build (lib)
 
+**After editing any `.ts` file in `lib/` that has a co-located `.js` (e.g. `lib/page/*.ts`), run the compile command below** so the browser loads the updated code. Do not forget to recompile.
+
 When compiling a single TS file in `lib/` (e.g. `lib/page/game_of_life_cpp.ts`), **do not use `--outDir`**. Emit the `.js` in the same folder as the `.ts`:
 
 From project root:
