@@ -16,4 +16,14 @@ cd lib/tsl/wasm && ./build.sh
 - **Compilers**: Emscripten (`emcc` / `em++`); do not use the system `cc`/`c++` for this target.
 - **Output**: Artifacts (e.g. `wasm_sample.js`, `.wasm`) are produced under `lib/tsl/wasm/wasm_out_v1/`.
 
+**After adding or changing C/C++ exports**, update `lib/tsl/wasm/wasm_out_v1/wasm_sample.d.ts` so the `WasmSampleModule` interface matches the exported functions (e.g. from the generated `wasm_sample.js`). The `.d.ts` is hand-maintained; keep it in sync so TypeScript and `lib/tsl/wasm_api.ts` stay typed correctly.
+
 Do not configure or build using a generic `cmake -B build` in this directory; use `build.sh` so the build uses `wasm_out_v1` and Emscripten.
+
+**Running C++ unit tests (Google Test):** Use the native test script (separate from the WASM build):
+
+```bash
+cd lib/tsl/wasm && ./test_build.sh
+```
+
+This configures and builds in `native_build` with the system C++ compiler (not Emscripten), then runs the gtest executable (e.g. `./polynomial_test_gtest`). Use `build.sh` for WASM; use `test_build.sh` for gtest.
