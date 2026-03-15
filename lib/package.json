@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "scripts": {
     "build": "node build.js",
-    "test": "js test/tests.js"
+    "test": "node test/run_tests.js"
   },
   "type": "module",
   "keywords": [],
