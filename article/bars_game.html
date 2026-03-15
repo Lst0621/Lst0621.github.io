@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<head>
+    <meta charset="utf-8">
+    <title>Bars game (C++ / WASM)</title>
+    <link rel="icon" href="../img/flame1.png">
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-9BLVHLETMC"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-9BLVHLETMC');
+    </script>
+</head>
+
+<h1 style="margin-top: 10;" align="center">
+    <span id="head_span" style="font-size: 24pt; font-variant-numeric: tabular-nums">Bars game (C++ / WASM)</span>
+</h1>
+
+<body>
+<p align="center">
+    <canvas id="bars-game-canvas" width="640" height="320" style="border: 15px solid #404055;"></canvas>
+    <br>
+    <span id="bars-game-preview"></span>
+    <br>
+    <span id="bars-game-seed" style="font-variant-numeric: tabular-nums;"></span>
+    <span id="bars-game-status"></span>
+    <br>
+    <button type="button" id="bars-game-btn-0" class="bars-game-choice-btn">Choice 0</button>
+    <button type="button" id="bars-game-btn-1" class="bars-game-choice-btn">Choice 1</button>
+    <br>
+    <button type="button" id="bars-game-restart">Restart</button>
+    <label style="margin-left: 1em;"><input type="checkbox" id="bars-game-show-numbers"> Show numbers</label>
+</p>
+<style>
+.bars-game-choice-btn { padding: 0.5em 1.2em; font-size: 1.2em; margin: 0 0.3em; }
+</style>
+
+<script type="module" src="../lib/page/bars_game_cpp.js"></script>
+
+<a href="../index.html">Back</a>
+
+</body>
