@@ -6,14 +6,13 @@ alwaysApply: false
 
 # TypeScript build (lib)
 
-**Entry points** (scripts loaded by HTML): `lib/page/*.ts` and `lib/common/*.ts`. After editing any of these or any `.ts` they import (e.g. under `lib/tsl/`), run the build so the browser gets updated code:
+**Entry points** (scripts loaded by HTML): `lib/page/*.ts` and `lib/common/*.ts`. After editing any of these or any `.ts` they import (e.g. under `lib/tsl/`), run the build so the browser gets updated code.
 
-From project root:
+**Default (for package.json compatibility):** from project root run:
 ```bash
 cd lib && npm run build
 ```
-
-Or: `node lib/build.js` from project root.
+This keeps emitted `.js` path comments relative to `lib` (e.g. `page/foo.ts`, `tsl/util.ts`). Building from root with `node lib/build.js` can produce different comments (`lib/page/foo.ts`) and is not the default.
 
 This uses **esbuild** to bundle each entry; output stays alongside source (`lib/page/*.js`, `lib/common/*.js`). **Imports in TS can be extensionless** (e.g. `from "../tsl/visual"` instead of `from "../tsl/visual.js"`); the bundler resolves them.
 

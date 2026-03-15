@@ -1,0 +1,14 @@
+---
+description: Default build runs from lib for package.json compatibility
+alwaysApply: true
+---
+
+# Build from lib (default)
+
+**TypeScript build** for this project is run **from the `lib` folder** so it matches `package.json` scripts and keeps emitted path comments consistent:
+
+```bash
+cd lib && npm run build
+```
+
+Do not run `node lib/build.js` from the repo root as the default; that can produce different path comments in emitted `.js` files (e.g. `lib/page/foo.ts` vs `page/foo.ts`). Use `cd lib && npm run build` for compatibility.
