@@ -4,26 +4,36 @@ globs: lib/tsl/wasm/**
 alwaysApply: false
 ---
 
-# WASM build
+# WASM build (lib/tsl/wasm)
 
-Build the WASM module from the project root or from `lib/tsl/wasm`:
+**Only two build directories** in `lib/tsl/wasm`:
+
+- **WASM:** use folder **`wasm_out_v1`** — run `./build.sh`.
+- **Native C++ tests (gtest):** use folder **`native_build`** — run `./test_build.sh`.
+
+| Purpose   | Folder to use    | Script         |
+|----------|------------------|----------------|
+| WASM     | `wasm_out_v1/`   | `./build.sh`   |
+| Native tests (gtest) | `native_build/` | `./test_build.sh` |
+
+Do **not** create or use a directory named `build` in this folder. Use the scripts so the correct directory and toolchain are used.
+
+**WASM build:**
 
 ```bash
 cd lib/tsl/wasm && ./build.sh
 ```
 
-- **Build directory**: `lib/tsl/wasm/wasm_out_v1` (configured in `build.sh` via `cmake -B wasm_out_v1`).
+- **Build directory**: `lib/tsl/wasm/wasm_out_v1` (set in `build.sh` via `cmake -B wasm_out_v1`).
 - **Compilers**: Emscripten (`emcc` / `em++`); do not use the system `cc`/`c++` for this target.
-- **Output**: Artifacts (e.g. `wasm_sample.js`, `.wasm`) are produced under `lib/tsl/wasm/wasm_out_v1/`.
+- **Output**: Artifacts (e.g. `wasm_sample.js`, `.wasm`) are under `lib/tsl/wasm/wasm_out_v1/`.
 
-**After adding or changing C/C++ exports**, update `lib/tsl/wasm/wasm_out_v1/wasm_sample.d.ts` so the `WasmSampleModule` interface matches the exported functions (e.g. from the generated `wasm_sample.js`). The `.d.ts` is hand-maintained; keep it in sync so TypeScript and `lib/tsl/wasm_api.ts` stay typed correctly.
+**After adding or changing C/C++ exports**, update `lib/tsl/wasm/wasm_out_v1/wasm_sample.d.ts` so the `WasmSampleModule` interface matches the exported functions. The `.d.ts` is hand-maintained; keep it in sync with `lib/tsl/wasm_api.ts`.
 
-Do not configure or build using a generic `cmake -B build` in this directory; use `build.sh` so the build uses `wasm_out_v1` and Emscripten.
-
-**Running C++ unit tests (Google Test):** Use the native test script (separate from the WASM build):
+**Native C++ unit tests (Google Test):**
 
 ```bash
 cd lib/tsl/wasm && ./test_build.sh
 ```
 
-This configures and builds in `native_build` with the system C++ compiler (not Emscripten), then runs the gtest executable (e.g. `./polynomial_test_gtest`). Use `build.sh` for WASM; use `test_build.sh` for gtest.
+This configures and builds in `native_build` with the system C++ compiler (not Emscripten), then runs the gtest executable from `native_build` (e.g. `./polynomial_test_gtest`). Use `build.sh` for WASM; use `test_build.sh` for gtest.
