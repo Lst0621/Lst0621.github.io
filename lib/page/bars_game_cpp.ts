@@ -71,7 +71,9 @@ function drawBars(
     maxVal: number
 ): void {
     const n = values.length;
-    if (n === 0) return;
+    if (n === 0) {
+        return;
+    }
     const { barWidth, gap, scale } = barLayout(width, height, n);
     const fullHeight = height;
     for (let i = 0; i < n; i++) {
@@ -99,7 +101,9 @@ function drawBarsWithDiff(
     maxVal: number
 ): void {
     const n = state.length;
-    if (n === 0) return;
+    if (n === 0) {
+        return;
+    }
     const { barWidth, gap, scale } = barLayout(width, height, n);
     const fullHeight = height;
     const bottom = height;
@@ -148,7 +152,9 @@ function drawBarsWithDiff(
 }
 
 function wouldChoiceEndGame(future: number[]): boolean {
-    if (future.length === 0) return false;
+    if (future.length === 0) {
+        return false;
+    }
     const maxVal = barsGameMaxVal();
     return future.some((v) => v === 0 || v === maxVal);
 }
@@ -156,12 +162,16 @@ function wouldChoiceEndGame(future: number[]): boolean {
 function draw(): void {
     const canvas = getCanvas();
     const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    if (!ctx) {
+        return;
+    }
     const width = canvas.width;
     const height = canvas.height;
     const maxVal = Math.max(1, barsGameMaxVal());
     const stateSize = barsGameStateSize();
-    if (stateSize === 0) return;
+    if (stateSize === 0) {
+        return;
+    }
 
     ctx.fillStyle = BAR_REGION_COLOR;
     ctx.fillRect(0, 0, width, height);
@@ -171,22 +181,30 @@ function draw(): void {
         const future = barsGameGetFutureState(hoverChoice);
         drawBarsWithDiff(ctx, state, future, width, height, maxVal);
         const previewEl = document.getElementById(PREVIEW_ID);
-        if (previewEl) previewEl.textContent = `Preview: Choice ${hoverChoice} (lighter = up, darker = down)`;
+        if (previewEl) {
+            previewEl.textContent = `Preview: Choice ${hoverChoice} (lighter = up, darker = down)`;
+        }
     } else {
         drawBars(ctx, state, 0, width, height, maxVal);
         const previewEl = document.getElementById(PREVIEW_ID);
-        if (previewEl) previewEl.textContent = "";
+        if (previewEl) {
+            previewEl.textContent = "";
+        }
     }
 }
 
 function logState(): void {
-    if (barsGameStateSize() === 0) return;
+    if (barsGameStateSize() === 0) {
+        return;
+    }
     console.log("bars", barsGameGetState());
 }
 
 function updateSeedDisplay(): void {
     const el = document.getElementById(SEED_ID);
-    if (el) el.textContent = `Seed: ${currentSeed}  `;
+    if (el) {
+        el.textContent = `Seed: ${currentSeed}  `;
+    }
 }
 
 function updateStatus(): void {
@@ -210,7 +228,9 @@ function setButtonsEnabled(enabled: boolean): void {
 }
 
 function onChoice(index: number): void {
-    if (barsGameIsEnded()) return;
+    if (barsGameIsEnded()) {
+        return;
+    }
     barsGameApplyChoice(index);
     logState();
     updateStatus();
@@ -269,7 +289,9 @@ async function main(): Promise<void> {
     btn1.addEventListener("mouseleave", () => { hoverChoice = null; draw(); });
 
     document.addEventListener("keydown", (e) => {
-        if (barsGameIsEnded()) return;
+        if (barsGameIsEnded()) {
+            return;
+        }
         if (e.key === "ArrowLeft") {
             e.preventDefault();
             if (hoverChoice === 0) {
@@ -293,5 +315,7 @@ async function main(): Promise<void> {
 main().catch((err) => {
     console.error(err);
     const el = document.getElementById(STATUS_ID);
-    if (el) el.textContent = " Error loading game.";
+    if (el) {
+        el.textContent = " Error loading game.";
+    }
 });
