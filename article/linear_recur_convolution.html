@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<head>
+    <title>Linear Recurrence Convolution</title>
+    <link rel="icon" href="../img/flame1.png">
+    <script>
+        window.MathJax = { tex: { inlineMath: [['$', '$']] } };
+    </script>
+    <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-9BLVHLETMC"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+        gtag('config', 'G-9BLVHLETMC');
+    </script>
+</head>
+<body>
+<h1 style="margin-top: 10;" align="center">
+    <span style="font-size: 24pt">Linear Recurrence Convolution</span><br>
+</h1>
+<p align="center" style="max-width: 900px; margin: 20px auto;">
+    Define two sequences by linear recurrences (integer inputs only for now).
+    We compute the product/convolution sequence and also derive the output recurrence for g(n).
+</p>
+
+<div align="center" style="max-width: 900px; margin: 20px auto;">
+    <h2>Sequence A</h2>
+    <label for="lrc_factors_a">Factors A (CSV):</label>
+    <input type="text" id="lrc_factors_a" value="1,1" style="width: 220px;"><br><br>
+    <label for="lrc_inits_a">Initial values A (CSV):</label>
+    <input type="text" id="lrc_inits_a" value="0,1" style="width: 220px;"><br><br>
+
+    <h2>Sequence B</h2>
+    <label for="lrc_factors_b">Factors B (CSV):</label>
+    <input type="text" id="lrc_factors_b" value="1,1" style="width: 220px;"><br><br>
+    <label for="lrc_inits_b">Initial values B (CSV):</label>
+    <input type="text" id="lrc_inits_b" value="0,1" style="width: 220px;"><br><br>
+
+    <label for="lrc_num_terms">Number of terms N:</label>
+    <input type="number" id="lrc_num_terms" value="30" min="1" style="width: 80px;"><br><br>
+    <button type="button" id="lrc_calc_btn">Calculate</button>
+</div>
+
+<p align="center" id="lrc_status" style="color: blue; font-weight: bold;"></p>
+
+<h2 align="center">Formulas</h2>
+<div align="center" style="max-width: 980px; margin: 0 auto;">
+    <p id="lrc_formula_conv" style="font-size: 1.05em;"></p>
+    <p id="lrc_formula_a" style="font-size: 1.05em;"></p>
+    <p id="lrc_formula_b" style="font-size: 1.05em;"></p>
+    <p id="lrc_formula_g" style="font-size: 1.05em;"></p>
+</div>
+
+<h2 align="center">Values</h2>
+<div align="center">
+    <table id="lrc_table" style="border-collapse: collapse; border: 2px solid black; margin: 10px auto;"></table>
+</div>
+
+<p align="center"><a href="../index.html">Back</a></p>
+
+<script type="module">
+    import { updateLinearRecurConvolution } from "../lib/page/linear_recur_convolution.js";
+    document.getElementById("lrc_calc_btn").onclick = updateLinearRecurConvolution;
+    updateLinearRecurConvolution();
+</script>
+</body>
+</html>
+

@@ -26,6 +26,7 @@ export const sections: Section[] = [
       { name: "Fractal tree", url: "article/tree.html" },
       { name: "Number of Scoring Sequences", url: "article/number_of_sequences.html" },
       { name: "Linear Recurrence", url: "article/linear_recur.html" },
+      { name: "Linear Recurrence Convolution", url: "article/linear_recur_convolution.html" },
       { name: "Game of Life", url: "article/gol.html" },
       { name: "Game of Life (C++/WASM)", url: "article/gol_cpp.html" },
       { name: "Bars game (C++/WASM)", url: "article/bars_game.html" },
