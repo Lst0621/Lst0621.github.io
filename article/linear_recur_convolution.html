@@ -24,21 +24,29 @@
 </p>
 
 <div align="center" style="max-width: 900px; margin: 20px auto;">
-    <h2>Sequence A</h2>
-    <label for="lrc_factors_a">Factors A (CSV):</label>
-    <input type="text" id="lrc_factors_a" value="1,1" style="width: 220px;"><br><br>
-    <label for="lrc_inits_a">Initial values A (CSV):</label>
-    <input type="text" id="lrc_inits_a" value="0,1" style="width: 220px;"><br><br>
+    <div style="display: flex; gap: 40px; justify-content: center; align-items: flex-start; flex-wrap: wrap;">
+        <div style="min-width: 320px;">
+            <h2>Sequence A</h2>
+            <label for="lrc_factors_a">Factors A (CSV):</label><br>
+            <input type="text" id="lrc_factors_a" value="1,1" style="width: 220px;"><br><br>
+            <label for="lrc_inits_a">Initial values A (CSV):</label><br>
+            <input type="text" id="lrc_inits_a" value="0,1" style="width: 220px;"><br><br>
+        </div>
 
-    <h2>Sequence B</h2>
-    <label for="lrc_factors_b">Factors B (CSV):</label>
-    <input type="text" id="lrc_factors_b" value="1,1" style="width: 220px;"><br><br>
-    <label for="lrc_inits_b">Initial values B (CSV):</label>
-    <input type="text" id="lrc_inits_b" value="0,1" style="width: 220px;"><br><br>
+        <div style="min-width: 320px;">
+            <h2>Sequence B</h2>
+            <label for="lrc_factors_b">Factors B (CSV):</label><br>
+            <input type="text" id="lrc_factors_b" value="1,1" style="width: 220px;"><br><br>
+            <label for="lrc_inits_b">Initial values B (CSV):</label><br>
+            <input type="text" id="lrc_inits_b" value="0,1" style="width: 220px;"><br><br>
+        </div>
+    </div>
 
-    <label for="lrc_num_terms">Number of terms N:</label>
-    <input type="number" id="lrc_num_terms" value="30" min="1" style="width: 80px;"><br><br>
-    <button type="button" id="lrc_calc_btn">Calculate</button>
+    <div style="margin-top: 10px;">
+        <label for="lrc_num_terms">Number of terms N:</label>
+        <input type="number" id="lrc_num_terms" value="15" min="1" style="width: 80px;">
+        <button type="button" id="lrc_calc_btn" style="margin-left: 10px;">Calculate</button>
+    </div>
 </div>
 
 <p align="center" id="lrc_status" style="color: blue; font-weight: bold;"></p>

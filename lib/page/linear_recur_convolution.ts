@@ -185,7 +185,10 @@ export function updateLinearRecurConvolution(): void {
         const initA = parseCsvBigInts(initsAInput.value);
         const coeffsB = parseCsvBigInts(factorsBInput.value);
         const initB = parseCsvBigInts(initsBInput.value);
-        const nTerms = Math.max(1, parseInt(numTermsInput.value, 10) || 20);
+        const defaultNTerms = 15;
+        const parsedNTerms = parseInt(numTermsInput.value, 10);
+        const nTerms = Number.isFinite(parsedNTerms) && parsedNTerms > 0 ? parsedNTerms : defaultNTerms;
+        numTermsInput.value = String(nTerms);
 
         const a = evalRecurrenceTerms(coeffsA, initA, nTerms);
         const b = evalRecurrenceTerms(coeffsB, initB, nTerms);
