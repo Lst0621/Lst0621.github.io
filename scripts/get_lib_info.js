@@ -9,17 +9,83 @@
 // @grant        none
 // ==/UserScript==
 
-function get_img() {
-    let imgEl = document.querySelector('#imgTagWrapperId img');
-    if (imgEl) {
-        let hires = imgEl.dataset.oldHires;
-        let src = imgEl.src;
-        console.log("High-res (data-old-hires):", hires || "Not found");
-        console.log("Displayed image src:", src);
-        return hires;
-    } else {
-        // console.log("imgTagWrapperId not found on this page.");
+function parseDynamicImageUrls(dynamicImageJson) {
+    if (!dynamicImageJson) return null;
+    try {
+        const obj = JSON.parse(dynamicImageJson);
+        // Format is typically: { "url": [width, height], ... }
+        let bestUrl = null;
+        let bestScore = -1;
+        for (const [url, dims] of Object.entries(obj)) {
+            const width = Array.isArray(dims) ? Number(dims[0]) : NaN;
+            const height = Array.isArray(dims) ? Number(dims[1]) : NaN;
+            const score = Number.isFinite(width) && Number.isFinite(height) ? width * height : 0;
+            if (score > bestScore) {
+                bestScore = score;
+                bestUrl = url;
+            }
+        }
+        return bestUrl;
+    } catch (e) {
+        console.warn("Failed to parse data-a-dynamic-image", e);
+        return null;
     }
+}
+
+function get_img() {
+    // Amazon DOM varies; prefer the canonical landing image when present.
+    const landing = document.querySelector('img#landingImage');
+    if (landing) {
+        const hires = landing.getAttribute('data-old-hires') || landing.dataset.oldHires;
+        const dynamic = landing.getAttribute('data-a-dynamic-image');
+        const dynamicBest = parseDynamicImageUrls(dynamic);
+        const src = landing.currentSrc || landing.src;
+        const chosen = hires || dynamicBest || src;
+        console.log("Image (landingImage):", chosen);
+        return chosen;
+    }
+
+    // Fallback: wrapper image used on some pages.
+    const wrapperImg = document.querySelector('#imgTagWrapperId img');
+    if (wrapperImg) {
+        const hires = wrapperImg.getAttribute('data-old-hires') || wrapperImg.dataset.oldHires;
+        const dynamic = wrapperImg.getAttribute('data-a-dynamic-image');
+        const dynamicBest = parseDynamicImageUrls(dynamic);
+        const src = wrapperImg.currentSrc || wrapperImg.src;
+        const chosen = hires || dynamicBest || src;
+        console.log("Image (imgTagWrapperId):", chosen);
+        return chosen;
+    }
+
+    // Fallback: the zoom/fullscreen overlay image (e.g., class="fullscreen").
+    const fullscreenImg = document.querySelector('img.fullscreen');
+    if (fullscreenImg) {
+        const src = fullscreenImg.currentSrc || fullscreenImg.src;
+        console.log("Image (fullscreen):", src);
+        return src;
+    }
+
+    // Last resort: pick the largest visible Amazon image.
+    const candidates = Array.from(document.querySelectorAll('img'))
+        .filter(img => {
+            const src = img.currentSrc || img.src || "";
+            return src.includes('m.media-amazon.com/images/I/');
+        });
+
+    let best = null;
+    let bestArea = -1;
+    for (const img of candidates) {
+        const rect = img.getBoundingClientRect();
+        const area = Math.max(0, rect.width) * Math.max(0, rect.height);
+        if (area > bestArea) {
+            bestArea = area;
+            best = img;
+        }
+    }
+
+    const chosen = best ? (best.currentSrc || best.src) : null;
+    console.log("Image (best-effort):", chosen || "Not found");
+    return chosen;
 }
 
 function extractISBN13() {
