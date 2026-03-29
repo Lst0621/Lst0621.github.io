@@ -37,3 +37,20 @@ cd lib/tsl/wasm && ./test_build.sh
 ```
 
 This configures and builds in `native_build` with the system C++ compiler (not Emscripten), then runs the gtest executable from `native_build` (e.g. `./polynomial_test_gtest`). Use `build.sh` for WASM; use `test_build.sh` for gtest.
+
+---
+
+## Checklist after any WASM source change
+
+Whenever you modify files under `lib/tsl/wasm/src/` or `lib/tsl/wasm/gtest/`, **always run both builds** in order:
+
+```bash
+cd lib/tsl/wasm && ./test_build.sh   # native gtest — must pass
+cd lib/tsl/wasm && ./build.sh        # Emscripten WASM — must pass
+```
+
+If the **exported C interface** changes (functions added/removed/renamed in `src/main.cpp`):
+1. Update `lib/tsl/wasm/wasm_out_v1/wasm_sample.d.ts` to match the new exports.
+2. Update `lib/tsl/wasm_api.ts` to use the new exports.
+3. Rebuild the TypeScript: `cd lib && npm run build`.
+4. Verify the `.d.ts` and `wasm_api.ts` are in sync.
