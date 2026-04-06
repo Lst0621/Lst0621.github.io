@@ -1,92 +1,191 @@
-import {always} from "../tsl/func";
-import {draw_table} from "../tsl/visual";
-import {get_tests} from "../test/tests";
-
-function test_failure() {
-    return false;
+interface AssertionResult {
+    ancestorTitles: string[];
+    title: string;
+    fullName: string;
+    status: string;
+    duration: number;
+    failureMessages: string[];
 }
 
-function test_error() {
-    throw Error("test_error");
-    return false;
+interface TestFileResult {
+    name: string;
+    status: string;
+    assertionResults: AssertionResult[];
 }
 
-async function draw_test_cases_table(table: HTMLTableElement, tests: (() => boolean)[]) {
+interface JestResults {
+    numTotalTests: number;
+    numPassedTests: number;
+    numFailedTests: number;
+    testResults: TestFileResult[];
+    startTime: number;
+}
 
-    let l = tests.length;
-    let results: (boolean | null)[] = Array(l).fill(null);
-    let test_names = tests.map(test => test.name)
-    let errors: string[] = Array(l).fill("");
-    console.log(results);
-    console.log(errors);
-    for (let i = 0; i < tests.length; i++) {
-        let test_case = tests[i]
-        try {
-            results[i] = test_case()
-        } catch (err: any) {
-            console.log(err)
-            results[i] = false
-            errors[i] = err.message
+interface FlatRow {
+    index: number;
+    suite: string;
+    name: string;
+    status: string;
+    duration: number;
+    passed: boolean;
+}
+
+type SortKey = "index" | "suite" | "name" | "status" | "duration";
+
+function formatDuration(ms: number): string {
+    if (ms < 1) {
+        return "<1 ms";
+    }
+    return ms + " ms";
+}
+
+function extractSuiteName(fullPath: string): string {
+    const match = fullPath.match(/([^/]+)\.test\.ts$/);
+    if (match) {
+        return match[1];
+    }
+    return fullPath;
+}
+
+function flattenResults(results: JestResults): FlatRow[] {
+    const rows: FlatRow[] = [];
+    let index = 0;
+    for (const fileResult of results.testResults) {
+        const suite = extractSuiteName(fileResult.name);
+        for (const assertion of fileResult.assertionResults) {
+            index++;
+            const name = assertion.ancestorTitles.length > 0
+                ? assertion.ancestorTitles.join(" > ") + " > " + assertion.title
+                : assertion.title;
+            rows.push({
+                index,
+                suite,
+                name,
+                status: assertion.status,
+                duration: assertion.duration,
+                passed: assertion.status === "passed",
+            });
         }
-        console.log("test: " + test_case.name + " " + results[i])
-        await update(results, errors, table, test_names)
-        await new Promise<void>(resolve => requestAnimationFrame(() => resolve()))
+    }
+    return rows;
+}
+
+const COLUMNS: { key: SortKey; label: string }[] = [
+    { key: "index", label: "#" },
+    { key: "name", label: "Test" },
+    { key: "suite", label: "Suite" },
+    { key: "status", label: "Status" },
+    { key: "duration", label: "Duration" },
+];
+
+let currentSortKey: SortKey = "index";
+let currentSortAsc = true;
+
+function compareRows(a: FlatRow, b: FlatRow, key: SortKey): number {
+    switch (key) {
+        case "index":
+            return a.index - b.index;
+        case "suite":
+            return a.suite.localeCompare(b.suite) || a.index - b.index;
+        case "name":
+            return a.name.localeCompare(b.name);
+        case "status":
+            return a.status.localeCompare(b.status) || a.index - b.index;
+        case "duration":
+            return a.duration - b.duration;
+        default:
+            return 0;
     }
 }
 
-async function update(results: (boolean | null)[], errors: string[], table: HTMLTableElement, test_names: string[]) {
-    let columns = ["PASS", "FAILED", "ERROR"]
-
-    function get_element(i: number, j: number) {
-        if (results[i] == null) {
-            return "";
-        }
-        if (results[i]) {
-            return j == 0 ? "pass" : "";
-        } else {
-            if (j == 0) {
-                return ""
-            }
-            if (j == 1) {
-                return "failed"
-            }
-            if (j == 2) {
-                return errors[i]
-            }
-        }
+function renderTable(table: HTMLTableElement, rows: FlatRow[], results: JestResults): void {
+    while (table.rows.length > 0) {
+        table.deleteRow(0);
     }
 
-    let pass_color = "lightgreen"
-    let fail_color = "#DC143C"
-    let error_color = "yellow"
-    let default_color = "white"
-    draw_table(table, test_names, columns, get_element, String, String, String,
-        always("lightblue"),
-        (str) => {
-            if (str == columns[0]) {
-                return pass_color;
+    table.style.borderCollapse = "collapse";
+    table.style.fontFamily = "Courier, monospace";
+    table.style.fontSize = "10pt";
+
+    const headerRow = table.insertRow();
+    for (const col of COLUMNS) {
+        const th = document.createElement("th");
+        const arrow = col.key === currentSortKey ? (currentSortAsc ? " \u25B2" : " \u25BC") : "";
+        th.textContent = col.label + arrow;
+        th.style.padding = "4px 10px";
+        th.style.borderBottom = "2px solid #333";
+        th.style.background = "lightblue";
+        th.style.cursor = "pointer";
+        th.style.userSelect = "none";
+        th.addEventListener("click", () => {
+            if (currentSortKey === col.key) {
+                currentSortAsc = !currentSortAsc;
+            } else {
+                currentSortKey = col.key;
+                currentSortAsc = true;
             }
-            if (str == columns[1]) {
-                return fail_color;
-            }
-            return error_color;
-        }, (row, col) => {
-            if (results[row] && col == 0) {
-                return pass_color;
-            }
-            if (results[row] == false && col == 1) {
-                return fail_color;
-            }
-            if (errors[row].length > 0 && col == 2) {
-                return error_color;
-            }
-            return default_color;
-        })
+            const sorted = [...rows];
+            sorted.sort((a, b) => {
+                const cmp = compareRows(a, b, currentSortKey);
+                return currentSortAsc ? cmp : -cmp;
+            });
+            renderTable(table, sorted, results);
+        });
+        headerRow.appendChild(th);
+    }
+
+    for (const row of rows) {
+        const tr = table.insertRow();
+
+        const numCell = tr.insertCell();
+        numCell.textContent = String(row.index);
+        numCell.style.padding = "3px 8px";
+        numCell.style.textAlign = "right";
+
+        const nameCell = tr.insertCell();
+        nameCell.textContent = row.name;
+        nameCell.style.padding = "3px 8px";
+
+        const suiteCell = tr.insertCell();
+        suiteCell.textContent = row.suite;
+        suiteCell.style.padding = "3px 8px";
+
+        const statusCell = tr.insertCell();
+        statusCell.textContent = row.passed ? "pass" : "FAILED";
+        statusCell.style.padding = "3px 8px";
+        statusCell.style.textAlign = "center";
+        statusCell.style.background = row.passed ? "lightgreen" : "#DC143C";
+        statusCell.style.color = row.passed ? "" : "white";
+
+        const durationCell = tr.insertCell();
+        durationCell.textContent = formatDuration(row.duration);
+        durationCell.style.padding = "3px 8px";
+        durationCell.style.textAlign = "right";
+    }
+
+    const summary = table.insertRow();
+    const spacer = summary.insertCell();
+    spacer.colSpan = COLUMNS.length;
+    spacer.style.paddingTop = "8px";
+    spacer.style.borderTop = "2px solid #333";
+    spacer.style.fontWeight = "bold";
+    spacer.textContent =
+        results.numPassedTests + "/" + results.numTotalTests + " passed, " +
+        results.numFailedTests + " failed";
 }
 
-export async function update_table() {
-    let table: HTMLTableElement = document.getElementById("test_case_table") as HTMLTableElement
-    let tests = get_tests()
-    tests.push(test_failure, test_error)
-    await draw_test_cases_table(table, tests)
+export async function update_table(): Promise<void> {
+    const table = document.getElementById("test_case_table") as HTMLTableElement;
+    try {
+        const resp = await fetch("../lib/tsl/test/results.json");
+        if (!resp.ok) {
+            table.textContent = "Failed to load results.json (" + resp.status + "). Run: cd lib && npm test";
+            return;
+        }
+        const results: JestResults = await resp.json();
+        const rows = flattenResults(results);
+        renderTable(table, rows, results);
+    } catch (err: any) {
+        table.textContent = "Error loading results: " + err.message + ". Run: cd lib && npm test";
+    }
 }
