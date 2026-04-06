@@ -19,10 +19,13 @@
 
 <body>
 <p align="center">
-    <canvas id="bars-game-canvas" width="640" height="320" style="border: 15px solid #404055;"></canvas>
+    <span id="bars-game-wrap" style="display:inline-block;position:relative;">
+        <canvas id="bars-game-canvas" width="640" height="320" style="border: 15px solid #404055;display:block;"></canvas>
+        <span id="bars-game-labels" style="display:block;position:relative;height:1.4em;"></span>
+    </span>
     <br>
-    <span id="bars-game-preview"></span>
-    <br>
+    <span id="bars-game-preview" style="display:block;min-height:1.2em;">&nbsp;</span>
+    <span id="bars-game-scenario" style="display:block;max-width:600px;margin:0.3em auto;font-style:italic;min-height:1.4em;">&nbsp;</span>
     <span id="bars-game-seed" style="font-variant-numeric: tabular-nums;"></span>
     <span id="bars-game-status"></span>
     <br>
@@ -31,9 +34,10 @@
     <br>
     <button type="button" id="bars-game-restart">Restart</button>
     <label style="margin-left: 1em;"><input type="checkbox" id="bars-game-show-numbers"> Show numbers</label>
+    <button type="button" id="bars-game-lang-toggle" style="margin-left:1em;">EN</button>
 </p>
 <style>
-.bars-game-choice-btn { padding: 0.5em 1.2em; font-size: 1.2em; margin: 0 0.3em; }
+.bars-game-choice-btn { padding: 0.5em 1em; font-size: 1em; margin: 0 0.3em; max-width: 280px; white-space: normal; min-height: 2.5em; vertical-align: top; }
 </style>
 
 <script type="module" src="../lib/page/bars_game_cpp.js"></script>

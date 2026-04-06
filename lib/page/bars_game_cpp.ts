@@ -14,6 +14,10 @@ import {
     barsGameStateSize,
     barsGameMaxVal,
 } from "../tsl/wasm_api";
+import {
+    Theme, Lang, txt, MatchedScenario,
+    classifyDeltas, findMatchingScenario, getFailureText, ALL_THEMES,
+} from "./bars_game_themes";
 
 const CANVAS_ID = "bars-game-canvas";
 const BTN_0_ID = "bars-game-btn-0";
@@ -24,6 +28,9 @@ const PREVIEW_ID = "bars-game-preview";
 const SEED_ID = "bars-game-seed";
 const SHOW_NUMBERS_ID = "bars-game-show-numbers";
 const HEAD_SPAN_ID = "head_span";
+const LABELS_ID = "bars-game-labels";
+const SCENARIO_ID = "bars-game-scenario";
+const LANG_TOGGLE_ID = "bars-game-lang-toggle";
 
 // Blue, pink, emerald, amber — high contrast on dark
 const BAR_COLORS = ["#3b82f6", "#ec4899", "#10b981", "#f59e0b"];
@@ -35,6 +42,9 @@ const BAR_REGION_COLOR = "#000000";
 let hoverChoice: number | null = null;
 let currentSeed: number = 0;
 let showNumbers: boolean = false;
+let activeTheme: Theme | null = null;
+let currentLang: Lang = "cn";
+let cachedMatch: MatchedScenario | null = null;
 
 function getCanvas(): HTMLCanvasElement {
     const el = document.getElementById(CANVAS_ID);
@@ -151,6 +161,81 @@ function drawBarsWithDiff(
     }
 }
 
+function selectRandomTheme(): void {
+    activeTheme = ALL_THEMES[Math.floor(Math.random() * ALL_THEMES.length)];
+}
+
+function updateLabels(): void {
+    const el = document.getElementById(LABELS_ID);
+    if (!el || !activeTheme) {
+        return;
+    }
+    const canvas = getCanvas();
+    const border = 15;
+    const cw = canvas.width;
+    const n = 4;
+    const barWidth = (cw * 0.8) / n;
+    const gap = (cw - barWidth * n) / (n + 1);
+    el.innerHTML = activeTheme.labels
+        .map((label, i) => {
+            const cx = border + gap + i * (barWidth + gap) + barWidth / 2;
+            return `<span style="position:absolute;left:${cx}px;transform:translateX(-50%);color:${BAR_COLORS[i]};font-weight:bold;white-space:nowrap">${txt(label, currentLang)}</span>`;
+        })
+        .join("");
+}
+
+function updateButtonText(): void {
+    const { btn0, btn1 } = getButtons();
+    const scenarioEl = document.getElementById(SCENARIO_ID);
+
+    if (!activeTheme) {
+        btn0.textContent = "Choice 0";
+        btn1.textContent = "Choice 1";
+        if (scenarioEl) {
+            scenarioEl.textContent = "\u00a0";
+        }
+        return;
+    }
+
+    if (barsGameIsEnded()) {
+        btn0.textContent = "Choice 0";
+        btn1.textContent = "Choice 1";
+        if (scenarioEl) {
+            const state = barsGameGetState();
+            scenarioEl.textContent = getFailureText(activeTheme, state, barsGameMaxVal(), currentLang);
+        }
+        return;
+    }
+
+    const state = barsGameGetState();
+    const f0 = barsGameGetFutureState(0);
+    const f1 = barsGameGetFutureState(1);
+    const d0 = classifyDeltas(state, f0);
+    const d1 = classifyDeltas(state, f1);
+    cachedMatch = findMatchingScenario(activeTheme.scenarios, d0, d1, Math.random);
+
+    if (!cachedMatch) {
+        btn0.textContent = "Choice 0";
+        btn1.textContent = "Choice 1";
+        if (scenarioEl) {
+            scenarioEl.textContent = "\u00a0";
+        }
+        return;
+    }
+
+    const { scenario, swapped } = cachedMatch;
+    if (scenarioEl) {
+        scenarioEl.textContent = txt(scenario.background, currentLang);
+    }
+    if (swapped) {
+        btn0.textContent = txt(scenario.choiceB, currentLang);
+        btn1.textContent = txt(scenario.choiceA, currentLang);
+    } else {
+        btn0.textContent = txt(scenario.choiceA, currentLang);
+        btn1.textContent = txt(scenario.choiceB, currentLang);
+    }
+}
+
 function wouldChoiceEndGame(future: number[]): boolean {
     if (future.length === 0) {
         return false;
@@ -188,7 +273,7 @@ function draw(): void {
         drawBars(ctx, state, 0, width, height, maxVal);
         const previewEl = document.getElementById(PREVIEW_ID);
         if (previewEl) {
-            previewEl.textContent = "";
+            previewEl.textContent = "\u00a0";
         }
     }
 }
@@ -214,9 +299,8 @@ function updateStatus(): void {
     }
     const head = document.getElementById(HEAD_SPAN_ID);
     if (head) {
-        head.textContent = barsGameIsEnded()
-            ? "Bars game (C++ / WASM) — Game over"
-            : "Bars game (C++ / WASM)";
+        const title = activeTheme ? txt(activeTheme.name, currentLang) : "Bars game (C++ / WASM)";
+        head.textContent = barsGameIsEnded() ? `${title} — Game Over` : title;
     }
     updateSeedDisplay();
 }
@@ -240,10 +324,12 @@ function onChoice(index: number): void {
     } else {
         hoverChoice = index;
     }
+    updateButtonText();
     draw();
 }
 
 function restart(): void {
+    selectRandomTheme();
     const seed = (Date.now() >>> 0) ^ (typeof crypto !== "undefined" && crypto.getRandomValues
         ? crypto.getRandomValues(new Uint32Array(1))[0]
         : 0);
@@ -252,6 +338,8 @@ function restart(): void {
     barsGameInit();
     logState();
     setButtonsEnabled(true);
+    updateLabels();
+    updateButtonText();
     updateStatus();
     draw();
 }
@@ -259,6 +347,7 @@ function restart(): void {
 async function main(): Promise<void> {
     await modulePromise;
     barsGameCreate();
+    selectRandomTheme();
     currentSeed = (Date.now() >>> 0) ^ (typeof crypto !== "undefined" && crypto.getRandomValues
         ? crypto.getRandomValues(new Uint32Array(1))[0]
         : 0);
@@ -275,6 +364,20 @@ async function main(): Promise<void> {
         });
     }
 
+    const langToggle = document.getElementById(LANG_TOGGLE_ID);
+    if (langToggle && langToggle instanceof HTMLButtonElement) {
+        langToggle.textContent = currentLang === "cn" ? "EN" : "中文";
+        langToggle.addEventListener("click", () => {
+            currentLang = currentLang === "cn" ? "en" : "cn";
+            langToggle.textContent = currentLang === "cn" ? "EN" : "中文";
+            updateLabels();
+            updateButtonText();
+            updateStatus();
+        });
+    }
+
+    updateLabels();
+    updateButtonText();
     draw();
     updateStatus();
     setButtonsEnabled(true);
