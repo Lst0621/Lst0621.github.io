@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "scripts": {
     "build": "node build.js",
-    "test": "NODE_OPTIONS='--experimental-vm-modules' jest --json --outputFile=tsl/test/results.json",
+    "build:all": "bash ../build_all_and_test.sh",
+    "build:scripts": "esbuild scripts/jest_json_sorted.ts --platform=node --format=esm --target=node18 --outfile=scripts/jest_json_sorted.mjs",
+    "test": "npm run -s build:scripts && node ./scripts/jest_json_sorted.mjs",
     "jest": "NODE_OPTIONS='--experimental-vm-modules' jest"
   },
   "type": "module",
