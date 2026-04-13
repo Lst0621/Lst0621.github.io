@@ -54,6 +54,7 @@ export const sections: Section[] = [
       { name: "Strictly Piecewise Languages", url: "article/sp_lang.html" },
       { name: "Continued Fractions", url: "article/continued_fractions.html" },
       { name: "Lamp Lighter", url: "article/lamp_lighter.html" },
+      { name: "Graph Demo", url: "article/graph_demo.html" },
     ],
   },
   {
