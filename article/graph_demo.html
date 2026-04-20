@@ -118,7 +118,7 @@
     Graph Demo
   </h1>
   <div class="subtitle">
-    Click adjacency matrix entries to add/remove edges. Switch between undirected and directed; when switching from directed to undirected, an undirected edge exists if either direction exists.
+    Click adjacency matrix entries to add/remove edges in an undirected graph.
   </div>
 
   <div id="controls" class="controls panel"></div>
@@ -127,7 +127,7 @@
     <div class="panel">
       <span id="graph_text">Loading...</span>
       <div style="height: 10px;"></div>
-      <canvas id="graph_canvas" width="640" height="480"></canvas>
+      <canvas id="graph_canvas" width="700" height="440"></canvas>
     </div>
     <div class="panel">
       <div style="margin-bottom: 8px; color: var(--muted); font-family: ui-monospace, Courier;">Adjacency</div>
@@ -135,6 +135,9 @@
       <div style="height: 12px;"></div>
       <div style="margin-bottom: 8px; color: var(--muted); font-family: ui-monospace, Courier;">Shortest paths</div>
       <table id="dist_table"></table>
+      <div style="height: 12px;"></div>
+      <div style="margin-bottom: 8px; color: var(--muted); font-family: ui-monospace, Courier;">Edge-to-node distances (min endpoint)</div>
+      <table id="edge_dist_table"></table>
     </div>
   </div>
 
