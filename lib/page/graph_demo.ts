@@ -935,8 +935,8 @@ function renderResolvingSubsetsPanel(
 
     const smallestLine =
         `Min dimension (${modeName}): ${res.minDimension}<br>` +
-        `Smallest set: ${smallest}<br>` +
-        `Page ${pageShown}/${pageCountSafe}, showing ${shownCount} of total ${res.totalCount}<br>`;
+        `Smallest set: ${smallest}<br>`;
+    const pageLine = `Page ${pageShown}/${pageCountSafe}, showing ${shownCount} of total ${res.totalCount}<br>`;
     const note = res.truncated
         ? `<span style="color:#586e75">Note: subset list truncated (too many subsets to fit buffer).</span><br>`
         : "";
@@ -959,7 +959,7 @@ function renderResolvingSubsetsPanel(
         `<div style="font-family:ui-monospace, Courier; font-size:13px; line-height:1.35; margin-top:6px;">${allHtml || "(none)"}</div>` +
         `</details><br>`;
 
-    return smallestLine + note + minNote + minDetails + "<br>" + allDetails;
+    return smallestLine + minNote + minDetails + "<br>" + pageLine + note + allDetails;
 }
 
 function renderAll(): void {
