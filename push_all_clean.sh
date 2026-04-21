@@ -6,6 +6,10 @@ set -euo pipefail
 # Defaults:
 #   remote = origin
 #   branch = current branch in each repo/submodule
+#
+# Pushes submodules deepest-first, then the superproject, so that when
+# a parent repo is pushed the commit referenced by its gitlink already
+# exists on the child's remote.
 
 REMOTE="${1:-origin}"
 BRANCH_ARG="${2:-}"
@@ -29,21 +33,41 @@ git submodule foreach --recursive '
   fi
 '
 
-echo "==> Pushing submodules first (recursive)..."
-git submodule foreach --recursive '
-  branch="'${BRANCH_ARG}'"
-  if [ -z "$branch" ]; then
-    branch="$(git rev-parse --abbrev-ref HEAD)"
-  fi
+echo "==> Collecting submodule paths (pre-order)..."
+# $displaypath is the path from the superproject root, which is what we need
+# to `cd` into from here. `foreach --recursive` walks top-down; we reverse it
+# below to get deepest-first.
+mapfile -t SUBMODULE_PATHS < <(
+  git submodule foreach --recursive --quiet 'echo "$displaypath"'
+)
 
-  if [ "$branch" = "HEAD" ]; then
-    echo "ERROR: Detached HEAD in submodule: $name ($path)"
-    exit 1
-  fi
+if [[ ${#SUBMODULE_PATHS[@]} -eq 0 ]]; then
+  echo "(no submodules)"
+else
+  echo "==> Pushing submodules deepest-first..."
+  SUPER_ROOT="$(pwd)"
+  # Iterate in reverse: reversing a pre-order walk yields a valid
+  # "children before parents" order.
+  for (( i=${#SUBMODULE_PATHS[@]}-1; i>=0; i-- )); do
+    sub="${SUBMODULE_PATHS[$i]}"
+    (
+      cd "$SUPER_ROOT/$sub"
 
-  echo "Pushing $name ($path) -> '"${REMOTE}"'/$branch"
-  git push "'${REMOTE}'" "$branch"
-'
+      branch="$BRANCH_ARG"
+      if [[ -z "$branch" ]]; then
+        branch="$(git rev-parse --abbrev-ref HEAD)"
+      fi
+
+      if [[ "$branch" == "HEAD" ]]; then
+        echo "ERROR: Detached HEAD in submodule: $sub"
+        exit 1
+      fi
+
+      echo "Pushing submodule $sub -> $REMOTE/$branch"
+      git push "$REMOTE" "$branch"
+    )
+  done
+fi
 
 echo "==> Pushing superproject..."
 if [[ -n "$BRANCH_ARG" ]]; then
@@ -57,5 +81,4 @@ else
   git push "$REMOTE" "$current_branch"
 fi
 
-echo "Done: all clean, submodules pushed, superproject pushed."
-
+echo "Done: all clean, submodules pushed deepest-first, superproject pushed."
