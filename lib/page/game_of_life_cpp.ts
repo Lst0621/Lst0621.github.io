@@ -19,7 +19,7 @@ import {
     golSetCutSeed,
     golSetCutCount,
     golGetCutEdges,
-} from "../tsl/wasm_api";
+} from "../tsl/wasm/ts/wasm_api_game_of_life";
 
 const CANVAS_ID = "gol-cpp";
 const BTN_RESTART_ID = "gol-cpp-restart";

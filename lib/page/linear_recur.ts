@@ -8,7 +8,7 @@ import {
     wasmMatrixAdd,
     wasmMatrixPower,
     wasmMatrixTimesConst,
-} from "../tsl/wasm_api";
+} from "../tsl/wasm/ts/wasm_api_linear_recur";
 import { array_to_matrix } from "../tsl/math/matrix";
 import { draw_table } from "../tsl/visual";
 

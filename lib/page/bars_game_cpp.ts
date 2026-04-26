@@ -13,7 +13,7 @@ import {
     barsGameIsEnded,
     barsGameStateSize,
     barsGameMaxVal,
-} from "../tsl/wasm_api";
+} from "../tsl/wasm/ts/wasm_api_bars_game";
 import {
     Theme, Lang, txt, MatchedScenario,
     classifyDeltas, findMatchingScenario, getFailureText, ALL_THEMES,

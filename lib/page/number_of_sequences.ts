@@ -1,4 +1,4 @@
-import { wasm_number_of_sequences_all } from "../tsl/wasm_api";
+import { wasm_number_of_sequences_all } from "../tsl/wasm/ts/wasm_api_number_of_sequences";
 import { draw_table, adjust_table_cell_width } from "../tsl/visual";
 
 function parseArray(input: string): number[] {

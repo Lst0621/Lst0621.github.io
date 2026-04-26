@@ -3,7 +3,7 @@ import {
     wasmGraphEdgeCount,
     wasmGraphRandomizeUndirectedAdj01,
     wasmGraphResolvingSubsetsCacheCreate,
-} from "../tsl/wasm_api";
+} from "../tsl/wasm/ts/wasm_api_graph_demo";
 
 let n = 8;
 const PAGE_SIZE = 500;
