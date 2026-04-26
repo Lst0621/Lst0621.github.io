@@ -3,7 +3,7 @@
 	<meta charset="UTF-8">
 	<title>Haojun Lu</title>
 	<link rel="icon" href="./img/flame1.png">
-	<link rel="stylesheet" href="css/default.css">
+	<link rel="stylesheet" href="resource/solarized_light.css">
 	<!-- Global site tag (gtag.js) - Google Analytics -->
 	<script async src="https://www.googletagmanager.com/gtag/js?id=G-9BLVHLETMC"></script>
 	<script>
@@ -21,6 +21,27 @@
 <style>
 	.contact_icon {
 		width: 1em;
+	}
+
+	html, body {
+		margin: 0;
+		padding: 0;
+	}
+
+	body.solarized {
+		padding: 8px 10px;
+	}
+
+	/* Keep previous link style: no blue, no underline. */
+	body.solarized a,
+	body.solarized a:visited {
+		color: black;
+		text-decoration: none;
+	}
+
+	body.solarized a:hover {
+		color: black;
+		text-decoration: none;
 	}
 </style>
 
@@ -70,9 +91,9 @@
 <h1>
 	Progress
 </h1>
-<img src="https://ghchart.rshah.org/CB4042/Lst0621" alt="commit"/>
+<img src="https://ghchart.rshah.org/268bd2/Lst0621" alt="commit"/>
 
-<body style="font-family:'Verdana'">
+<body class="solarized">
 <div id="site-pages"></div>
 <script type="module" src="lib/page/pages.js"></script>
 

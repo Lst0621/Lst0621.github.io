@@ -1,4 +1,4 @@
-:root {
+.solarized {
   /* Solarized Light-inspired */
   --bg: #fdf6e3;
   --panel: #eee8d5;
@@ -11,24 +11,24 @@
   --buttonBg: #f7f0dc;
 }
 
-body {
+.solarized {
   margin: 0;
   background: var(--bg);
   color: var(--text);
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
 }
 
-a {
+.solarized a {
   color: var(--accent);
 }
 
-button,
-input,
-select {
+.solarized button,
+.solarized input,
+.solarized select {
   font: inherit;
 }
 
-button {
+.solarized button {
   background: var(--buttonBg);
   color: var(--text);
   border: 1px solid var(--border);
@@ -37,11 +37,11 @@ button {
   cursor: pointer;
 }
 
-button:hover {
+.solarized button:hover {
   border-color: var(--accent);
 }
 
-input[type="number"] {
+.solarized input[type="number"] {
   background: var(--buttonBg);
   color: var(--text);
   border: 1px solid var(--border);
@@ -49,14 +49,14 @@ input[type="number"] {
   padding: 6px 10px;
 }
 
-canvas {
+.solarized canvas {
   background: var(--canvasBg);
   border: 1px solid var(--border);
   border-radius: 10px;
   display: block;
 }
 
-.panel {
+.solarized .panel {
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 10px;
