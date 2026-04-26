@@ -3,6 +3,7 @@
     <meta charset="utf-8">
     <title>Game of Life (C++)</title>
     <link rel="icon" href="../img/flame1.png">
+    <link rel="stylesheet" href="../resource/solarized_light.css">
     <!-- Global site tag (gtag.js) - Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-9BLVHLETMC"></script>
     <script>
@@ -11,6 +12,62 @@
         gtag('js', new Date());
         gtag('config', 'G-9BLVHLETMC');
     </script>
+    <style>
+        .gol-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+            min-width: 0;
+        }
+
+        .gol-tip {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 18px;
+            height: 18px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            background: var(--buttonBg);
+            color: var(--text);
+            font-size: 12px;
+            line-height: 1;
+            cursor: help;
+            user-select: none;
+            flex: 0 0 auto;
+        }
+
+        .gol-tip:hover .gol-tip-text,
+        .gol-tip:focus .gol-tip-text {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+
+        .gol-tip-text {
+            position: absolute;
+            display: block;
+            right: 0;
+            bottom: 22px;
+            width: 300px;
+            max-width: 72vw;
+            padding: 8px 10px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: var(--panel);
+            color: var(--text);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+            font-size: 12px;
+            line-height: 1.25;
+            white-space: normal;
+            opacity: 0;
+            transform: translate(0, -2px);
+            pointer-events: none;
+            z-index: 20;
+        }
+    </style>
 </head>
 
 <h1 style="margin-top: 10;" align="center">
@@ -18,13 +75,90 @@
 </h1>
 
 <body>
-<p align="center">
-    <canvas id="gol-cpp" width="640" height="640" style="border: 15px solid black;"></canvas>
-    <br>
-    <button type="button" id="gol-cpp-random">Random</button>
-    <button type="button" id="gol-cpp-reset">Reset</button>
-    <span> Scale: <button type="button" id="gol-cpp-scale-down">-</button> <span id="gol-cpp-scale-value">2</span> <button type="button" id="gol-cpp-scale-up">+</button></span>
-</p>
+<div style="display:flex; gap: 16px; align-items:flex-start; justify-content:center; margin: 0 12px;">
+    <div>
+        <canvas id="gol-cpp" width="640" height="640" style="border: 12px solid var(--panel);"></canvas>
+    </div>
+    <div id="gol-cpp-panel" style="width: 360px; text-align:left;">
+        <div id="gol-cpp-stats" class="panel" style="padding: 10px; margin-bottom: 12px;">
+            <canvas id="gol-cpp-meter" width="320" height="180" style="display:block;"></canvas>
+            <div id="gol-cpp-stats-text"></div>
+        </div>
+
+        <div class="panel" style="padding: 10px;">
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px;">
+                <button type="button" id="gol-cpp-restart">Restart</button>
+                <button type="button" id="gol-cpp-pause">Pause</button>
+            </div>
+
+            <div style="display:grid; grid-template-columns: 120px 32px 1fr 32px; gap: 8px; align-items:center; margin-bottom: 10px;">
+                <span style="white-space:nowrap;">Start</span>
+                <button type="button" id="gol-cpp-start-down">-</button>
+                <input id="gol-cpp-start-value" type="number" min="0" max="100" step="5" value="35" style="width: 100%; box-sizing: border-box;">
+                <button type="button" id="gol-cpp-start-up">+</button>
+            </div>
+
+            <div style="display:grid; grid-template-columns: 120px 32px 1fr 32px; gap: 8px; align-items:center; margin-bottom: 10px;">
+                <span style="white-space:nowrap;">Seed</span>
+                <input id="gol-cpp-seed-use" type="checkbox" aria-label="Use seed" style="justify-self:center;">
+                <input id="gol-cpp-seed-value" type="number" step="1" placeholder="auto" style="width: 100%; box-sizing: border-box;">
+                <button type="button" id="gol-cpp-seed-apply">✓</button>
+            </div>
+
+            <div style="display:grid; grid-template-columns: 120px 32px 1fr 32px; gap: 8px; align-items:center; margin-bottom: 10px;">
+                <span class="gol-label">
+                    Wormholes
+                    <span class="gol-tip" tabindex="0" aria-label="Wormholes info">i
+                        <span class="gol-tip-text">
+                            Adds extra random undirected edges (wormholes) between random pairs of cells.
+                            Fixed during a run, re-sampled on Restart. Wormholes can connect even cut nodes.
+                        </span>
+                    </span>
+                </span>
+                <button type="button" id="gol-cpp-wh-down">-</button>
+                <input id="gol-cpp-wh-value" type="number" min="0" step="50" value="0" style="width: 100%; box-sizing: border-box;">
+                <button type="button" id="gol-cpp-wh-up">+</button>
+            </div>
+
+            <div style="display:grid; grid-template-columns: 120px 32px 1fr 32px; gap: 8px; align-items:center; margin-bottom: 10px;">
+                <span class="gol-label">
+                    Cuts
+                    <span class="gol-tip" tabindex="0" aria-label="Cuts info">i
+                        <span class="gol-tip-text">
+                            Randomly selects K nodes and removes all 8 base-neighborhood edges for each.
+                            Fixed during a run, re-sampled on Restart. Wormholes are applied after cuts.
+                        </span>
+                    </span>
+                </span>
+                <button type="button" id="gol-cpp-cut-down">-</button>
+                <input id="gol-cpp-cut-value" type="number" min="0" step="20" value="0" style="width: 100%; box-sizing: border-box;">
+                <button type="button" id="gol-cpp-cut-up">+</button>
+            </div>
+
+            <div style="display:grid; grid-template-columns: 120px 32px 1fr 32px; gap: 8px; align-items:center; margin-bottom: 10px;">
+                <span style="white-space:nowrap;">Scale</span>
+                <button type="button" id="gol-cpp-scale-down">-</button>
+                <span id="gol-cpp-scale-value" style="text-align:center;">4</span>
+                <button type="button" id="gol-cpp-scale-up">+</button>
+            </div>
+
+            <div style="display:grid; grid-template-columns: 120px 1fr 1fr 1fr; gap: 8px; align-items:center; margin-bottom: 10px;">
+                <span class="gol-label">
+                    Topology
+                    <span class="gol-tip" tabindex="0" aria-label="Topology info">i
+                        <span class="gol-tip-text">
+                            Underlying state space is the cartesian product of coordinates.
+                            Finite: [0..n) × [0..n). Torus: Zₙ × Zₙ (wrap x and y). Cylinder: Zₙ × [0..n) (wrap x only).
+                        </span>
+                    </span>
+                </span>
+                <button type="button" id="gol-cpp-topo-torus" title="Torus: Zₙ × Zₙ (wrap both axes).">Torus</button>
+                <button type="button" id="gol-cpp-topo-finite" title="Finite: [0..n) × [0..n) (no wrap).">Finite</button>
+                <button type="button" id="gol-cpp-topo-cylinder" title="Cylinder: Zₙ × [0..n) (wrap x only).">Cylinder</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <script type="module" src="../lib/page/game_of_life_cpp.js"></script>
 
