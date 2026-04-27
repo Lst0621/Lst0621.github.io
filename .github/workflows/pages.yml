@@ -41,6 +41,20 @@ jobs:
           cd lib/tsl/wasm
           ./test_build.sh
 
+      - name: Setup Emscripten (for Jest WASM tests)
+        uses: emscripten-core/setup-emsdk@v15
+        with:
+          version: latest
+          no-cache: true
+
+      - name: Build WASM (for Jest)
+        run: |
+          cmake -S lib/tsl/wasm -B lib/tsl/wasm/wasm_out_ci \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_COMPILER=emcc \
+            -DCMAKE_CXX_COMPILER=em++
+          cmake --build lib/tsl/wasm/wasm_out_ci -j
+
       - name: TypeScript unit tests (Jest)
         run: |
           cd lib
