@@ -25,9 +25,9 @@ jobs:
           submodules: recursive
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
           cache-dependency-path: lib/package-lock.json
 
@@ -70,11 +70,17 @@ jobs:
             echo "No lib/tsl/test/results.json found; skipping."
           fi
 
+      - name: Prune build-only folders (reduce Pages artifact size)
+        run: |
+          rm -rf lib/node_modules
+          rm -rf lib/tsl/wasm/wasm_out_ci
+          rm -rf lib/tsl/wasm/wasm_out_ci_emsdk506
+
       - name: Setup Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v5.0.1
 
       - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v4
+        uses: actions/upload-pages-artifact@v4.0.1
         with:
           path: .
 
@@ -87,4 +93,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v4.0.6
