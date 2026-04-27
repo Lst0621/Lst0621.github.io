@@ -177,7 +177,7 @@ function renderTable(table: HTMLTableElement, rows: FlatRow[], results: JestResu
 export async function update_table(): Promise<void> {
     const table = document.getElementById("test_case_table") as HTMLTableElement;
     try {
-        const resp = await fetch("../lib/tsl/test/results.json");
+        const resp = await fetch("/assets/test/results.json");
         if (!resp.ok) {
             table.textContent = "Failed to load results.json (" + resp.status + "). Run: cd lib && npm test";
             return;

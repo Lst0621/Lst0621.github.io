@@ -18,7 +18,33 @@ cd lib && npm install
 cd lib && npm run build
 ```
 
-Bundles all `lib/page/*.ts` and `lib/common/*.ts` entry points with esbuild.
+Bundles all `lib/page/*.ts` and `lib/common/*.ts` entry points with esbuild and writes outputs to `assets/js/`.
+
+## Build website assets (local verification)
+
+Build outputs are **not committed**; they are produced into `assets/` and can be served locally for quick verification.
+
+```bash
+# Build WASM to a CI-style folder
+cd lib/tsl/wasm
+cmake -S . -B wasm_out_ci -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=emcc -DCMAKE_CXX_COMPILER=em++
+cmake --build wasm_out_ci -j
+
+# Copy WASM to website assets
+cd ../../../..
+mkdir -p assets/wasm
+cp -v lib/tsl/wasm/wasm_out_ci/*.js assets/wasm/
+cp -v lib/tsl/wasm/wasm_out_ci/*.wasm assets/wasm/
+
+# Build JS to website assets
+cd lib && npm run build
+```
+
+Then serve the repo root with any static server and verify the site loads:
+
+- `/assets/js/...`
+- `/assets/wasm/wasm_*.js`
+- `/assets/wasm/wasm_*.wasm`
 
 ## Build WASM
 

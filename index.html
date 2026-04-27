@@ -95,11 +95,11 @@
 
 <body class="solarized">
 <div id="site-pages"></div>
-<script type="module" src="lib/page/pages.js"></script>
+<script type="module" src="/assets/js/page/pages.js"></script>
 
 <script type="module">
-	import { get_last_modify } from "./lib/common/last_modify.js";
-	import { update_theme_color_as_bg_color } from "./lib/common/update_color_meta.js";
+	import { get_last_modify } from "/assets/js/common/last_modify.js";
+	import { update_theme_color_as_bg_color } from "/assets/js/common/update_color_meta.js";
 	get_last_modify(["index.html"], "modify_time");
 	update_theme_color_as_bg_color();
 </script>

@@ -21,14 +21,14 @@
 </h1>
 <p id="modify_time"></p>
 <script type="module">
-    import { get_last_modify } from "../lib/common/last_modify.js";
+    import { get_last_modify } from "/assets/js/common/last_modify.js";
     get_last_modify(
-        ["article/test_cases.html", "lib/page/test_case.ts", "lib/tsl/test/results.json"], "modify_time");
+        ["article/test_cases.html", "lib/page/test_case.ts", "assets/test/results.json"], "modify_time");
 </script>
 <table id="test_case_table" align="center"></table>
 
 <script type="module">
-    import {update_table} from "../lib/page/test_case.js"
+    import {update_table} from "/assets/js/page/test_case.js"
 
     Object.assign(window, {update_table})
     update_table()

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Build everything (native gtest target, Emscripten WASM, TypeScript bundle) and run all tests.
-# Delegates to existing scripts: lib/tsl/wasm/test_build.sh, lib/tsl/wasm/build.sh, lib/package.json (npm).
+# Build everything (native gtest target, Emscripten WASM, JS bundle to /assets) and run all tests.
+# Delegates to existing scripts: lib/tsl/wasm/test_build.sh, build_assets_local.sh, lib/package.json (npm).
 
 set -euo pipefail
 
@@ -21,17 +21,14 @@ run_step() {
 run_step "C++ Google Test (configure, build, run) — lib/tsl/wasm/test_build.sh" \
   bash -c "cd \"${WASM_DIR}\" && ./test_build.sh"
 
-run_step "WASM (Emscripten) — lib/tsl/wasm/build.sh" \
-  bash -c "cd \"${WASM_DIR}\" && ./build.sh"
-
-run_step "TypeScript bundle — cd lib && npm run build" \
-  bash -c "cd \"${LIB_DIR}\" && npm run build"
+run_step "Website assets (WASM + JS) — ./build_assets_local.sh" \
+  bash -c "cd \"${REPO_ROOT}\" && ./build_assets_local.sh"
 
 run_step "TypeScript tests (Jest) — cd lib && npm test" \
   bash -c "cd \"${LIB_DIR}\" && npm test"
 
 echo ""
 echo "================================================================================"
-echo "  Done: gtest + WASM + TS build + Jest all finished successfully."
+echo "  Done: gtest + assets (WASM+JS) + Jest all finished successfully."
 echo "================================================================================"
 echo ""
