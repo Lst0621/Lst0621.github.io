@@ -16,60 +16,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-        with:
-          submodules: recursive
-
-      - name: Setup Node
-        uses: actions/setup-node@v6
-        with:
-          node-version: 24
-          cache: npm
-          cache-dependency-path: lib/package-lock.json
-
-      - name: Install lib dependencies
-        run: |
-          cd lib
-          npm ci
-
-      - name: C++ unit tests (Google Test)
-        run: |
-          cd lib/tsl/wasm
-          ./test_build.sh
-
-      - name: Setup Emscripten (for Jest WASM tests)
-        uses: emscripten-core/setup-emsdk@v15
-        with:
-          version: latest
-          no-cache: true
-
-      - name: Build WASM (for Jest)
-        run: |
-          cmake -S lib/tsl/wasm -B lib/tsl/wasm/wasm_out_ci \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_C_COMPILER=emcc \
-            -DCMAKE_CXX_COMPILER=em++
-          cmake --build lib/tsl/wasm/wasm_out_ci -j
-
-      - name: TypeScript unit tests (Jest)
-        run: |
-          cd lib
-          npm test
-
-      - name: Upload Jest JSON (for Pages)
-        uses: actions/upload-artifact@v7
-        with:
-          name: jest_results_json
-          if-no-files-found: error
-          path: assets/test/results.json
-
   build:
     runs-on: ubuntu-latest
-    needs: test
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -94,6 +42,11 @@ jobs:
           version: latest
           no-cache: true
 
+      - name: C++ unit tests (Google Test)
+        run: |
+          cd lib/tsl/wasm
+          ./test_build.sh
+
       - name: Build WASM (CI folder)
         run: |
           cmake -S lib/tsl/wasm -B lib/tsl/wasm/wasm_out_ci \
@@ -113,11 +66,10 @@ jobs:
           cd lib
           npm run build
 
-      - name: Download Jest JSON (from test job)
-        uses: actions/download-artifact@v8
-        with:
-          name: jest_results_json
-          path: assets/test
+      - name: TypeScript unit tests (Jest)
+        run: |
+          cd lib
+          npm test
 
       - name: Prune build-only folders (reduce Pages artifact size)
         run: |
@@ -135,9 +87,7 @@ jobs:
 
   deploy:
     runs-on: ubuntu-latest
-    needs:
-      - test
-      - build
+    needs: build
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
