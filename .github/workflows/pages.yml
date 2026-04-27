@@ -77,10 +77,10 @@ jobs:
           rm -rf lib/tsl/wasm/wasm_out_ci_emsdk506
 
       - name: Setup Pages
-        uses: actions/configure-pages@v5.0.1
+        uses: actions/configure-pages@v5.0.0
 
       - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v4.0.1
+        uses: actions/upload-pages-artifact@v4.0.0
         with:
           path: .
 
@@ -93,4 +93,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4.0.6
+        uses: actions/deploy-pages@v4.0.5
