@@ -1,5 +1,6 @@
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
+import path from "node:path";
 
 type AssertionResult = {
     fullName?: string;
@@ -14,7 +15,7 @@ type JestResults = {
     testResults?: TestFileResult[];
 };
 
-const OUTPUT_FILE = "tsl/test/results.json";
+const OUTPUT_FILE = path.resolve(process.cwd(), "../assets/test/results.json");
 
 function stableSortResults(results: JestResults): JestResults {
     if (Array.isArray(results.testResults)) {
@@ -35,6 +36,8 @@ function stableSortResults(results: JestResults): JestResults {
 function main(): void {
     const jestArgs = process.argv.slice(2);
     const nodeOptions = "--experimental-vm-modules";
+
+    fs.mkdirSync(path.dirname(OUTPUT_FILE), { recursive: true });
 
     const result = spawnSync(
         "node",

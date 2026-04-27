@@ -16,6 +16,43 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: lib/package-lock.json
+
+      - name: Install lib dependencies
+        run: |
+          cd lib
+          npm ci
+
+      - name: C++ unit tests (Google Test)
+        run: |
+          cd lib/tsl/wasm
+          ./test_build.sh
+
+      - name: TypeScript unit tests (Jest)
+        run: |
+          cd lib
+          npm test
+
+      - name: Upload Jest JSON (for Pages)
+        uses: actions/upload-artifact@v7
+        with:
+          name: jest_results_json
+          if-no-files-found: error
+          path: assets/test/results.json
+
   build:
     runs-on: ubuntu-latest
     steps:
@@ -61,14 +98,11 @@ jobs:
           cd lib
           npm run build
 
-      - name: Copy test results to assets (optional)
-        run: |
-          mkdir -p assets/test
-          if [ -f lib/tsl/test/results.json ]; then
-            cp -v lib/tsl/test/results.json assets/test/results.json
-          else
-            echo "No lib/tsl/test/results.json found; skipping."
-          fi
+      - name: Download Jest JSON (from test job)
+        uses: actions/download-artifact@v8
+        with:
+          name: jest_results_json
+          path: assets/test
 
       - name: Prune build-only folders (reduce Pages artifact size)
         run: |
@@ -77,20 +111,22 @@ jobs:
           rm -rf lib/tsl/wasm/wasm_out_ci_emsdk506
 
       - name: Setup Pages
-        uses: actions/configure-pages@v5.0.0
+        uses: actions/configure-pages@v6.0.0
 
       - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v4.0.0
+        uses: actions/upload-pages-artifact@v5.0.0
         with:
           path: .
 
   deploy:
     runs-on: ubuntu-latest
-    needs: build
+    needs:
+      - test
+      - build
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4.0.5
+        uses: actions/deploy-pages@v5.0.0

@@ -70,7 +70,7 @@ Builds with the native C++ compiler and runs Google Test.
 cd lib && npm test
 ```
 
-Runs Jest and writes JSON results to `lib/tsl/test/results.json`.
+Runs Jest and writes JSON results to `assets/test/results.json`.
 
 For human-readable output only (no JSON file):
 

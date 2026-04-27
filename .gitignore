@@ -3,3 +3,4 @@
 node_modules
 assets/js/
 assets/wasm/
+assets/test/
