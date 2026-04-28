@@ -7,12 +7,7 @@ WASM_BUILD_DIR="${WASM_DIR}/wasm_out_ci"
 ASSETS_WASM_DIR="${REPO_ROOT}/assets/wasm"
 
 echo "==> Build WASM (Emscripten) into: ${WASM_BUILD_DIR}"
-mkdir -p "${WASM_BUILD_DIR}"
-cmake -S "${WASM_DIR}" -B "${WASM_BUILD_DIR}" \
-  -DCMAKE_BUILD_TYPE=Release \
-  -DCMAKE_C_COMPILER=emcc \
-  -DCMAKE_CXX_COMPILER=em++
-cmake --build "${WASM_BUILD_DIR}" -j
+"${WASM_DIR}/build.sh"
 
 echo "==> Copy WASM outputs to: ${ASSETS_WASM_DIR}"
 mkdir -p "${ASSETS_WASM_DIR}"
