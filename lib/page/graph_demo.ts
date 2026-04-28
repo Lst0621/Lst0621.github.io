@@ -1,5 +1,6 @@
 import {
     wasmGraphAllPairsDistances,
+    wasmGraphDiameterFromDistances,
     wasmGraphEdgeCount,
     wasmGraphRandomizeUndirectedAdj01,
     wasmGraphResolvingSubsetsCacheCreate,
@@ -908,6 +909,10 @@ function renderSummary(graphText: HTMLSpanElement, edgeCount: number, mdText: st
         mdText;
 }
 
+function formatDiameter(diameter: number): string {
+    return diameter < 0 ? "∞" : diameter.toString();
+}
+
 function subsetToString1Based(subset: readonly number[]): string {
     return `{${subset.map((x) => (x + 1).toString()).join(", ")}}`;
 }
@@ -980,6 +985,7 @@ function renderAll(): void {
     const adj01 = adjToAdj01Flat();
     const edgeCount = wasmGraphEdgeCount(adj01, n, false);
     const distFlat = wasmGraphAllPairsDistances(adj01, n, false);
+    const diameter = wasmGraphDiameterFromDistances(distFlat, n);
     const cacheHandle = ensureWasmResolveCache();
 
     // WASM-side cache: expensive enumeration runs only when graph changes.
@@ -1051,6 +1057,7 @@ function renderAll(): void {
         graphText,
         edgeCount,
         `Highlight mode: ${highlightMode}<br>` +
+        `Diameter: ${formatDiameter(diameter)}<br>` +
         `Highlight basis: ${subsetToString1Based(highlightBasisList)}<br>` +
         `<br>` +
         renderResolvingSubsetsPanel("node", nodePageIndex, nodeRes) +
