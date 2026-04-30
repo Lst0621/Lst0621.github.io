@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<head>
+    <title>Partition Conjugate</title>
+    <link rel="icon" href="../img/flame1.png">
+    <link rel="stylesheet" href="../resource/solarized_light.css">
+    <!-- MathJax configuration -->
+    <script>
+        window.MathJax = {tex: {inlineMath: [['$', '$']]}};
+    </script>
+    <!-- MathJax for LaTeX rendering -->
+    <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-9BLVHLETMC"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-9BLVHLETMC');
+    </script>
+    <style>
+        .wrap {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 16px;
+        }
+
+        .subtitle {
+            color: var(--muted);
+            margin-top: 8px;
+            line-height: 1.5;
+        }
+
+        .labels {
+            display: flex;
+            justify-content: space-between;
+            max-width: 980px;
+            margin: 0 auto 6px auto;
+            color: var(--muted);
+            font-family: ui-monospace, Courier;
+        }
+
+        .mono {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+    </style>
+</head>
+
+<h1 style="margin-top: 10;" align="center">
+    <span id="head_span" style="font-size: 24pt">
+        Partition Conjugate ($\lambda \to \lambda'$)
+    </span><br>
+</h1>
+
+<body class="solarized">
+<div class="wrap">
+    <div class="subtitle panel">
+        Generates 10 random non-negative integers (each &lt; 10), sorts them into a partition $\lambda$,
+        then computes the conjugate partition $\lambda'$ via the standard formula
+        $\lambda'_j = \#\{ i : \lambda_i \ge j \}$.
+    </div>
+
+    <div style="height: 12px;"></div>
+
+    <div align="center" class="panel">
+        <p align="center" style="margin: 0 0 10px 0;">
+            <button id="generate_btn">Generate</button>
+        </p>
+
+        <p align="center" id="status" style="color: blue; font-weight: bold; margin: 0 0 10px 0;"></p>
+
+        <div id="io_math" class="mono" style="font-size: 14px; margin-bottom: 10px;"></div>
+
+        <div class="labels">
+            <div id="label_a">A: $\lambda$ (rows)</div>
+            <div id="label_b">B: $\lambda'$ (cols)</div>
+            <div id="label_c">C: $\lambda'$ (rows)</div>
+            <div id="label_d">D: $(\lambda')' = \lambda$ (cols)</div>
+        </div>
+
+        <canvas id="bars_canvas" width="980" height="320"></canvas>
+
+        <div style="color: var(--muted); font-size: 14px; margin-top: 10px; font-family: sans-serif;">
+            A$\to$B is conjugation; C$\to$D conjugates back. Numbers label row lengths / column heights.
+        </div>
+    </div>
+
+    <div style="margin-top: 14px;">
+        <a href="../index.html">Back</a>
+    </div>
+</div>
+
+<script type="module">
+    import { initPartitionConjugatePage } from "/assets/js/page/partition_conjugate.js";
+    initPartitionConjugatePage();
+</script>
+
+</body>
+</html>
