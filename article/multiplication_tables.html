@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Multiplication Tables</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <link rel="stylesheet" href="/css/book.css">
+  <link rel="icon" href="data:;base64,iVBORw0KGgo=">
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-S72LBY47R8"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-S72LBY47R8');
+  </script>
+</head>
+<body>
+  <style>
+    .page_container {
+      margin: 0 auto;
+      text-align: center;
+    }
+    table.multiplication_table {
+      margin: 0 auto;
+    }
+  </style>
+  <div class="page_container">
+    <article>
+      <h1 style="margin-top: 10px; font-size: 18pt; font-weight: normal; font-family: Courier;">
+        Multiplication Tables
+      </h1>
+      <p class="comment">
+        “The perfect model of truth is the multiplication table, which is precise and certain and free from all temporal dross.”
+        <br>
+        - Bertrand Russell
+      </p>
+      <div class="flex_row">
+        <button onclick="page.show_table('modular')">Modular Arithmetic</button>
+        <button onclick="page.show_table('symmetric')">Symmetric Group</button>
+        <button onclick="page.show_table('dihedral')">Dihedral Group</button>
+        <button onclick="page.show_table('gl')">General Linear Group</button>
+      </div>
+
+      <div id="modular_container" style="display: none;">
+        <p><span id="mul_text_modular"></span></p>
+        <p>
+          <button onclick="page.decrement_modular()">-</button>
+          <button onclick="page.increment_modular()">+</button>
+        </p>
+        <table id="multiplication_table_modular" class="multiplication_table"></table>
+      </div>
+
+      <div id="symmetric_container" style="display: none;">
+        <p>Multiplication table for the symmetric group <span id="mul_text_symmetric"></span>.</p>
+        <p>
+          <button onclick="page.decrement_symmetric()">-</button>
+          <button onclick="page.increment_symmetric()">+</button>
+        </p>
+        <p>Even permutations are colored green.</p>
+        <table id="even_multiplication_table" class="multiplication_table"></table>
+        <p>All permutations.</p>
+        <table id="multiplication_table_symmetric" class="multiplication_table"></table>
+      </div>
+
+      <div id="dihedral_container" style="display: none;">
+        <p>Multiplication table for the dihedral group <span id="mul_text_dihedral"></span>.</p>
+        <p>
+          <button onclick="page.decrement_dihedral()">-</button>
+          <button onclick="page.increment_dihedral()">+</button>
+        </p>
+        <p>Permutation representation.</p>
+        <table id="multiplication_table_perm" class="multiplication_table"></table>
+        <p>Dihedral group elements.</p>
+        <table id="multiplication_table_dihedral" class="multiplication_table"></table>
+      </div>
+
+      <div id="gl_container" style="display: none;">
+        <p>Multiplication table for <span id="mul_text_gl"></span>.</p>
+        <p>
+          <button onclick="page.decrement_gl()">-</button>
+          <button onclick="page.increment_gl()">+</button>
+        </p>
+        <table id="multiplication_table_gl" class="multiplication_table"></table>
+      </div>
+    </article>
+    <div id="last_modify"></div>
+  </div>
+  <script type="module">
+    import * as page from '/assets/js/page/multiplication_tables.js';
+    window.page = page;
+  </script>
+</body>
+</html>

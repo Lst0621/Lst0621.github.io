@@ -8,23 +8,21 @@ import {
     perm_to_str, permutation_multiply
 } from "../tsl/math/group";
 
-let table_sz: number = 4
+let table_sz: number = 4;
 
-
-export function update_table(sz: number) {
-    let mul_text = document.getElementById("mul_text") as HTMLSpanElement
-    mul_text.innerHTML = "Multiplication for D" + "<sub>" + (sz).toString() + "</sub>"
-    let table: HTMLTableElement = document.getElementById("multiplication_table") as HTMLTableElement
-    let table2: HTMLTableElement = document.getElementById("multiplication_table_perm") as HTMLTableElement
-    let dihedrals:number[][] = get_all_dihedral(sz)
-    console.log(dihedrals)
+export function update_dihedral_group_table(sz: number) {
+    let mul_text = document.getElementById("mul_text_dihedral") as HTMLSpanElement;
+    mul_text.innerHTML = "D" + "<sub>" + (sz).toString() + "</sub>";
+    let table: HTMLTableElement = document.getElementById("multiplication_table_dihedral") as HTMLTableElement;
+    let table2: HTMLTableElement = document.getElementById("multiplication_table_perm") as HTMLTableElement;
+    let dihedrals:number[][] = get_all_dihedral(sz);
     draw_multiplication_table(
         table,
         dihedrals,
         (a, b) => dihedral_multiply(a, b, sz),
         dihedral_to_str,
         always("lightblue"),
-        always("lightyellow"))
+        always("lightyellow"));
 
     draw_multiplication_table(
         table2,
@@ -33,19 +31,9 @@ export function update_table(sz: number) {
         perm_to_str,
         (a) => (get_permutation_parity(a) ? "lightgreen" : "lightblue"),
         (b, c, a) => (get_permutation_parity(a) ? "lightgreen" : "lightblue")
-    )
+    );
 }
 
-export function increment(sz: number) {
-    if (table_sz < 10) {
-        table_sz += 1
-    }
-    update_table(table_sz)
-}
-
-export function decrement(sz: number) {
-    if (table_sz > 3) {
-        table_sz -= 1
-    }
-    update_table(table_sz)
+export function init() {
+    update_dihedral_group_table(table_sz);
 }
