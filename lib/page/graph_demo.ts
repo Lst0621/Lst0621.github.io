@@ -22,14 +22,27 @@ type ResolveResult = {
     totalCount: number;
     pageCount: number;
 };
+type NonResolveResult = {
+    subsets: number[][];
+    truncated: boolean;
+    totalCount: number;
+    pageCount: number;
+};
 let graphVersion = 0;
 let nodePageIndex = 0;
 let edgePageIndex = 0;
 let mixedPageIndex = 0;
+let nodeNonResolvingPageIndex = 0;
+let edgeNonResolvingPageIndex = 0;
+let mixedNonResolvingPageIndex = 0;
 let cachedResolveKey = "";
+let cachedNonResolveKey = "";
 let cachedNodeRes: ResolveResult | null = null;
 let cachedEdgeRes: ResolveResult | null = null;
 let cachedMixedRes: ResolveResult | null = null;
+let cachedNodeNonResolveRes: NonResolveResult | null = null;
+let cachedEdgeNonResolveRes: NonResolveResult | null = null;
+let cachedMixedNonResolveRes: NonResolveResult | null = null;
 let wasmResolveCache: ReturnType<typeof wasmGraphResolvingSubsetsCacheCreate> | null = null;
 let wasmResolveCacheGraphVersion = -1;
 let graphIoText = "";
@@ -111,13 +124,20 @@ function initAdj(size: number): void {
 function invalidateResolveCache(): void {
     graphVersion++;
     cachedResolveKey = "";
+    cachedNonResolveKey = "";
     cachedNodeRes = null;
     cachedEdgeRes = null;
     cachedMixedRes = null;
+    cachedNodeNonResolveRes = null;
+    cachedEdgeNonResolveRes = null;
+    cachedMixedNonResolveRes = null;
     wasmResolveCacheGraphVersion = -1;
     nodePageIndex = 0;
     edgePageIndex = 0;
     mixedPageIndex = 0;
+    nodeNonResolvingPageIndex = 0;
+    edgeNonResolvingPageIndex = 0;
+    mixedNonResolvingPageIndex = 0;
 }
 
 function setAdjFromAdj01Flat(flatAdj01: readonly number[]): void {
@@ -181,6 +201,9 @@ function renderControls(
         nodePageCount: number;
         edgePageCount: number;
         mixedPageCount: number;
+        nodeNonResolvingPageCount: number;
+        edgeNonResolvingPageCount: number;
+        mixedNonResolvingPageCount: number;
     },
 ): void {
     container.innerHTML = "";
@@ -268,7 +291,11 @@ function renderControls(
     container.appendChild(btnComplete);
     container.appendChild(btnRandom);
     container.appendChild(randomInfo);
-    container.appendChild(spacer(8));
+
+    const lineBreak1 = document.createElement("div");
+    lineBreak1.style.flexBasis = "100%";
+    lineBreak1.style.height = "0";
+    container.appendChild(lineBreak1);
 
     const highlightLabel = document.createElement("span");
     highlightLabel.innerText = "highlight:";
@@ -349,6 +376,29 @@ function renderControls(
         cachedResolveKey = "";
     });
 
+    const lineBreak2 = document.createElement("div");
+    lineBreak2.style.flexBasis = "100%";
+    lineBreak2.style.height = "0";
+    container.appendChild(lineBreak2);
+
+    const nonResolveLabel = document.createElement("span");
+    nonResolveLabel.innerText = "non-resolving:";
+    nonResolveLabel.style.fontFamily = "ui-monospace, Courier";
+    container.appendChild(nonResolveLabel);
+
+    appendModePager("node", nodeNonResolvingPageIndex, pageInfo.nodeNonResolvingPageCount, (next) => {
+        nodeNonResolvingPageIndex = next;
+        cachedNonResolveKey = "";
+    });
+    appendModePager("edge", edgeNonResolvingPageIndex, pageInfo.edgeNonResolvingPageCount, (next) => {
+        edgeNonResolvingPageIndex = next;
+        cachedNonResolveKey = "";
+    });
+    appendModePager("mixed", mixedNonResolvingPageIndex, pageInfo.mixedNonResolvingPageCount, (next) => {
+        mixedNonResolvingPageIndex = next;
+        cachedNonResolveKey = "";
+    });
+
     container.appendChild(spacer(10));
 
     const ioWrap = document.createElement("div");
@@ -359,8 +409,78 @@ function renderControls(
     ioWrap.style.justifyContent = "center";
 
     const ioLabel = document.createElement("span");
-    ioLabel.innerText = "edges JSON:";
-    ioLabel.style.fontFamily = "ui-monospace, Courier";
+    ioLabel.style.display = "flex";
+    ioLabel.style.alignItems = "center";
+    ioLabel.style.gap = "6px";
+    ioLabel.style.whiteSpace = "nowrap";
+    ioLabel.style.minWidth = "0";
+
+    const ioLabelText = document.createElement("span");
+    ioLabelText.innerText = "edges JSON";
+    ioLabelText.style.fontFamily = "ui-monospace, Courier";
+    ioLabel.appendChild(ioLabelText);
+
+    const tip = document.createElement("span");
+    tip.innerText = "i";
+    tip.tabIndex = 0;
+    tip.setAttribute("aria-label", "Edges JSON info");
+    tip.style.position = "relative";
+    tip.style.display = "inline-flex";
+    tip.style.alignItems = "center";
+    tip.style.justifyContent = "center";
+    tip.style.width = "18px";
+    tip.style.height = "18px";
+    tip.style.borderRadius = "999px";
+    tip.style.border = `1px solid ${theme.panelBorder}`;
+    tip.style.background = "#f7f0dc";
+    tip.style.color = theme.headerText;
+    tip.style.fontSize = "12px";
+    tip.style.lineHeight = "1";
+    tip.style.cursor = "help";
+    tip.style.userSelect = "none";
+    tip.style.flex = "0 0 auto";
+
+    const tipText = document.createElement("span");
+    tipText.innerText = "Format: [[1,2],[2,3]] or [[0,1],[1,2]] (1-based or 0-based)";
+    tipText.style.position = "absolute";
+    tipText.style.display = "block";
+    tipText.style.right = "0";
+    tipText.style.bottom = "22px";
+    tipText.style.width = "300px";
+    tipText.style.maxWidth = "72vw";
+    tipText.style.padding = "8px 10px";
+    tipText.style.border = `1px solid ${theme.panelBorder}`;
+    tipText.style.borderRadius = "10px";
+    tipText.style.background = "#fff";
+    tipText.style.color = theme.headerText;
+    tipText.style.boxShadow = "0 10px 30px rgba(0,0,0,0.18)";
+    tipText.style.fontSize = "12px";
+    tipText.style.lineHeight = "1.25";
+    tipText.style.whiteSpace = "normal";
+    tipText.style.opacity = "0";
+    tipText.style.transform = "translate(0, -2px)";
+    tipText.style.pointerEvents = "none";
+    tipText.style.zIndex = "20";
+    tipText.style.transition = "opacity 0.12s ease, transform 0.12s ease";
+
+    const showTip = () => {
+        tipText.style.opacity = "1";
+        tipText.style.transform = "translate(0, 0)";
+        tipText.style.pointerEvents = "auto";
+    };
+    const hideTip = () => {
+        tipText.style.opacity = "0";
+        tipText.style.transform = "translate(0, -2px)";
+        tipText.style.pointerEvents = "none";
+    };
+
+    tip.addEventListener("mouseenter", showTip);
+    tip.addEventListener("mouseleave", hideTip);
+    tip.addEventListener("focus", showTip);
+    tip.addEventListener("blur", hideTip);
+
+    tip.appendChild(tipText);
+    ioLabel.appendChild(tip);
     ioWrap.appendChild(ioLabel);
 
     const ta = document.createElement("textarea");
@@ -375,23 +495,20 @@ function renderControls(
     ta.style.padding = "6px 8px";
     ta.style.background = "#f7f0dc";
     ta.style.color = theme.headerText;
+    ta.title = "Format: [[1,2],[2,3]] or [[0,1],[1,2]] (1-based or 0-based)";
     ta.onfocus = () => {
         graphIoIsEditing = true;
+        ta.style.background = "#fff";
     };
     ta.onblur = () => {
         graphIoIsEditing = false;
+        ta.style.background = "#f7f0dc";
     };
     ta.oninput = () => {
         graphIoText = ta.value;
         graphIoStatus = "";
     };
     ioWrap.appendChild(ta);
-
-    const status = document.createElement("span");
-    status.style.fontFamily = "ui-monospace, Courier";
-    status.style.fontSize = "12px";
-    status.style.color = graphIoStatus ? "#dc322f" : "#586e75";
-    status.innerText = graphIoStatus || "format: [[u,v], ...] (1-based or 0-based accepted)";
 
     const copyBtn = document.createElement("button");
     copyBtn.innerText = "Copy";
@@ -422,6 +539,12 @@ function renderControls(
         }
     };
     ioWrap.appendChild(importBtn);
+
+    const status = document.createElement("span");
+    status.style.fontFamily = "ui-monospace, Courier";
+    status.style.fontSize = "12px";
+    status.style.color = graphIoStatus ? "#dc322f" : "#586e75";
+    status.innerText = graphIoStatus || "";
 
     ioWrap.appendChild(status);
     container.appendChild(ioWrap);
@@ -967,6 +1090,34 @@ function renderResolvingSubsetsPanel(
     return smallestLine + minNote + minDetails + "<br>" + pageLine + note + allDetails;
 }
 
+function renderNonResolvingSubsetsPanel(
+    modeName: string,
+    pageIndex: number,
+    res: {
+        subsets: number[][];
+        truncated: boolean;
+        totalCount: number;
+        pageCount: number;
+    },
+): string {
+    const shownCount = res.subsets.length;
+    const pageCountSafe = res.pageCount > 0 ? res.pageCount : 1;
+    const pageShown = Math.min(pageIndex + 1, pageCountSafe);
+    const pageLine = `Page ${pageShown}/${pageCountSafe}, showing ${shownCount} of total ${res.totalCount}<br>`;
+    const note = res.truncated
+        ? `<span style="color:#586e75">Note: subset list truncated (too many subsets to fit buffer).</span><br>`
+        : "";
+    const allHtml = res.subsets.map((s) => subsetToString1Based(s)).join("<br>");
+    return (
+        pageLine +
+        note +
+        `<details>` +
+        `<summary>Non-resolving subsets (${modeName}, current page): ${shownCount}</summary>` +
+        `<div style="font-family:ui-monospace, Courier; font-size:13px; line-height:1.35; margin-top:6px;">${allHtml || "(none)"}</div>` +
+        `</details>`
+    );
+}
+
 function renderAll(): void {
     const { graphText, controls, canvas, adjTable, distTable, edgeDistTable } = ensureElements();
 
@@ -993,6 +1144,7 @@ function renderAll(): void {
         cacheHandle.setGraph(adj01, distFlat, n);
         wasmResolveCacheGraphVersion = graphVersion;
         cachedResolveKey = "";
+        cachedNonResolveKey = "";
     }
 
     // JS-side cache for current page tuple.
@@ -1023,14 +1175,48 @@ function renderAll(): void {
             return;
         }
     }
+
+    const nonResolveKey = `${graphVersion}:${nodeNonResolvingPageIndex}:${edgeNonResolvingPageIndex}:${mixedNonResolvingPageIndex}`;
+    if (cachedNonResolveKey !== nonResolveKey || !cachedNodeNonResolveRes || !cachedEdgeNonResolveRes || !cachedMixedNonResolveRes) {
+        const allModesNonResolveRes = cacheHandle.getNonResolvingPage(
+            PAGE_SIZE,
+            [nodeNonResolvingPageIndex, edgeNonResolvingPageIndex, mixedNonResolvingPageIndex],
+        );
+        cachedNodeNonResolveRes = allModesNonResolveRes.node;
+        cachedEdgeNonResolveRes = allModesNonResolveRes.edge;
+        cachedMixedNonResolveRes = allModesNonResolveRes.mixed;
+        cachedNonResolveKey = nonResolveKey;
+        if (cachedNodeNonResolveRes.pageCount > 0 && nodeNonResolvingPageIndex >= cachedNodeNonResolveRes.pageCount) {
+            nodeNonResolvingPageIndex = cachedNodeNonResolveRes.pageCount - 1;
+            cachedNonResolveKey = "";
+        }
+        if (cachedEdgeNonResolveRes.pageCount > 0 && edgeNonResolvingPageIndex >= cachedEdgeNonResolveRes.pageCount) {
+            edgeNonResolvingPageIndex = cachedEdgeNonResolveRes.pageCount - 1;
+            cachedNonResolveKey = "";
+        }
+        if (cachedMixedNonResolveRes.pageCount > 0 && mixedNonResolvingPageIndex >= cachedMixedNonResolveRes.pageCount) {
+            mixedNonResolvingPageIndex = cachedMixedNonResolveRes.pageCount - 1;
+            cachedNonResolveKey = "";
+        }
+        if (cachedNonResolveKey === "") {
+            renderAll();
+            return;
+        }
+    }
     const nodeRes = cachedNodeRes;
     const edgeRes = cachedEdgeRes;
     const mixedRes = cachedMixedRes;
+    const nodeNonResolveRes = cachedNodeNonResolveRes;
+    const edgeNonResolveRes = cachedEdgeNonResolveRes;
+    const mixedNonResolveRes = cachedMixedNonResolveRes;
 
     renderControls(controls, {
         nodePageCount: nodeRes.pageCount,
         edgePageCount: edgeRes.pageCount,
         mixedPageCount: mixedRes.pageCount,
+        nodeNonResolvingPageCount: nodeNonResolveRes.pageCount,
+        edgeNonResolvingPageCount: edgeNonResolveRes.pageCount,
+        mixedNonResolvingPageCount: mixedNonResolveRes.pageCount,
     });
 
     const highlightBasisList = highlightMode === "node"
@@ -1061,8 +1247,13 @@ function renderAll(): void {
         `Highlight basis: ${subsetToString1Based(highlightBasisList)}<br>` +
         `<br>` +
         renderResolvingSubsetsPanel("node", nodePageIndex, nodeRes) +
+        renderNonResolvingSubsetsPanel("node", nodeNonResolvingPageIndex, nodeNonResolveRes) +
+        `<br>` +
         renderResolvingSubsetsPanel("edge", edgePageIndex, edgeRes) +
-        renderResolvingSubsetsPanel("mixed", mixedPageIndex, mixedRes),
+        renderNonResolvingSubsetsPanel("edge", edgeNonResolvingPageIndex, edgeNonResolveRes) +
+        `<br>` +
+        renderResolvingSubsetsPanel("mixed", mixedPageIndex, mixedRes) +
+        renderNonResolvingSubsetsPanel("mixed", mixedNonResolvingPageIndex, mixedNonResolveRes),
     );
 }
 
