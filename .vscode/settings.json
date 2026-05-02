@@ -6,5 +6,11 @@
   "clangd.arguments": [
     "--compile-commands-dir=lib/tsl/wasm/wasm_out_v1",
     "--background-index"
-  ]
+  ],
+  "chat.tools.terminal.autoApprove": {
+    "/^node lib/build\\.js$/": {
+      "approve": true,
+      "matchCommandLine": true
+    }
+  }
 }
