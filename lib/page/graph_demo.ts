@@ -2,6 +2,7 @@ import {
     wasmGraphAllPairsDistances,
     wasmGraphDiameterFromDistances,
     wasmGraphEdgeCount,
+    wasmGraphPdimAllModes,
     wasmGraphRandomizeUndirectedAdj01,
     wasmGraphResolvingSubsetsCacheCreate,
 } from "../tsl/wasm/ts/wasm_api_graph_demo";
@@ -28,6 +29,11 @@ type NonResolveResult = {
     totalCount: number;
     pageCount: number;
 };
+type PdimResult = {
+    node: string;
+    edge: string;
+    mixed: string;
+};
 let graphVersion = 0;
 let nodePageIndex = 0;
 let edgePageIndex = 0;
@@ -37,12 +43,14 @@ let edgeNonResolvingPageIndex = 0;
 let mixedNonResolvingPageIndex = 0;
 let cachedResolveKey = "";
 let cachedNonResolveKey = "";
+let cachedPdimKey = "";
 let cachedNodeRes: ResolveResult | null = null;
 let cachedEdgeRes: ResolveResult | null = null;
 let cachedMixedRes: ResolveResult | null = null;
 let cachedNodeNonResolveRes: NonResolveResult | null = null;
 let cachedEdgeNonResolveRes: NonResolveResult | null = null;
 let cachedMixedNonResolveRes: NonResolveResult | null = null;
+let cachedPdimRes: PdimResult | null = null;
 let wasmResolveCache: ReturnType<typeof wasmGraphResolvingSubsetsCacheCreate> | null = null;
 let wasmResolveCacheGraphVersion = -1;
 let graphIoText = "";
@@ -125,12 +133,14 @@ function invalidateResolveCache(): void {
     graphVersion++;
     cachedResolveKey = "";
     cachedNonResolveKey = "";
+    cachedPdimKey = "";
     cachedNodeRes = null;
     cachedEdgeRes = null;
     cachedMixedRes = null;
     cachedNodeNonResolveRes = null;
     cachedEdgeNonResolveRes = null;
     cachedMixedNonResolveRes = null;
+    cachedPdimRes = null;
     wasmResolveCacheGraphVersion = -1;
     nodePageIndex = 0;
     edgePageIndex = 0;
@@ -1145,6 +1155,13 @@ function renderAll(): void {
         wasmResolveCacheGraphVersion = graphVersion;
         cachedResolveKey = "";
         cachedNonResolveKey = "";
+        cachedPdimKey = "";
+    }
+
+    const pdimKey = `${graphVersion}`;
+    if (cachedPdimKey !== pdimKey || !cachedPdimRes) {
+        cachedPdimRes = wasmGraphPdimAllModes(adj01, n);
+        cachedPdimKey = pdimKey;
     }
 
     // JS-side cache for current page tuple.
@@ -1209,6 +1226,7 @@ function renderAll(): void {
     const nodeNonResolveRes = cachedNodeNonResolveRes;
     const edgeNonResolveRes = cachedEdgeNonResolveRes;
     const mixedNonResolveRes = cachedMixedNonResolveRes;
+    const pdimRes = cachedPdimRes;
 
     renderControls(controls, {
         nodePageCount: nodeRes.pageCount,
@@ -1244,6 +1262,9 @@ function renderAll(): void {
         edgeCount,
         `Highlight mode: ${highlightMode}<br>` +
         `Diameter: ${formatDiameter(diameter)}<br>` +
+        `PDim (node): ${pdimRes.node}<br>` +
+        `PDim (edge): ${pdimRes.edge}<br>` +
+        `PDim (mixed): ${pdimRes.mixed}<br>` +
         `Highlight basis: ${subsetToString1Based(highlightBasisList)}<br>` +
         `<br>` +
         renderResolvingSubsetsPanel("node", nodePageIndex, nodeRes) +
@@ -1260,4 +1281,3 @@ function renderAll(): void {
 initAdj(n);
 randomizeGraphWithSeed(createRandomSeed());
 renderAll();
-
