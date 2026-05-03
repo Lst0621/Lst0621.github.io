@@ -1,5 +1,5 @@
 ---
-description: How to build the WASM module (Emscripten, wasm_out_v1)
+description: How to build the WASM module (Emscripten, wasm_out_ci)
 globs: lib/tsl/wasm/**
 alwaysApply: false
 ---
@@ -8,12 +8,12 @@ alwaysApply: false
 
 **Only two build directories** in `lib/tsl/wasm`:
 
-- **WASM:** use folder **`wasm_out_v1`** — run `./build.sh`.
+- **WASM:** use folder **`wasm_out_ci`** — run `./build.sh` (matches CI and `build_assets_local.sh`).
 - **Native C++ tests (gtest):** use folder **`native_build`** — run `./test_build.sh`.
 
 | Purpose   | Folder to use    | Script         |
 |----------|------------------|----------------|
-| WASM     | `wasm_out_v1/`   | `./build.sh`   |
+| WASM     | `wasm_out_ci/`   | `./build.sh`   |
 | Native tests (gtest) | `native_build/` | `./test_build.sh` |
 
 Do **not** create or use a directory named `build` in this folder. Use the scripts so the correct directory and toolchain are used.
@@ -24,11 +24,11 @@ Do **not** create or use a directory named `build` in this folder. Use the scrip
 cd lib/tsl/wasm && ./build.sh
 ```
 
-- **Build directory**: `lib/tsl/wasm/wasm_out_v1` (set in `build.sh` via `cmake -B wasm_out_v1`).
+- **Build directory**: `lib/tsl/wasm/wasm_out_ci` (set in `build.sh` via `cmake -B wasm_out_ci`).
 - **Compilers**: Emscripten (`emcc` / `em++`); do not use the system `cc`/`c++` for this target.
-- **Output**: Artifacts (e.g. `wasm_sample.js`, `.wasm`) are under `lib/tsl/wasm/wasm_out_v1/`.
+- **Output**: Per-target loaders and `.wasm` files (e.g. `wasm_graph.js`, `wasm_graph.wasm`) under `lib/tsl/wasm/wasm_out_ci/`.
 
-**After adding or changing C/C++ exports**, update `lib/tsl/wasm/wasm_out_v1/wasm_sample.d.ts` so the `WasmSampleModule` interface matches the exported functions. The `.d.ts` is hand-maintained; keep it in sync with `lib/tsl/wasm_api.ts`.
+**After adding or changing C/C++ exports**, update `lib/tsl/wasm/ts/wasm_out_ci.d.ts` and the relevant `lib/tsl/wasm/ts/wasm_api_*.ts` glue so TypeScript types and `instantiateWasm` paths stay aligned. `lib/build.js` treats imports matching `wasm_out_ci/wasm_*` as external and rewrites them to `/assets/wasm/` for the site bundle.
 
 **Native C++ unit tests (Google Test):**
 
@@ -36,7 +36,7 @@ cd lib/tsl/wasm && ./build.sh
 cd lib/tsl/wasm && ./test_build.sh
 ```
 
-This configures and builds in `native_build` with the system C++ compiler (not Emscripten), then runs the gtest executable from `native_build` (e.g. `./polynomial_test_gtest`). Use `build.sh` for WASM; use `test_build.sh` for gtest.
+This configures and builds in `native_build` with the system C++ compiler (not Emscripten), then runs `./tsl_core_tests` from `native_build`. Use `build.sh` for WASM; use `test_build.sh` for gtest.
 
 ---
 
@@ -49,8 +49,8 @@ cd lib/tsl/wasm && ./test_build.sh   # native gtest — must pass
 cd lib/tsl/wasm && ./build.sh        # Emscripten WASM — must pass
 ```
 
-If the **exported C interface** changes (functions added/removed/renamed in `src/main.cpp`):
-1. Update `lib/tsl/wasm/wasm_out_v1/wasm_sample.d.ts` to match the new exports.
-2. Update `lib/tsl/wasm_api.ts` to use the new exports.
-3. Rebuild the TypeScript: `cd lib && npm run build`.
-4. Verify the `.d.ts` and `wasm_api.ts` are in sync.
+If the **exported C interface** for a WASM target changes:
+
+1. Update `lib/tsl/wasm/ts/wasm_out_ci.d.ts` (and any affected `wasm_api_*.ts`) to match the new exports.
+2. Rebuild the TypeScript: `cd lib && npm run build`.
+3. For a full local site check, run `./build_assets_local.sh` from the repo root (or follow `BUILDING.md`).

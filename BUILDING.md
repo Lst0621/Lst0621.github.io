@@ -52,7 +52,7 @@ Then serve the repo root with any static server and verify the site loads:
 cd lib/tsl/wasm && ./build.sh
 ```
 
-Compiles C++ sources to WebAssembly via Emscripten. Output goes to `lib/tsl/wasm/wasm_out_v1/`.
+Compiles C++ sources to WebAssembly via Emscripten. Output goes to `lib/tsl/wasm/wasm_out_ci/` (same folder as `build.sh` / CI and `build_assets_local.sh`).
 
 ## Test
 
