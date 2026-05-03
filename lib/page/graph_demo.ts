@@ -1262,6 +1262,9 @@ function renderAll(): void {
         edgeCount,
         `Highlight mode: ${highlightMode}<br>` +
         `Diameter: ${formatDiameter(diameter)}<br>` +
+        `Metric dimension (node): ${nodeRes.minDimension}<br>` +
+        `Metric dimension (edge): ${edgeRes.minDimension}<br>` +
+        `Metric dimension (mixed): ${mixedRes.minDimension}<br>` +
         `PDim (node): ${pdimRes.node}<br>` +
         `PDim (edge): ${pdimRes.edge}<br>` +
         `PDim (mixed): ${pdimRes.mixed}<br>` +
