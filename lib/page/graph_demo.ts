@@ -1,7 +1,6 @@
 import {
+    wasmGraphBasicInfo,
     wasmGraphAllPairsDistances,
-    wasmGraphDiameterFromDistances,
-    wasmGraphEdgeCount,
     wasmGraphPdimAllModes,
     wasmGraphRandomizeUndirectedAdj01,
     wasmGraphResolvingSubsetsCacheCreate,
@@ -45,7 +44,8 @@ let mixedPageIndex = 0;
 let nodeNonResolvingPageIndex = 0;
 let edgeNonResolvingPageIndex = 0;
 let mixedNonResolvingPageIndex = 0;
-let cachedResolveKey = "";
+let cachedMetricKey = ""; // Only depends on graphVersion, used to avoid recomputing metrics when pages change
+let cachedResolveKey = ""; // Includes page indices, used to determine which subsets to display
 let cachedNonResolveKey = "";
 let cachedPdimKey = "";
 let cachedNodeRes: ResolveResult | null = null;
@@ -55,11 +55,199 @@ let cachedNodeNonResolveRes: NonResolveResult | null = null;
 let cachedEdgeNonResolveRes: NonResolveResult | null = null;
 let cachedMixedNonResolveRes: NonResolveResult | null = null;
 let cachedPdimRes: PdimResult | null = null;
+let cachedDistKey = "";
+let cachedDistFlat: number[] | null = null;
+let cachedGraphSnapshotVersion = -1;
+let cachedGraphAdj01: number[] = [];
+let cachedGraphEdges: Array<{ a: number; b: number }> = [];
+let cachedGraphBasicInfo: { edgeCount: number; diameter: number } | null = null;
+let cachedGraphDistFlat: number[] | null = null;
 let wasmResolveCache: ReturnType<typeof wasmGraphResolvingSubsetsCacheCreate> | null = null;
 let wasmResolveCacheGraphVersion = -1;
+// Animated loading frames
+const LOADING_FRAMES_METRICS = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+const LOADING_FRAMES_BASIS = ['⠁', '⠂', '⠄', '⡀', '⢀', '⠠', '⠐', '⠈'];
+const LOADING_FRAMES_PDIM = ['⣾', '⣽', '⣻', '⢿', '⡿', '⣟', '⣯', '⣷'];
+
+function getLoadingAnimation(type: 'metrics' | 'basis' | 'pdim' = 'metrics'): string {
+    const frames = type === 'pdim' ? LOADING_FRAMES_PDIM : type === 'basis' ? LOADING_FRAMES_BASIS : LOADING_FRAMES_METRICS;
+    const frameIndex = Math.floor((Date.now() / 80) % frames.length);
+    return frames[frameIndex];
+}
+
+// Helper: show animated loading for values that are still being calculated
+function formatComputingPlaceholder(isComputing: boolean, value: number | string, kind: 'metrics' | 'pdim' = 'metrics', showLoading = true): string {
+    if (!isComputing) return String(value);
+    return showLoading ? getLoadingAnimation(kind) : "&nbsp;";
+}
+
+function formatSelectedBasisPlaceholder(isComputing: boolean, basis: readonly number[], showLoading = true): string {
+    if (isComputing && basis.length === 0) {
+        return showLoading ? getLoadingAnimation('basis') : "&nbsp;";
+    }
+    return subsetToString1Based(basis);
+}
+
+let animationRefreshInterval: number | null = null;
+let loadingAnimationDelayTimer: number | null = null;
+let loadingAnimationVisible = false;
+
+function startLoadingAnimationDelay(): void {
+    if (loadingAnimationDelayTimer !== null) {
+        clearTimeout(loadingAnimationDelayTimer);
+    }
+    loadingAnimationVisible = false;
+    loadingAnimationDelayTimer = setTimeout(() => {
+        loadingAnimationVisible = true;
+        loadingAnimationDelayTimer = null;
+        renderSummaryOnly();
+    }, 150) as unknown as number;
+}
+
+function stopLoadingAnimationDelay(): void {
+    if (loadingAnimationDelayTimer !== null) {
+        clearTimeout(loadingAnimationDelayTimer);
+        loadingAnimationDelayTimer = null;
+    }
+    loadingAnimationVisible = false;
+}
+
+function getGraphSnapshot(): {
+    adj01: number[];
+    basicInfo: { edgeCount: number; diameter: number };
+    distFlat: number[];
+    edges: Array<{ a: number; b: number }>;
+} {
+    if (cachedGraphSnapshotVersion !== graphVersion) {
+        cachedGraphAdj01 = adj.flat().map(v => v ? 1 : 0);
+        cachedGraphBasicInfo = wasmGraphBasicInfo(cachedGraphAdj01, n, false);
+        cachedGraphEdges = [];
+        for (let i = 0; i < n; i++) {
+            for (let j = i + 1; j < n; j++) {
+                if (adj[i][j]) cachedGraphEdges.push({ a: i, b: j });
+            }
+        }
+        cachedGraphDistFlat = null;
+        cachedGraphSnapshotVersion = graphVersion;
+    }
+    if (cachedGraphDistFlat === null) {
+        cachedGraphDistFlat = cachedDistFlat && cachedDistKey === `${graphVersion}`
+            ? cachedDistFlat
+            : wasmGraphAllPairsDistances(cachedGraphAdj01, n, false);
+    }
+    return {
+        adj01: cachedGraphAdj01,
+        basicInfo: cachedGraphBasicInfo || { edgeCount: 0, diameter: -1 },
+        distFlat: cachedGraphDistFlat,
+        edges: cachedGraphEdges,
+    };
+}
+
+function updateSummaryAnimationOnly(): void {
+    const { graphSummary } = ensureElements();
+    const summaryHtml = graphSummary.innerHTML;
+    // Replace animation frames with fresh ones
+    const updated = summaryHtml
+        .replace(/[\u280b\u2819\u2839\u2838\u283c\u2834\u2826\u2827\u2807\u280f]/g, () => getLoadingAnimation('metrics'))
+        .replace(/[\u2801\u2802\u2804\u2840\u2880\u2820\u2810\u2808]/g, () => getLoadingAnimation('basis'))
+        .replace(/[\u28fe\u28fd\u28fb\u28bf\u287f\u28df\u28ef\u28f7]/g, () => getLoadingAnimation('pdim'));
+    if (updated !== summaryHtml) {
+        graphSummary.innerHTML = updated;
+    }
+}
+
+// Metric computation worker (for resolving / non-resolving page enumeration)
+let metricWorker: Worker | null = null;
+let wasmMemorySizeBytes = 0; // Detected at runtime
 let graphIoText = "";
 let graphIoStatus = "";
 let graphIoIsEditing = false;
+
+function startMetricWorker(
+    adj01: number[],
+    nVerts: number,
+    pageSize: number,
+    resolvePageIndices: [number, number, number],
+    nonResolvePageIndices: [number, number, number],
+) {
+    if (metricWorker) {
+        try { metricWorker.terminate(); } catch (_) {}
+        metricWorker = null;
+    }
+
+    metricWorker = new Worker('/assets/js/page/metric_worker.js', { type: 'module' });
+    
+    // Start animation refresh while computing - only update animation frames, not full page
+    startLoadingAnimationDelay();
+    if (animationRefreshInterval) clearInterval(animationRefreshInterval);
+    animationRefreshInterval = setInterval(() => updateSummaryAnimationOnly(), 100) as unknown as number;
+    
+    metricWorker.onmessage = (e) => {
+        const d = e.data as any;
+        if (d.wasmMemoryBytes && wasmMemorySizeBytes === 0) {
+            wasmMemorySizeBytes = d.wasmMemoryBytes;
+        }
+        if (d.error) {
+            console.error('metric worker error:', d.error);
+            const isOOM = d.isOOM || d.error.includes('OOM') || d.error.includes('out of memory');
+            graphIoStatus = isOOM ? 'Worker OOM: Try smaller graph' : `Worker error: ${d.error}`;
+            metricWorker?.terminate();
+            metricWorker = null;
+            stopLoadingAnimationDelay();
+            if (animationRefreshInterval) {
+                clearInterval(animationRefreshInterval);
+                animationRefreshInterval = null;
+            }
+            renderAll();
+            return;
+        }
+        if (d.stage === 'resolved_parsed' && d.allModesRes) {
+            cachedNodeRes = d.allModesRes.node;
+            cachedEdgeRes = d.allModesRes.edge;
+            cachedMixedRes = d.allModesRes.mixed;
+            cachedMetricKey = `${graphVersion}`;
+            cachedResolveKey = `${graphVersion}:${resolvePageIndices[0]}:${resolvePageIndices[1]}:${resolvePageIndices[2]}`;
+            renderAll();
+        }
+        if (d.stage === 'done' && d.allModesNonResolveRes) {
+            cachedNodeNonResolveRes = d.allModesNonResolveRes.node;
+            cachedEdgeNonResolveRes = d.allModesNonResolveRes.edge;
+            cachedMixedNonResolveRes = d.allModesNonResolveRes.mixed;
+            cachedNonResolveKey = `${graphVersion}:${nonResolvePageIndices[0]}:${nonResolvePageIndices[1]}:${nonResolvePageIndices[2]}`;
+            if (Array.isArray(d.distFlat)) {
+                cachedDistFlat = d.distFlat as number[];
+                cachedDistKey = `${graphVersion}`;
+            }
+            if (d.pdimRes) {
+                cachedPdimRes = d.pdimRes;
+                cachedPdimKey = `${graphVersion}`;
+            }
+        }
+        if (d.stage === 'done') {
+            try { metricWorker?.terminate(); } catch (_) {}
+            metricWorker = null;
+            stopLoadingAnimationDelay();
+            if (animationRefreshInterval) {
+                clearInterval(animationRefreshInterval);
+                animationRefreshInterval = null;
+            }
+            graphIoStatus = '';
+            renderAll();
+        } else {
+            // Partial update
+            renderAll();
+        }
+    };
+
+    metricWorker.postMessage({
+        cmd: 'start',
+        adj01,
+        n: nVerts,
+        pageSize,
+        resolvePageIndices,
+        nonResolvePageIndices,
+    });
+}
 
 function ensureWasmResolveCache(): ReturnType<typeof wasmGraphResolvingSubsetsCacheCreate> {
     if (wasmResolveCache) {
@@ -325,21 +513,23 @@ function randomizeGraphWithSeed(seed: number): void {
 }
 
 function ensureElements(): {
-    graphText: HTMLSpanElement;
+    graphText: HTMLDivElement;
+    graphSummary: HTMLDivElement;
     controls: HTMLDivElement;
     canvas: HTMLCanvasElement;
     adjTable: HTMLTableElement;
     distEdgeTable: HTMLTableElement;
 } {
-    const graphText = document.getElementById("graph_text") as HTMLSpanElement | null;
+    const graphText = document.getElementById("graph_text") as HTMLDivElement | null;
+    const graphSummary = document.getElementById("graph-summary") as HTMLDivElement | null;
     const controls = document.getElementById("controls") as HTMLDivElement | null;
     const canvas = document.getElementById("graph_canvas") as HTMLCanvasElement | null;
     const adjTable = document.getElementById("adj_table") as HTMLTableElement | null;
     const distEdgeTable = document.getElementById("dist_edge_table") as HTMLTableElement | null;
-    if (!graphText || !controls || !canvas || !adjTable || !distEdgeTable) {
+    if (!graphText || !graphSummary || !controls || !canvas || !adjTable || !distEdgeTable) {
         throw new Error("Required DOM elements not found.");
     }
-    return { graphText, controls, canvas, adjTable, distEdgeTable };
+    return { graphText, graphSummary, controls, canvas, adjTable, distEdgeTable };
 }
 
 function clearTable(table: HTMLTableElement): void {
@@ -1240,8 +1430,8 @@ function renderMergedDistanceMatrix(
     }
 }
 
-function renderSummary(graphText: HTMLSpanElement, edgeCount: number, mdText: string): void {
-    graphText.innerHTML =
+function renderSummary(graphSummaryContainer: HTMLDivElement, edgeCount: number, mdText: string): void {
+    graphSummaryContainer.innerHTML =
         `Graph on n=${n} vertices (undirected)<br>` +
         `Edges: ${edgeCount}<br>` +
         mdText;
@@ -1377,14 +1567,26 @@ function graphTextPageClick(ev: MouseEvent): void {
         default:
             return;
     }
-    renderAll();
+    renderSummaryOnly();
 }
 
 function formatDiameter(diameter: number): string {
     return diameter < 0 ? "∞" : diameter.toString();
 }
 
+function formatPdimDisplay(raw: string): string {
+    const s = raw.trim();
+    if (!s.includes("/")) return s;
+    const parts = s.split("/");
+    if (parts.length !== 2) return s;
+    const num = Number(parts[0]), den = Number(parts[1]);
+    if (den === 0 || isNaN(num) || isNaN(den)) return s;
+    if (num % den === 0) return (num / den).toString();
+    return `$\\frac{${num}}{${den}}$ (${(num / den).toFixed(2)})`;
+}
+
 function subsetToString1Based(subset: readonly number[]): string {
+    if (subset.length === 0) return '{}';
     return `{${subset.map((x) => (x + 1).toString()).join(", ")}}`;
 }
 
@@ -1517,13 +1719,13 @@ function renderResolvingSubsetsPanel(
     const allHtml = res.subsets.map((s) => subsetToString1Based(s)).join("<br>");
 
     const minDetails =
-        `<details>` +
+        `<details data-state-id="res-${modeName}-min">` +
         `<summary>Resolving subsets of min size with a non-resolving (k-1) subset (${modeName}, k=${res.minDimension}, all): ${minCount}</summary>` +
         `<div style="font-family:ui-monospace, Courier; font-size:13px; line-height:1.35; margin-top:6px;">${minHtml || "(none)"}</div>` +
         `</details>`;
 
     const allDetails =
-        `<details>` +
+        `<details data-state-id="res-${modeName}-all">` +
         `<summary>Resolving subsets with a non-resolving (k-1) subset (${modeName}, current page): ${shownCount}</summary>` +
         `<div style="font-family:ui-monospace, Courier; font-size:13px; line-height:1.35; margin-top:6px;">${allHtml || "(none)"}</div>` +
         `</details><br>`;
@@ -1560,15 +1762,146 @@ function renderNonResolvingSubsetsPanel(
     return (
         pageLine +
         note +
-        `<details>` +
+        `<details data-state-id="nr-${modeName}">` +
         `<summary>Non-resolving subsets (${modeName}, current page): ${shownCount}</summary>` +
         `<div style="font-family:ui-monospace, Courier; font-size:13px; line-height:1.35; margin-top:6px;">${allHtml || "(none)"}</div>` +
         `</details>`
     );
 }
 
+function buildGraphSummaryHtml(args: {
+    edgeCount: number;
+    distFlat: number[];
+    edges: Array<{ a: number; b: number }>;
+    isResolvingLoading: boolean;
+    isPdimLoading: boolean;
+    nodeRes: ResolveResult;
+    nodeNonRes: NonResolveResult;
+    edgeRes: ResolveResult;
+    edgeNonRes: NonResolveResult;
+    mixedRes: ResolveResult;
+    mixedNonRes: NonResolveResult;
+    pdimRes: PdimResult;
+}): string {
+    const diameter = args.distFlat.reduce((max, d) => Math.max(max, d), -1);
+    const selectedByMode = {
+        node: activeKind === "resolving"
+            ? resolvingBasisForSelection("node", args.nodeRes)
+            : nonResolvingBasisForSelection("node", args.nodeNonRes),
+        edge: activeKind === "resolving"
+            ? resolvingBasisForSelection("edge", args.edgeRes)
+            : nonResolvingBasisForSelection("edge", args.edgeNonRes),
+        mixed: activeKind === "resolving"
+            ? resolvingBasisForSelection("mixed", args.mixedRes)
+            : nonResolvingBasisForSelection("mixed", args.mixedNonRes),
+    };
+    const highlightBasisList = selectedByMode[highlightMode];
+    const collisionLine = activeKind === "non_resolving"
+        ? `${collisionGroupsOneLiner(highlightMode, highlightBasisList, args.distFlat, args.edges, n)}<br>`
+        : "";
+    const isComputingResolving = args.isResolvingLoading;
+    const isComputingPdim = args.isPdimLoading;
+    // PDim uses its own loading symbol cycle so the MathJax fraction area feels visually distinct.
+    const pdimNodeDisplay = isComputingPdim ? getLoadingAnimation('pdim') : formatPdimDisplay(args.pdimRes.node);
+    const pdimEdgeDisplay = isComputingPdim ? getLoadingAnimation('pdim') : formatPdimDisplay(args.pdimRes.edge);
+    const pdimMixedDisplay = isComputingPdim ? getLoadingAnimation('pdim') : formatPdimDisplay(args.pdimRes.mixed);
+    const selectedBasisDisplay = formatSelectedBasisPlaceholder(isComputingResolving, highlightBasisList, loadingAnimationVisible);
+
+    const summaryCompact =
+        `Highlight mode: ${highlightMode}<br>` +
+        `Active: ${activeKind === "resolving" ? "resolving" : "non-resolving"}<br>` +
+        `Selected basis (${highlightMode}): ${selectedBasisDisplay}<br>` +
+        collisionLine +
+        `Diameter: ${formatDiameter(diameter)}<br>` +
+        `Metric dimension (node): ${formatComputingPlaceholder(isComputingResolving, args.nodeRes.minDimension, 'metrics', loadingAnimationVisible)}<br>` +
+        `Metric dimension (edge): ${formatComputingPlaceholder(isComputingResolving, args.edgeRes.minDimension, 'metrics', loadingAnimationVisible)}<br>` +
+        `Metric dimension (mixed): ${formatComputingPlaceholder(isComputingResolving, args.mixedRes.minDimension, 'metrics', loadingAnimationVisible)}<br>` +
+        `PDim (node): <span style="display:inline-block;min-height:1.2em;">${pdimNodeDisplay}</span><br>` +
+        `PDim (edge): <span style="display:inline-block;min-height:1.2em;">${pdimEdgeDisplay}</span><br>` +
+        `PDim (mixed): <span style="display:inline-block;min-height:1.2em;">${pdimMixedDisplay}</span><br>`;
+
+    const summaryVerbosePanels =
+        renderResolvingSubsetsPanel("node", nodePageIndex, args.nodeRes) +
+        renderNonResolvingSubsetsPanel("node", nodeNonResolvingPageIndex, args.nodeNonRes) +
+        `<br>` +
+        renderResolvingSubsetsPanel("edge", edgePageIndex, args.edgeRes) +
+        renderNonResolvingSubsetsPanel("edge", edgeNonResolvingPageIndex, args.edgeNonRes) +
+        `<br>` +
+        renderResolvingSubsetsPanel("mixed", mixedPageIndex, args.mixedRes) +
+        renderNonResolvingSubsetsPanel("mixed", mixedNonResolvingPageIndex, args.mixedNonRes);
+
+    const summaryDetails =
+        `<details data-state-id="subset-lists" style="margin-top:8px;">` +
+        `<summary style="cursor:pointer;font-family:ui-monospace,Courier;color:var(--muted);">` +
+        `Resolving / non-resolving subset lists (per mode)` +
+        `</summary>` +
+        `<div style="margin-top:6px;">${summaryVerbosePanels}</div>` +
+        `</details>`;
+
+    return summaryCompact + summaryDetails;
+}
+
+const detailsOpenState = new Map<string, boolean>();
+
+function renderSummaryOnly(): void {
+    const { graphText, graphSummary } = ensureElements();
+    captureDetailsState(graphSummary);
+
+    const snapshot = getGraphSnapshot();
+    const adj01 = snapshot.adj01;
+    const metricKey = `${graphVersion}`;
+    const resolveKey = `${graphVersion}:${nodePageIndex}:${edgePageIndex}:${mixedPageIndex}`;
+    const nonResolveKey = `${graphVersion}:${nodeNonResolvingPageIndex}:${edgeNonResolvingPageIndex}:${mixedNonResolvingPageIndex}`;
+    // Only start worker if graph changed, not if pages changed
+    if (cachedMetricKey !== metricKey || !cachedNodeRes || !cachedPdimRes) {
+        if (!metricWorker) startMetricWorker(adj01, n, PAGE_SIZE, [nodePageIndex, 0, 0], [nodeNonResolvingPageIndex, 0, 0]);
+    }
+
+    const nodeRes = cachedNodeRes || { minDimension: 0, smallestBasis: [], subsets: [], totalCount: 0, pageCount: 1, minSizeSubsets: [] };
+    const nodeNonRes = cachedNodeNonResolveRes || { subsets: [], totalCount: 0, pageCount: 1 };
+    const edgeRes = cachedEdgeRes || { minDimension: 0, smallestBasis: [], subsets: [], totalCount: 0, pageCount: 1, minSizeSubsets: [] };
+    const edgeNonRes = cachedEdgeNonResolveRes || { subsets: [], totalCount: 0, pageCount: 1 };
+    const mixedRes = cachedMixedRes || { minDimension: 0, smallestBasis: [], subsets: [], totalCount: 0, pageCount: 1, minSizeSubsets: [] };
+    const mixedNonRes = cachedMixedNonResolveRes || { subsets: [], totalCount: 0, pageCount: 1 };
+    const pdimRes = cachedPdimRes || { node: "computing...", edge: "computing...", mixed: "computing..." };
+
+    normalizeNonResolvingSelections(nodeNonRes, edgeNonRes, mixedNonRes);
+
+    renderSummary(graphSummary, snapshot.basicInfo.edgeCount, buildGraphSummaryHtml({
+        edgeCount: snapshot.basicInfo.edgeCount,
+        distFlat: snapshot.distFlat,
+        edges: snapshot.edges,
+        isResolvingLoading: loadingAnimationVisible && (cachedMetricKey !== metricKey || !cachedNodeRes || cachedNonResolveKey !== nonResolveKey),
+        isPdimLoading: loadingAnimationVisible && (cachedPdimRes === null || cachedPdimKey !== `${graphVersion}`),
+        nodeRes,
+        nodeNonRes,
+        edgeRes,
+        edgeNonRes,
+        mixedRes,
+        mixedNonRes,
+        pdimRes,
+    }));
+    restoreDetailsState(graphSummary);
+    graphSummary.onclick = graphTextPageClick;
+    if ((window as any).MathJax?.typesetPromise) (window as any).MathJax.typesetPromise([graphSummary]).catch(() => {});
+}
+function captureDetailsState(container: HTMLElement): void {
+    container.querySelectorAll("details").forEach(d => {
+        const id = d.getAttribute("data-state-id");
+        if (id) detailsOpenState.set(id, d.open);
+    });
+}
+
+function restoreDetailsState(container: HTMLElement): void {
+    container.querySelectorAll("details").forEach(d => {
+        const id = d.getAttribute("data-state-id");
+        if (id && detailsOpenState.has(id)) d.open = detailsOpenState.get(id)!;
+    });
+}
+
 function renderAll(): void {
-    const { graphText, controls, canvas, adjTable, distEdgeTable } = ensureElements();
+    const { graphText, graphSummary, controls, canvas, adjTable, distEdgeTable } = ensureElements();
+    captureDetailsState(graphSummary);
 
     // Keep JSON output in sync with the current graph, unless the user is actively editing it.
     if (!graphIoIsEditing) {
@@ -1582,177 +1915,87 @@ function renderAll(): void {
         }
     }
 
-    const adj01 = adjToAdj01Flat();
-    const edgeCount = wasmGraphEdgeCount(adj01, n, false);
-    const distFlat = wasmGraphAllPairsDistances(adj01, n, false);
-    const diameter = wasmGraphDiameterFromDistances(distFlat, n);
-    const cacheHandle = ensureWasmResolveCache();
+    const snapshot = getGraphSnapshot();
+    const adj01 = snapshot.adj01;
+    const basicInfo = snapshot.basicInfo;
+    const distFlat = snapshot.distFlat;
+    const edges = snapshot.edges;
 
-    // WASM-side cache: expensive enumeration runs only when graph changes.
-    if (wasmResolveCacheGraphVersion !== graphVersion) {
-        cacheHandle.setGraph(adj01, distFlat, n);
-        wasmResolveCacheGraphVersion = graphVersion;
-        cachedResolveKey = "";
-        cachedNonResolveKey = "";
-        cachedPdimKey = "";
-    }
+    // PDim will be computed by the worker, not blocking here
 
-    const pdimKey = `${graphVersion}`;
-    if (cachedPdimKey !== pdimKey || !cachedPdimRes) {
-        cachedPdimRes = wasmGraphPdimAllModes(adj01, n);
-        cachedPdimKey = pdimKey;
-    }
-
-    // JS-side cache for current page tuple.
     const resolveKey = `${graphVersion}:${nodePageIndex}:${edgePageIndex}:${mixedPageIndex}`;
-    if (cachedResolveKey !== resolveKey || !cachedNodeRes || !cachedEdgeRes || !cachedMixedRes) {
-        const allModesRes = cacheHandle.getPage(
-            PAGE_SIZE,
-            [nodePageIndex, edgePageIndex, mixedPageIndex],
-        );
-        cachedNodeRes = allModesRes.node;
-        cachedEdgeRes = allModesRes.edge;
-        cachedMixedRes = allModesRes.mixed;
-        cachedResolveKey = resolveKey;
-        if (cachedNodeRes.pageCount > 0 && nodePageIndex >= cachedNodeRes.pageCount) {
-            nodePageIndex = cachedNodeRes.pageCount - 1;
-            cachedResolveKey = "";
-        }
-        if (cachedEdgeRes.pageCount > 0 && edgePageIndex >= cachedEdgeRes.pageCount) {
-            edgePageIndex = cachedEdgeRes.pageCount - 1;
-            cachedResolveKey = "";
-        }
-        if (cachedMixedRes.pageCount > 0 && mixedPageIndex >= cachedMixedRes.pageCount) {
-            mixedPageIndex = cachedMixedRes.pageCount - 1;
-            cachedResolveKey = "";
-        }
-        if (cachedResolveKey === "") {
-            renderAll();
-            return;
-        }
-    }
-
     const nonResolveKey = `${graphVersion}:${nodeNonResolvingPageIndex}:${edgeNonResolvingPageIndex}:${mixedNonResolvingPageIndex}`;
-    if (cachedNonResolveKey !== nonResolveKey || !cachedNodeNonResolveRes || !cachedEdgeNonResolveRes || !cachedMixedNonResolveRes) {
-        const allModesNonResolveRes = cacheHandle.getNonResolvingPage(
-            PAGE_SIZE,
-            [nodeNonResolvingPageIndex, edgeNonResolvingPageIndex, mixedNonResolvingPageIndex],
-        );
-        cachedNodeNonResolveRes = allModesNonResolveRes.node;
-        cachedEdgeNonResolveRes = allModesNonResolveRes.edge;
-        cachedMixedNonResolveRes = allModesNonResolveRes.mixed;
-        cachedNonResolveKey = nonResolveKey;
-        if (cachedNodeNonResolveRes.pageCount > 0 && nodeNonResolvingPageIndex >= cachedNodeNonResolveRes.pageCount) {
-            nodeNonResolvingPageIndex = cachedNodeNonResolveRes.pageCount - 1;
-            cachedNonResolveKey = "";
-        }
-        if (cachedEdgeNonResolveRes.pageCount > 0 && edgeNonResolvingPageIndex >= cachedEdgeNonResolveRes.pageCount) {
-            edgeNonResolvingPageIndex = cachedEdgeNonResolveRes.pageCount - 1;
-            cachedNonResolveKey = "";
-        }
-        if (cachedMixedNonResolveRes.pageCount > 0 && mixedNonResolvingPageIndex >= cachedMixedNonResolveRes.pageCount) {
-            mixedNonResolvingPageIndex = cachedMixedNonResolveRes.pageCount - 1;
-            cachedNonResolveKey = "";
-        }
-        if (cachedNonResolveKey === "") {
-            renderAll();
-            return;
-        }
-    }
-    const nodeRes = cachedNodeRes;
-    const edgeRes = cachedEdgeRes;
-    const mixedRes = cachedMixedRes;
-    const nodeNonResolveRes = cachedNodeNonResolveRes;
-    const edgeNonResolveRes = cachedEdgeNonResolveRes;
-    const mixedNonResolveRes = cachedMixedNonResolveRes;
-    const pdimRes = cachedPdimRes;
 
-    normalizeNonResolvingSelections(nodeNonResolveRes, edgeNonResolveRes, mixedNonResolveRes);
+    if (cachedResolveKey !== resolveKey || !cachedNodeRes || cachedNonResolveKey !== nonResolveKey || !cachedPdimRes) {
+        if (!metricWorker) startMetricWorker(adj01, n, PAGE_SIZE, [nodePageIndex, 0, 0], [nodeNonResolvingPageIndex, 0, 0]);
+        // show loading but keep tables
+    }
+
+    const nodeRes = cachedNodeRes || { minDimension: 0, smallestBasis: [], subsets: [], totalCount: 0, pageCount: 1, minSizeSubsets: [] };
+    const nodeNonRes = cachedNodeNonResolveRes || { subsets: [], totalCount: 0, pageCount: 1 };
+    const edgeRes = cachedEdgeRes || { minDimension: 0, smallestBasis: [], subsets: [], totalCount: 0, pageCount: 1, minSizeSubsets: [] };
+    const edgeNonRes = cachedEdgeNonResolveRes || { subsets: [], totalCount: 0, pageCount: 1 };
+    const mixedRes = cachedMixedRes || { minDimension: 0, smallestBasis: [], subsets: [], totalCount: 0, pageCount: 1, minSizeSubsets: [] };
+    const mixedNonRes = cachedMixedNonResolveRes || { subsets: [], totalCount: 0, pageCount: 1 };
+    const pdimRes = cachedPdimRes || { node: "computing...", edge: "computing...", mixed: "computing..." };
+
+    normalizeNonResolvingSelections(nodeNonRes, edgeNonRes, mixedNonRes);
 
     renderControls(controls, {
         nodePageCount: nodeRes.pageCount,
         edgePageCount: edgeRes.pageCount,
         mixedPageCount: mixedRes.pageCount,
-        nodeNonResolvingPageCount: nodeNonResolveRes.pageCount,
-        edgeNonResolvingPageCount: edgeNonResolveRes.pageCount,
-        mixedNonResolvingPageCount: mixedNonResolveRes.pageCount,
+        nodeNonResolvingPageCount: nodeNonRes.pageCount,
+        edgeNonResolvingPageCount: edgeNonRes.pageCount,
+        mixedNonResolvingPageCount: mixedNonRes.pageCount,
         nodeResolvingMinCount: nodeRes.minSizeSubsets.length,
         edgeResolvingMinCount: edgeRes.minSizeSubsets.length,
         mixedResolvingMinCount: mixedRes.minSizeSubsets.length,
-        nodeNonResolveSubsetCount: nodeNonResolveRes.subsets.length,
-        edgeNonResolveSubsetCount: edgeNonResolveRes.subsets.length,
-        mixedNonResolveSubsetCount: mixedNonResolveRes.subsets.length,
-        nodeNonResolveSubsets: nodeNonResolveRes.subsets,
-        edgeNonResolveSubsets: edgeNonResolveRes.subsets,
-        mixedNonResolveSubsets: mixedNonResolveRes.subsets,
+        nodeNonResolveSubsetCount: nodeNonRes.subsets.length,
+        edgeNonResolveSubsetCount: edgeNonRes.subsets.length,
+        mixedNonResolveSubsetCount: mixedNonRes.subsets.length,
+        nodeNonResolveSubsets: nodeNonRes.subsets,
+        edgeNonResolveSubsets: edgeNonRes.subsets,
+        mixedNonResolveSubsets: mixedNonRes.subsets,
     });
 
+    // Compute selected basis for all modes (node, edge, mixed)
     const selectedByMode = {
         node: activeKind === "resolving"
             ? resolvingBasisForSelection("node", nodeRes)
-            : nonResolvingBasisForSelection("node", nodeNonResolveRes),
+            : nonResolvingBasisForSelection("node", nodeNonRes),
         edge: activeKind === "resolving"
             ? resolvingBasisForSelection("edge", edgeRes)
-            : nonResolvingBasisForSelection("edge", edgeNonResolveRes),
+            : nonResolvingBasisForSelection("edge", edgeNonRes),
         mixed: activeKind === "resolving"
             ? resolvingBasisForSelection("mixed", mixedRes)
-            : nonResolvingBasisForSelection("mixed", mixedNonResolveRes),
+            : nonResolvingBasisForSelection("mixed", mixedNonRes),
     };
     const highlightBasisList = selectedByMode[highlightMode];
-    const basis = new Set<number>();
-    for (const v of highlightBasisList) {
-        basis.add(v);
-    }
-
-    const edges: Array<{ a: number; b: number }> = [];
-    for (let i = 0; i < n; i++) {
-        for (let j = i + 1; j < n; j++) {
-            if (adj[i][j] || adj[j][i]) {
-                edges.push({ a: i, b: j });
-            }
-        }
-    }
-
-    const rowColorMap = activeKind === "non_resolving"
-        ? buildNonResolvingRowColorMap(highlightMode, highlightBasisList, distFlat, edges, n)
-        : null;
+            const basis = new Set(highlightBasisList);
+    const rowColorMap = activeKind === "non_resolving" ? buildNonResolvingRowColorMap(highlightMode, highlightBasisList, distFlat, edges, n) : null;
 
     renderAdjacencyTable(adjTable, basis);
     renderMergedDistanceMatrix(distEdgeTable, distFlat, edges, basis, rowColorMap);
     drawGraph(canvas, basis, distFlat, highlightBasisList);
-    const collisionLine = activeKind === "non_resolving"
-        ? `${collisionGroupsOneLiner(highlightMode, highlightBasisList, distFlat, edges, n)}<br>`
-        : "";
-    const summaryCompact =
-        `Highlight mode: ${highlightMode}<br>` +
-        `Active: ${activeKind === "resolving" ? "resolving" : "non-resolving"}<br>` +
-        `Selected basis (${highlightMode}): ${subsetToString1Based(highlightBasisList)}<br>` +
-        collisionLine +
-        `Diameter: ${formatDiameter(diameter)}<br>` +
-        `Metric dimension (node): ${nodeRes.minDimension}<br>` +
-        `Metric dimension (edge): ${edgeRes.minDimension}<br>` +
-        `Metric dimension (mixed): ${mixedRes.minDimension}<br>` +
-        `PDim (node): ${pdimRes.node}<br>` +
-        `PDim (edge): ${pdimRes.edge}<br>` +
-        `PDim (mixed): ${pdimRes.mixed}<br>`;
-    const summaryVerbosePanels =
-        renderResolvingSubsetsPanel("node", nodePageIndex, nodeRes) +
-        renderNonResolvingSubsetsPanel("node", nodeNonResolvingPageIndex, nodeNonResolveRes) +
-        `<br>` +
-        renderResolvingSubsetsPanel("edge", edgePageIndex, edgeRes) +
-        renderNonResolvingSubsetsPanel("edge", edgeNonResolvingPageIndex, edgeNonResolveRes) +
-        `<br>` +
-        renderResolvingSubsetsPanel("mixed", mixedPageIndex, mixedRes) +
-        renderNonResolvingSubsetsPanel("mixed", mixedNonResolvingPageIndex, mixedNonResolveRes);
-    const summaryDetails =
-        `<details style="margin-top:8px;">` +
-        `<summary style="cursor:pointer;font-family:ui-monospace,Courier;color:var(--muted);">` +
-        `Resolving / non-resolving subset lists (per mode)` +
-        `</summary>` +
-        `<div style="margin-top:6px;">${summaryVerbosePanels}</div>` +
-        `</details>`;
-    renderSummary(graphText, edgeCount, summaryCompact + summaryDetails);
-    graphText.onclick = graphTextPageClick;
+
+    renderSummary(graphSummary, basicInfo.edgeCount, buildGraphSummaryHtml({
+        edgeCount: basicInfo.edgeCount,
+        distFlat,
+        edges,
+        isResolvingLoading: loadingAnimationVisible && (cachedMetricKey !== metricKey || !cachedNodeRes || cachedNonResolveKey !== nonResolveKey),
+        isPdimLoading: loadingAnimationVisible && (cachedPdimRes === null || cachedPdimKey !== `${graphVersion}`),
+        nodeRes,
+        nodeNonRes,
+        edgeRes,
+        edgeNonRes,
+        mixedRes,
+        mixedNonRes,
+        pdimRes,
+    }));
+    restoreDetailsState(graphSummary);
+    graphSummary.onclick = graphTextPageClick;
+    if ((window as any).MathJax?.typesetPromise) (window as any).MathJax.typesetPromise([graphSummary]).catch(() => {});
 }
 
 initAdj(n);

@@ -21,7 +21,16 @@
       --cell1: #eee8d5;
       --cellDisabled: #e4ddc8;
     }
-
+  </style>
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']]
+      }
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <style>
     .wrap {
       max-width: 1200px;
       margin: 0 auto;
@@ -105,7 +114,8 @@
 
   <div class="main-grid">
     <div class="panel main-col-graph">
-      <span id="graph_text">Loading...</span>
+      <div id="graph_text">Loading...</div>
+      <div id="graph-summary"></div>
       <div style="height: 8px;"></div>
       <canvas id="graph_canvas" width="560" height="360"></canvas>
     </div>
