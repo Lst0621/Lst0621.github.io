@@ -8,9 +8,13 @@ import {
 } from "../tsl/wasm/ts/wasm_api_graph_demo";
 
 let n = 8;
-const PAGE_SIZE = 500;
+const PAGE_SIZE = 50;
 type HighlightMode = "node" | "edge" | "mixed";
 let highlightMode: HighlightMode = "node";
+type ActiveKind = "resolving" | "non_resolving";
+let activeKind: ActiveKind = "resolving";
+let selectedResolvingIdx: Record<HighlightMode, number> = { node: 0, edge: 0, mixed: 0 };
+let selectedNonResolvingIdx: Record<HighlightMode, number> = { node: 0, edge: 0, mixed: 0 };
 let currentRandomSeed = 0;
 let currentRandomThreshold = 0.0;
 type ResolveResult = {
@@ -118,6 +122,151 @@ const theme: Theme = {
     canvasArrow: "#268bd2",
 };
 
+const NON_RESOLVING_PALETTE = [
+    "#ffd9d9",
+    "#d9e8ff",
+    "#dff2d9",
+    "#fce6ff",
+    "#fff3c4",
+    "#d9f0f0",
+    "#f0d9ff",
+    "#e6e6ff",
+];
+
+function vecKey(vec: readonly number[]): string {
+    return vec.join(",");
+}
+
+/** Same-color rows share the same basis-restricted distance vector; singletons use neutral. */
+function collisionRowColorsFromItems(items: Array<{ key: string; vec: readonly number[] }>): Map<string, string> {
+    const buckets = new Map<string, string[]>();
+    for (const { key, vec } of items) {
+        const k = vecKey(vec);
+        let arr = buckets.get(k);
+        if (!arr) {
+            arr = [];
+            buckets.set(k, arr);
+        }
+        arr.push(key);
+    }
+    const out = new Map<string, string>();
+    let paletteIdx = 0;
+    for (const [, keys] of buckets) {
+        if (keys.length <= 1) {
+            for (const key of keys) {
+                out.set(key, theme.cellOff);
+            }
+        } else {
+            const color = NON_RESOLVING_PALETTE[paletteIdx % NON_RESOLVING_PALETTE.length];
+            paletteIdx++;
+            for (const key of keys) {
+                out.set(key, color);
+            }
+        }
+    }
+    return out;
+}
+
+function buildNonResolvingRowColorMap(
+    highlightMode: HighlightMode,
+    basis: readonly number[],
+    distFlat: readonly number[],
+    edges: ReadonlyArray<{ a: number; b: number }>,
+    nVerts: number,
+): Map<string, string> | null {
+    if (basis.length === 0) {
+        return null;
+    }
+    const basisSorted = [...basis].sort((a, b) => a - b);
+    const items: Array<{ key: string; vec: readonly number[] }> = [];
+    if (highlightMode === "node" || highlightMode === "mixed") {
+        for (let v = 0; v < nVerts; v++) {
+            const vec = basisSorted.map((b) => distFlat[b * nVerts + v]);
+            items.push({ key: `n:${v}`, vec });
+        }
+    }
+    if (highlightMode === "edge" || highlightMode === "mixed") {
+        for (const e of edges) {
+            const vec = basisSorted.map((b) => {
+                const da = distFlat[b * nVerts + e.a];
+                const db = distFlat[b * nVerts + e.b];
+                if (da === -1 && db === -1) {
+                    return -1;
+                }
+                if (da === -1) {
+                    return db;
+                }
+                if (db === -1) {
+                    return da;
+                }
+                return Math.min(da, db);
+            });
+            items.push({ key: `e:${e.a},${e.b}`, vec });
+        }
+    }
+    return collisionRowColorsFromItems(items);
+}
+
+function collisionGroupsOneLiner(
+    highlightMode: HighlightMode,
+    basis: readonly number[],
+    distFlat: readonly number[],
+    edges: ReadonlyArray<{ a: number; b: number }>,
+    nVerts: number,
+): string {
+    if (basis.length === 0) {
+        return "Collision groups: (empty basis)";
+    }
+    const basisSorted = [...basis].sort((a, b) => a - b);
+    type Labeled = { label: string; vec: readonly number[] };
+    const labeled: Labeled[] = [];
+    if (highlightMode === "node" || highlightMode === "mixed") {
+        for (let v = 0; v < nVerts; v++) {
+            const vec = basisSorted.map((b) => distFlat[b * nVerts + v]);
+            labeled.push({ label: `${v + 1}`, vec });
+        }
+    }
+    if (highlightMode === "edge" || highlightMode === "mixed") {
+        for (const e of edges) {
+            const vec = basisSorted.map((b) => {
+                const da = distFlat[b * nVerts + e.a];
+                const db = distFlat[b * nVerts + e.b];
+                if (da === -1 && db === -1) {
+                    return -1;
+                }
+                if (da === -1) {
+                    return db;
+                }
+                if (db === -1) {
+                    return da;
+                }
+                return Math.min(da, db);
+            });
+            labeled.push({ label: `${e.a + 1}-${e.b + 1}`, vec });
+        }
+    }
+    const vecToLabels = new Map<string, string[]>();
+    for (const it of labeled) {
+        const vk = vecKey(it.vec);
+        let arr = vecToLabels.get(vk);
+        if (!arr) {
+            arr = [];
+            vecToLabels.set(vk, arr);
+        }
+        arr.push(it.label);
+    }
+    const collisionParts: string[] = [];
+    for (const [, labels] of vecToLabels) {
+        if (labels.length > 1) {
+            collisionParts.push(`{${labels.join(",")}}`);
+        }
+    }
+    if (collisionParts.length === 0) {
+        return "Collision groups (all distinct): 0";
+    }
+    return `Collision groups: ${collisionParts.length} (${collisionParts.join(", ")})`;
+}
+
 function initAdj(size: number): void {
     adj = [];
     for (let i = 0; i < size; i++) {
@@ -142,12 +291,8 @@ function invalidateResolveCache(): void {
     cachedMixedNonResolveRes = null;
     cachedPdimRes = null;
     wasmResolveCacheGraphVersion = -1;
-    nodePageIndex = 0;
-    edgePageIndex = 0;
-    mixedPageIndex = 0;
-    nodeNonResolvingPageIndex = 0;
-    edgeNonResolvingPageIndex = 0;
-    mixedNonResolvingPageIndex = 0;
+    // Keep highlightMode, activeKind, pager indices, and subset selection across graph edits;
+    // renderAll clamps page indices when the new graph has fewer pages.
 }
 
 function setAdjFromAdj01Flat(flatAdj01: readonly number[]): void {
@@ -184,19 +329,17 @@ function ensureElements(): {
     controls: HTMLDivElement;
     canvas: HTMLCanvasElement;
     adjTable: HTMLTableElement;
-    distTable: HTMLTableElement;
-    edgeDistTable: HTMLTableElement;
+    distEdgeTable: HTMLTableElement;
 } {
     const graphText = document.getElementById("graph_text") as HTMLSpanElement | null;
     const controls = document.getElementById("controls") as HTMLDivElement | null;
     const canvas = document.getElementById("graph_canvas") as HTMLCanvasElement | null;
     const adjTable = document.getElementById("adj_table") as HTMLTableElement | null;
-    const distTable = document.getElementById("dist_table") as HTMLTableElement | null;
-    const edgeDistTable = document.getElementById("edge_dist_table") as HTMLTableElement | null;
-    if (!graphText || !controls || !canvas || !adjTable || !distTable || !edgeDistTable) {
+    const distEdgeTable = document.getElementById("dist_edge_table") as HTMLTableElement | null;
+    if (!graphText || !controls || !canvas || !adjTable || !distEdgeTable) {
         throw new Error("Required DOM elements not found.");
     }
-    return { graphText, controls, canvas, adjTable, distTable, edgeDistTable };
+    return { graphText, controls, canvas, adjTable, distEdgeTable };
 }
 
 function clearTable(table: HTMLTableElement): void {
@@ -214,6 +357,15 @@ function renderControls(
         nodeNonResolvingPageCount: number;
         edgeNonResolvingPageCount: number;
         mixedNonResolvingPageCount: number;
+        nodeResolvingMinCount: number;
+        edgeResolvingMinCount: number;
+        mixedResolvingMinCount: number;
+        nodeNonResolveSubsetCount: number;
+        edgeNonResolveSubsetCount: number;
+        mixedNonResolveSubsetCount: number;
+        nodeNonResolveSubsets: number[][];
+        edgeNonResolveSubsets: number[][];
+        mixedNonResolveSubsets: number[][];
     },
 ): void {
     container.innerHTML = "";
@@ -330,84 +482,124 @@ function renderControls(
     container.appendChild(mkHighlightBtn("mixed", "mixed"));
 
     container.appendChild(spacer(8));
-    const pageSizeText = document.createElement("span");
-    pageSizeText.style.fontFamily = "ui-monospace, Courier";
-    pageSizeText.innerText = `pageSize=${PAGE_SIZE}`;
-    container.appendChild(pageSizeText);
+    const activeLabel = document.createElement("span");
+    activeLabel.innerText = "active:";
+    activeLabel.style.fontFamily = "ui-monospace, Courier";
+    container.appendChild(activeLabel);
 
-    const appendModePager = (
-        modeLabel: string,
-        pageIndex: number,
-        pageCountRaw: number,
-        setPageIndex: (next: number) => void,
-    ) => {
-        const pageCount = pageCountRaw > 0 ? pageCountRaw : 1;
-        container.appendChild(spacer(6));
-        const label = document.createElement("span");
-        label.style.fontFamily = "ui-monospace, Courier";
-        label.innerText = `${modeLabel} ${Math.min(pageIndex + 1, pageCount)}/${pageCount}`;
-        container.appendChild(label);
-
-        const prevBtn = document.createElement("button");
-        prevBtn.innerText = "◀";
-        prevBtn.disabled = pageIndex <= 0;
-        prevBtn.onclick = () => {
-            if (pageIndex <= 0) {
+    const mkActiveBtn = (label: string, val: ActiveKind) => {
+        const b = document.createElement("button");
+        b.innerText = label;
+        b.onclick = () => {
+            if (activeKind === val) {
                 return;
             }
-            setPageIndex(pageIndex - 1);
-            renderAll();
-        };
-        container.appendChild(prevBtn);
-
-        const nextBtn = document.createElement("button");
-        nextBtn.innerText = "▶";
-        nextBtn.disabled = pageIndex + 1 >= pageCount;
-        nextBtn.onclick = () => {
-            if (pageIndex + 1 >= pageCount) {
-                return;
+            activeKind = val;
+            if (val === "resolving") {
+                if (pageInfo.nodeResolvingMinCount > 0) {
+                    selectedResolvingIdx.node = Math.floor(Math.random() * pageInfo.nodeResolvingMinCount);
+                }
+                if (pageInfo.edgeResolvingMinCount > 0) {
+                    selectedResolvingIdx.edge = Math.floor(Math.random() * pageInfo.edgeResolvingMinCount);
+                }
+                if (pageInfo.mixedResolvingMinCount > 0) {
+                    selectedResolvingIdx.mixed = Math.floor(Math.random() * pageInfo.mixedResolvingMinCount);
+                }
+            } else {
+                selectedNonResolvingIdx.node = randomNonResolvingIdx(pageInfo.nodeNonResolveSubsets);
+                selectedNonResolvingIdx.edge = randomNonResolvingIdx(pageInfo.edgeNonResolveSubsets);
+                selectedNonResolvingIdx.mixed = randomNonResolvingIdx(pageInfo.mixedNonResolveSubsets);
             }
-            setPageIndex(pageIndex + 1);
             renderAll();
         };
-        container.appendChild(nextBtn);
+        if (activeKind === val) {
+            b.style.fontWeight = "700";
+        }
+        return b;
     };
+    container.appendChild(mkActiveBtn("resolving", "resolving"));
+    container.appendChild(mkActiveBtn("non-resolving", "non_resolving"));
 
-    appendModePager("node", nodePageIndex, pageInfo.nodePageCount, (next) => {
-        nodePageIndex = next;
-        cachedResolveKey = "";
-    });
-    appendModePager("edge", edgePageIndex, pageInfo.edgePageCount, (next) => {
-        edgePageIndex = next;
-        cachedResolveKey = "";
-    });
-    appendModePager("mixed", mixedPageIndex, pageInfo.mixedPageCount, (next) => {
-        mixedPageIndex = next;
-        cachedResolveKey = "";
-    });
+    const lineBreakBeforePageSize = document.createElement("div");
+    lineBreakBeforePageSize.style.flexBasis = "100%";
+    lineBreakBeforePageSize.style.height = "0";
+    container.appendChild(lineBreakBeforePageSize);
 
-    const lineBreak2 = document.createElement("div");
-    lineBreak2.style.flexBasis = "100%";
-    lineBreak2.style.height = "0";
-    container.appendChild(lineBreak2);
+    const lineBreakSelUnified = document.createElement("div");
+    lineBreakSelUnified.style.flexBasis = "100%";
+    lineBreakSelUnified.style.height = "0";
+    container.appendChild(lineBreakSelUnified);
 
-    const nonResolveLabel = document.createElement("span");
-    nonResolveLabel.innerText = "non-resolving:";
-    nonResolveLabel.style.fontFamily = "ui-monospace, Courier";
-    container.appendChild(nonResolveLabel);
+    const resolvingMinCountFor = (m: HighlightMode): number =>
+        m === "node" ? pageInfo.nodeResolvingMinCount : m === "edge" ? pageInfo.edgeResolvingMinCount : pageInfo.mixedResolvingMinCount;
+    const nonResolveSubsetsFor = (m: HighlightMode): number[][] =>
+        m === "node" ? pageInfo.nodeNonResolveSubsets : m === "edge" ? pageInfo.edgeNonResolveSubsets : pageInfo.mixedNonResolveSubsets;
 
-    appendModePager("node", nodeNonResolvingPageIndex, pageInfo.nodeNonResolvingPageCount, (next) => {
-        nodeNonResolvingPageIndex = next;
-        cachedNonResolveKey = "";
-    });
-    appendModePager("edge", edgeNonResolvingPageIndex, pageInfo.edgeNonResolvingPageCount, (next) => {
-        edgeNonResolvingPageIndex = next;
-        cachedNonResolveKey = "";
-    });
-    appendModePager("mixed", mixedNonResolvingPageIndex, pageInfo.mixedNonResolvingPageCount, (next) => {
-        mixedNonResolvingPageIndex = next;
-        cachedNonResolveKey = "";
-    });
+    const selUnifiedLabel = document.createElement("span");
+    selUnifiedLabel.style.fontFamily = "ui-monospace, Courier";
+    {
+        const m = highlightMode;
+        if (activeKind === "resolving") {
+            const c = resolvingMinCountFor(m);
+            const shown = c > 0 ? (selectedResolvingIdx[m] % c) + 1 : 0;
+            selUnifiedLabel.innerText = `sel min-resolving (${m}): ${shown}/${c}`;
+        } else {
+            const subs = nonResolveSubsetsFor(m);
+            const c = subs.length;
+            const shown = c > 0 ? (selectedNonResolvingIdx[m] % c) + 1 : 0;
+            selUnifiedLabel.innerText = `sel non-resolving (${m}): ${shown}/${c}`;
+        }
+    }
+    container.appendChild(spacer(6));
+    container.appendChild(selUnifiedLabel);
+
+    const selCount = activeKind === "resolving"
+        ? resolvingMinCountFor(highlightMode)
+        : nonResolveSubsetsFor(highlightMode).length;
+
+    const selNextB = document.createElement("button");
+    selNextB.innerText = "Next";
+    selNextB.disabled = selCount <= 0;
+    selNextB.onclick = () => {
+        const m = highlightMode;
+        if (activeKind === "resolving") {
+            const c = resolvingMinCountFor(m);
+            if (c <= 0) {
+                return;
+            }
+            selectedResolvingIdx[m] = (selectedResolvingIdx[m] + 1) % c;
+        } else {
+            const subs = nonResolveSubsetsFor(m);
+            if (subs.length <= 0) {
+                return;
+            }
+            advanceNonResolvingIdx(subs, m);
+        }
+        renderAll();
+    };
+    container.appendChild(selNextB);
+
+    const selRandB = document.createElement("button");
+    selRandB.innerText = "Random";
+    selRandB.disabled = selCount <= 0;
+    selRandB.onclick = () => {
+        const m = highlightMode;
+        if (activeKind === "resolving") {
+            const c = resolvingMinCountFor(m);
+            if (c <= 0) {
+                return;
+            }
+            selectedResolvingIdx[m] = Math.floor(Math.random() * c);
+        } else {
+            const subs = nonResolveSubsetsFor(m);
+            if (subs.length <= 0) {
+                return;
+            }
+            selectedNonResolvingIdx[m] = randomNonResolvingIdx(subs);
+        }
+        renderAll();
+    };
+    container.appendChild(selRandB);
 
     container.appendChild(spacer(10));
 
@@ -882,6 +1074,13 @@ function styleHeaderCell(cell: HTMLTableCellElement, isBasis: boolean): void {
     cell.style.fontWeight = "600";
 }
 
+/** Row labels in the merged distance matrix: never use basis coloring (basis only in top header). */
+function styleRowLabelCell(cell: HTMLTableCellElement): void {
+    cell.style.background = theme.headerBg;
+    cell.style.color = theme.headerText;
+    cell.style.fontWeight = "600";
+}
+
 function renderAdjacencyTable(adjTable: HTMLTableElement, basis: ReadonlySet<number>): void {
     clearTable(adjTable);
     adjTable.style.alignSelf = "center";
@@ -940,14 +1139,43 @@ function renderAdjacencyTable(adjTable: HTMLTableElement, basis: ReadonlySet<num
     }
 }
 
-function renderDistancesTable(distTable: HTMLTableElement, distFlat: number[], basis: ReadonlySet<number>): void {
-    clearTable(distTable);
-    distTable.style.alignSelf = "center";
-    distTable.style.textAlign = "center";
+/**
+ * Background for a data cell in the merged matrix.
+ * Collision / grouping colors (NON_RESOLVING_PALETTE) appear only in basis (chosen landmark) columns
+ * so the same vector pattern reads as vertical stripes; other columns stay neutral.
+ */
+function mergedMatrixDataCellBg(
+    colIsBasis: boolean,
+    rowKey: string,
+    rowColors?: ReadonlyMap<string, string> | null,
+): string {
+    if (!colIsBasis) {
+        return theme.cellOff;
+    }
+    if (!rowColors) {
+        return "#eee8d5";
+    }
+    const rc = rowColors.get(rowKey);
+    if (rc !== undefined && rc !== theme.cellOff) {
+        return rc;
+    }
+    return "#eee8d5";
+}
 
-    // Header row
+/** All-pairs rows then edge–node (min endpoint) rows; fancy grouping only in basis columns + header. */
+function renderMergedDistanceMatrix(
+    table: HTMLTableElement,
+    distFlat: number[],
+    edges: Array<{ a: number; b: number }>,
+    basis: ReadonlySet<number>,
+    rowColors?: ReadonlyMap<string, string> | null,
+): void {
+    clearTable(table);
+    table.style.alignSelf = "center";
+    table.style.textAlign = "center";
+
     {
-        const row = distTable.insertRow();
+        const row = table.insertRow();
         for (let j = -1; j < n; j++) {
             const cell = row.insertCell();
             if (j === -1) {
@@ -961,76 +1189,53 @@ function renderDistancesTable(distTable: HTMLTableElement, distFlat: number[], b
     }
 
     for (let i = 0; i < n; i++) {
-        const row = distTable.insertRow();
+        const row = table.insertRow();
         const head = row.insertCell();
         head.innerText = (i + 1).toString();
-        styleHeaderCell(head, basis.has(i));
+        styleRowLabelCell(head);
+        if (rowColors) {
+            const rn = rowColors.get(`n:${i}`);
+            if (rn !== undefined) {
+                head.style.background = rn;
+            }
+        }
 
         for (let j = 0; j < n; j++) {
             const cell = row.insertCell();
             cell.style.color = theme.cellText;
-            cell.style.background = theme.cellOff;
+            cell.style.background = mergedMatrixDataCellBg(basis.has(j), `n:${i}`, rowColors);
             const d = distFlat[i * n + j];
             cell.innerText = d === -1 ? "∞" : d.toString();
-            if (basis.has(i) || basis.has(j)) {
-                cell.style.background = "#eee8d5";
-            }
-        }
-    }
-
-    for (const row of distTable.rows) {
-        for (const cell of row.cells) {
-            cell.style.fontSize = "13px";
-        }
-    }
-}
-
-function renderEdgeToNodeDistancesTable(edgeDistTable: HTMLTableElement, distFlat: number[], edges: Array<{ a: number; b: number }>, basis: ReadonlySet<number>): void {
-    clearTable(edgeDistTable);
-    edgeDistTable.style.alignSelf = "center";
-    edgeDistTable.style.textAlign = "center";
-
-    // Header row (nodes)
-    {
-        const row = edgeDistTable.insertRow();
-        for (let j = -1; j < n; j++) {
-            const cell = row.insertCell();
-            if (j === -1) {
-                cell.style.borderStyle = "none";
-                cell.innerText = "";
-                continue;
-            }
-            cell.innerText = (j + 1).toString();
-            styleHeaderCell(cell, basis.has(j));
         }
     }
 
     for (let ei = 0; ei < edges.length; ei++) {
         const e = edges[ei];
-        const row = edgeDistTable.insertRow();
+        const row = table.insertRow();
         const head = row.insertCell();
         head.innerText = `${e.a + 1}-${e.b + 1}`;
-        head.style.background = theme.headerBg;
-        head.style.color = theme.headerText;
-        head.style.fontWeight = "600";
+        styleRowLabelCell(head);
+        if (rowColors) {
+            const re = rowColors.get(`e:${e.a},${e.b}`);
+            if (re !== undefined) {
+                head.style.background = re;
+            }
+        }
 
         for (let v = 0; v < n; v++) {
             const cell = row.insertCell();
             cell.style.color = theme.cellText;
-            cell.style.background = theme.cellOff;
+            cell.style.background = mergedMatrixDataCellBg(basis.has(v), `e:${e.a},${e.b}`, rowColors);
             const da = distFlat[e.a * n + v];
             const db = distFlat[e.b * n + v];
             const d = (da === -1 && db === -1) ? -1 : (da === -1 ? db : (db === -1 ? da : Math.min(da, db)));
             cell.innerText = d === -1 ? "∞" : d.toString();
-            if (basis.has(v)) {
-                cell.style.background = "#eee8d5";
-            }
         }
     }
 
-    for (const row of edgeDistTable.rows) {
-        for (const cell of row.cells) {
-            cell.style.fontSize = "13px";
+    for (const r of table.rows) {
+        for (const cell of r.cells) {
+            cell.style.fontSize = "12px";
         }
     }
 }
@@ -1042,12 +1247,230 @@ function renderSummary(graphText: HTMLSpanElement, edgeCount: number, mdText: st
         mdText;
 }
 
+type ResolvingPagerPrefix = "r-node" | "r-edge" | "r-mixed";
+type NonResolvingPagerPrefix = "nr-node" | "nr-edge" | "nr-mixed";
+
+function resolvingPagerPrefix(modeName: string): ResolvingPagerPrefix {
+    if (modeName === "node") {
+        return "r-node";
+    }
+    if (modeName === "edge") {
+        return "r-edge";
+    }
+    return "r-mixed";
+}
+
+function nonResolvingPagerPrefix(modeName: string): NonResolvingPagerPrefix {
+    if (modeName === "node") {
+        return "nr-node";
+    }
+    if (modeName === "edge") {
+        return "nr-edge";
+    }
+    return "nr-mixed";
+}
+
+/** Page summary + ◀▶ inside details panel (delegated via `graphTextPageClick`). */
+function pageLineWithPagerButtons(args: {
+    prefix: ResolvingPagerPrefix | NonResolvingPagerPrefix;
+    pageIndex: number;
+    pageCountRaw: number;
+    pageShown: number;
+    pageCountSafe: number;
+    shownCount: number;
+    totalCount: number;
+}): string {
+    const pc = args.pageCountRaw > 0 ? args.pageCountRaw : 1;
+    const canPrev = args.pageIndex > 0;
+    const canNext = args.pageIndex + 1 < pc;
+    const prevDis = canPrev ? "" : " disabled";
+    const nextDis = canNext ? "" : " disabled";
+    const btnStyle = "font-size:11px;padding:1px 6px;margin-left:4px;vertical-align:baseline;cursor:pointer";
+    return (
+        `Page ${args.pageShown}/${args.pageCountSafe}, showing ${args.shownCount} of total ${args.totalCount} ` +
+        `<button type="button" style="${btnStyle}" data-gdp="${args.prefix}-prev"${prevDis}>◀</button>` +
+        `<button type="button" style="${btnStyle}" data-gdp="${args.prefix}-next"${nextDis}>▶</button><br>`
+    );
+}
+
+function graphTextPageClick(ev: MouseEvent): void {
+    const t = ev.target;
+    if (!(t instanceof Element)) {
+        return;
+    }
+    const btn = t.closest("button[data-gdp]");
+    if (!(btn instanceof HTMLButtonElement) || btn.disabled) {
+        return;
+    }
+    const k = btn.getAttribute("data-gdp");
+    if (!k) {
+        return;
+    }
+    ev.preventDefault();
+    switch (k) {
+        case "r-node-prev":
+            if (nodePageIndex > 0) {
+                nodePageIndex--;
+                cachedResolveKey = "";
+            }
+            break;
+        case "r-node-next":
+            nodePageIndex++;
+            cachedResolveKey = "";
+            break;
+        case "r-edge-prev":
+            if (edgePageIndex > 0) {
+                edgePageIndex--;
+                cachedResolveKey = "";
+            }
+            break;
+        case "r-edge-next":
+            edgePageIndex++;
+            cachedResolveKey = "";
+            break;
+        case "r-mixed-prev":
+            if (mixedPageIndex > 0) {
+                mixedPageIndex--;
+                cachedResolveKey = "";
+            }
+            break;
+        case "r-mixed-next":
+            mixedPageIndex++;
+            cachedResolveKey = "";
+            break;
+        case "nr-node-prev":
+            if (nodeNonResolvingPageIndex > 0) {
+                nodeNonResolvingPageIndex--;
+                selectedNonResolvingIdx.node = 0;
+                cachedNonResolveKey = "";
+            }
+            break;
+        case "nr-node-next":
+            nodeNonResolvingPageIndex++;
+            selectedNonResolvingIdx.node = 0;
+            cachedNonResolveKey = "";
+            break;
+        case "nr-edge-prev":
+            if (edgeNonResolvingPageIndex > 0) {
+                edgeNonResolvingPageIndex--;
+                selectedNonResolvingIdx.edge = 0;
+                cachedNonResolveKey = "";
+            }
+            break;
+        case "nr-edge-next":
+            edgeNonResolvingPageIndex++;
+            selectedNonResolvingIdx.edge = 0;
+            cachedNonResolveKey = "";
+            break;
+        case "nr-mixed-prev":
+            if (mixedNonResolvingPageIndex > 0) {
+                mixedNonResolvingPageIndex--;
+                selectedNonResolvingIdx.mixed = 0;
+                cachedNonResolveKey = "";
+            }
+            break;
+        case "nr-mixed-next":
+            mixedNonResolvingPageIndex++;
+            selectedNonResolvingIdx.mixed = 0;
+            cachedNonResolveKey = "";
+            break;
+        default:
+            return;
+    }
+    renderAll();
+}
+
 function formatDiameter(diameter: number): string {
     return diameter < 0 ? "∞" : diameter.toString();
 }
 
 function subsetToString1Based(subset: readonly number[]): string {
     return `{${subset.map((x) => (x + 1).toString()).join(", ")}}`;
+}
+
+function firstNonEmptySubsetIndex(subsets: readonly number[][]): number {
+    for (let i = 0; i < subsets.length; i++) {
+        if (subsets[i]!.length > 0) {
+            return i;
+        }
+    }
+    return 0;
+}
+
+function normalizeNonResolvingSelectionForList(subsets: readonly number[][], mode: HighlightMode): void {
+    if (subsets.length === 0) {
+        return;
+    }
+    const len = subsets.length;
+    const idx = ((selectedNonResolvingIdx[mode] % len) + len) % len;
+    if (subsets[idx]!.length > 0) {
+        return;
+    }
+    const first = firstNonEmptySubsetIndex(subsets);
+    if (subsets[first]!.length > 0) {
+        selectedNonResolvingIdx[mode] = first;
+    }
+}
+
+function normalizeNonResolvingSelections(
+    nodeRes: NonResolveResult,
+    edgeRes: NonResolveResult,
+    mixedRes: NonResolveResult,
+): void {
+    normalizeNonResolvingSelectionForList(nodeRes.subsets, "node");
+    normalizeNonResolvingSelectionForList(edgeRes.subsets, "edge");
+    normalizeNonResolvingSelectionForList(mixedRes.subsets, "mixed");
+}
+
+function advanceNonResolvingIdx(subsets: readonly number[][], mode: HighlightMode): void {
+    if (subsets.length === 0) {
+        return;
+    }
+    const len = subsets.length;
+    const hasNonEmpty = subsets.some((s) => s.length > 0);
+    let j = (selectedNonResolvingIdx[mode] + 1) % len;
+    if (j < 0) {
+        j += len;
+    }
+    if (!hasNonEmpty) {
+        selectedNonResolvingIdx[mode] = j;
+        return;
+    }
+    for (let k = 0; k < len; k++) {
+        if (subsets[j]!.length > 0) {
+            selectedNonResolvingIdx[mode] = j;
+            return;
+        }
+        j = (j + 1) % len;
+    }
+}
+
+function randomNonResolvingIdx(subsets: readonly number[][]): number {
+    const nonEmptyIdx = subsets
+        .map((s, i) => (s.length > 0 ? i : -1))
+        .filter((i): i is number => i >= 0);
+    if (nonEmptyIdx.length === 0) {
+        return Math.floor(Math.random() * Math.max(1, subsets.length));
+    }
+    return nonEmptyIdx[Math.floor(Math.random() * nonEmptyIdx.length)]!;
+}
+
+function resolvingBasisForSelection(mode: HighlightMode, res: ResolveResult): number[] {
+    const list = res.minSizeSubsets;
+    if (list.length === 0) {
+        return res.smallestBasis;
+    }
+    const idx = ((selectedResolvingIdx[mode] % list.length) + list.length) % list.length;
+    return list[idx];
+}
+
+function nonResolvingBasisForSelection(mode: HighlightMode, res: NonResolveResult): number[] {
+    const list = res.subsets;
+    if (list.length === 0) {
+        return [];
+    }
+    const idx = ((selectedNonResolvingIdx[mode] % list.length) + list.length) % list.length;
+    return list[idx];
 }
 
 function renderResolvingSubsetsPanel(
@@ -1074,7 +1497,15 @@ function renderResolvingSubsetsPanel(
     const smallestLine =
         `Min dimension (${modeName}): ${res.minDimension}<br>` +
         `Smallest set: ${smallest}<br>`;
-    const pageLine = `Page ${pageShown}/${pageCountSafe}, showing ${shownCount} of total ${res.totalCount}<br>`;
+    const pageLine = pageLineWithPagerButtons({
+        prefix: resolvingPagerPrefix(modeName),
+        pageIndex,
+        pageCountRaw: res.pageCount,
+        pageShown,
+        pageCountSafe,
+        shownCount: shownCount,
+        totalCount: res.totalCount,
+    });
     const note = res.truncated
         ? `<span style="color:#586e75">Note: subset list truncated (too many subsets to fit buffer).</span><br>`
         : "";
@@ -1113,7 +1544,15 @@ function renderNonResolvingSubsetsPanel(
     const shownCount = res.subsets.length;
     const pageCountSafe = res.pageCount > 0 ? res.pageCount : 1;
     const pageShown = Math.min(pageIndex + 1, pageCountSafe);
-    const pageLine = `Page ${pageShown}/${pageCountSafe}, showing ${shownCount} of total ${res.totalCount}<br>`;
+    const pageLine = pageLineWithPagerButtons({
+        prefix: nonResolvingPagerPrefix(modeName),
+        pageIndex,
+        pageCountRaw: res.pageCount,
+        pageShown,
+        pageCountSafe,
+        shownCount: shownCount,
+        totalCount: res.totalCount,
+    });
     const note = res.truncated
         ? `<span style="color:#586e75">Note: subset list truncated (too many subsets to fit buffer).</span><br>`
         : "";
@@ -1129,7 +1568,7 @@ function renderNonResolvingSubsetsPanel(
 }
 
 function renderAll(): void {
-    const { graphText, controls, canvas, adjTable, distTable, edgeDistTable } = ensureElements();
+    const { graphText, controls, canvas, adjTable, distEdgeTable } = ensureElements();
 
     // Keep JSON output in sync with the current graph, unless the user is actively editing it.
     if (!graphIoIsEditing) {
@@ -1228,6 +1667,8 @@ function renderAll(): void {
     const mixedNonResolveRes = cachedMixedNonResolveRes;
     const pdimRes = cachedPdimRes;
 
+    normalizeNonResolvingSelections(nodeNonResolveRes, edgeNonResolveRes, mixedNonResolveRes);
+
     renderControls(controls, {
         nodePageCount: nodeRes.pageCount,
         edgePageCount: edgeRes.pageCount,
@@ -1235,18 +1676,34 @@ function renderAll(): void {
         nodeNonResolvingPageCount: nodeNonResolveRes.pageCount,
         edgeNonResolvingPageCount: edgeNonResolveRes.pageCount,
         mixedNonResolvingPageCount: mixedNonResolveRes.pageCount,
+        nodeResolvingMinCount: nodeRes.minSizeSubsets.length,
+        edgeResolvingMinCount: edgeRes.minSizeSubsets.length,
+        mixedResolvingMinCount: mixedRes.minSizeSubsets.length,
+        nodeNonResolveSubsetCount: nodeNonResolveRes.subsets.length,
+        edgeNonResolveSubsetCount: edgeNonResolveRes.subsets.length,
+        mixedNonResolveSubsetCount: mixedNonResolveRes.subsets.length,
+        nodeNonResolveSubsets: nodeNonResolveRes.subsets,
+        edgeNonResolveSubsets: edgeNonResolveRes.subsets,
+        mixedNonResolveSubsets: mixedNonResolveRes.subsets,
     });
 
-    const highlightBasisList = highlightMode === "node"
-        ? nodeRes.smallestBasis
-        : (highlightMode === "edge" ? edgeRes.smallestBasis : mixedRes.smallestBasis);
+    const selectedByMode = {
+        node: activeKind === "resolving"
+            ? resolvingBasisForSelection("node", nodeRes)
+            : nonResolvingBasisForSelection("node", nodeNonResolveRes),
+        edge: activeKind === "resolving"
+            ? resolvingBasisForSelection("edge", edgeRes)
+            : nonResolvingBasisForSelection("edge", edgeNonResolveRes),
+        mixed: activeKind === "resolving"
+            ? resolvingBasisForSelection("mixed", mixedRes)
+            : nonResolvingBasisForSelection("mixed", mixedNonResolveRes),
+    };
+    const highlightBasisList = selectedByMode[highlightMode];
     const basis = new Set<number>();
     for (const v of highlightBasisList) {
         basis.add(v);
     }
 
-    renderAdjacencyTable(adjTable, basis);
-    renderDistancesTable(distTable, distFlat, basis);
     const edges: Array<{ a: number; b: number }> = [];
     for (let i = 0; i < n; i++) {
         for (let j = i + 1; j < n; j++) {
@@ -1255,21 +1712,30 @@ function renderAll(): void {
             }
         }
     }
-    renderEdgeToNodeDistancesTable(edgeDistTable, distFlat, edges, basis);
+
+    const rowColorMap = activeKind === "non_resolving"
+        ? buildNonResolvingRowColorMap(highlightMode, highlightBasisList, distFlat, edges, n)
+        : null;
+
+    renderAdjacencyTable(adjTable, basis);
+    renderMergedDistanceMatrix(distEdgeTable, distFlat, edges, basis, rowColorMap);
     drawGraph(canvas, basis, distFlat, highlightBasisList);
-    renderSummary(
-        graphText,
-        edgeCount,
+    const collisionLine = activeKind === "non_resolving"
+        ? `${collisionGroupsOneLiner(highlightMode, highlightBasisList, distFlat, edges, n)}<br>`
+        : "";
+    const summaryCompact =
         `Highlight mode: ${highlightMode}<br>` +
+        `Active: ${activeKind === "resolving" ? "resolving" : "non-resolving"}<br>` +
+        `Selected basis (${highlightMode}): ${subsetToString1Based(highlightBasisList)}<br>` +
+        collisionLine +
         `Diameter: ${formatDiameter(diameter)}<br>` +
         `Metric dimension (node): ${nodeRes.minDimension}<br>` +
         `Metric dimension (edge): ${edgeRes.minDimension}<br>` +
         `Metric dimension (mixed): ${mixedRes.minDimension}<br>` +
         `PDim (node): ${pdimRes.node}<br>` +
         `PDim (edge): ${pdimRes.edge}<br>` +
-        `PDim (mixed): ${pdimRes.mixed}<br>` +
-        `Highlight basis: ${subsetToString1Based(highlightBasisList)}<br>` +
-        `<br>` +
+        `PDim (mixed): ${pdimRes.mixed}<br>`;
+    const summaryVerbosePanels =
         renderResolvingSubsetsPanel("node", nodePageIndex, nodeRes) +
         renderNonResolvingSubsetsPanel("node", nodeNonResolvingPageIndex, nodeNonResolveRes) +
         `<br>` +
@@ -1277,8 +1743,16 @@ function renderAll(): void {
         renderNonResolvingSubsetsPanel("edge", edgeNonResolvingPageIndex, edgeNonResolveRes) +
         `<br>` +
         renderResolvingSubsetsPanel("mixed", mixedPageIndex, mixedRes) +
-        renderNonResolvingSubsetsPanel("mixed", mixedNonResolvingPageIndex, mixedNonResolveRes),
-    );
+        renderNonResolvingSubsetsPanel("mixed", mixedNonResolvingPageIndex, mixedNonResolveRes);
+    const summaryDetails =
+        `<details style="margin-top:8px;">` +
+        `<summary style="cursor:pointer;font-family:ui-monospace,Courier;color:var(--muted);">` +
+        `Resolving / non-resolving subset lists (per mode)` +
+        `</summary>` +
+        `<div style="margin-top:6px;">${summaryVerbosePanels}</div>` +
+        `</details>`;
+    renderSummary(graphText, edgeCount, summaryCompact + summaryDetails);
+    graphText.onclick = graphTextPageClick;
 }
 
 initAdj(n);
