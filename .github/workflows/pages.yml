@@ -24,6 +24,9 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Generate history CSV
+        run: bash ./get_last_commit_time.sh
+
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
@@ -73,9 +76,7 @@ jobs:
 
       - name: Prune build-only folders (reduce Pages artifact size)
         run: |
-          rm -rf lib/node_modules
-          rm -rf lib/tsl/wasm/wasm_out_ci
-          rm -rf lib/tsl/wasm/wasm_out_ci_emsdk506
+          rm -rf lib
 
       - name: Setup Pages
         uses: actions/configure-pages@v6.0.0

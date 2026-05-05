@@ -1,54 +1,55 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+OUTPUT_FILE="assets/history.csv"
+TMP_FILE="${OUTPUT_FILE}.tmp"
 
 echo "Getting last commit time of files tracked by git..."
 
-my_path=$(realpath "$0")
-my_dir=$(dirname "$my_path")
-workspace=$(dirname "$my_dir")
-history_repo=$workspace/website_history
+rm -f "$TMP_FILE"
+mkdir -p "$(dirname "$OUTPUT_FILE")"
 
-history_file="history.csv.tmp"
-absolute_history_file=$my_dir/$history_file
-history_file_target="$history_repo"/history.csv
+append_history_entries() {
+    local repo_dir="$1"
+    local path_prefix="${2:-}"
+    local file
 
-set -x
+    while IFS= read -r file; do
+        if [[ "$repo_dir" == "." && "$file" == "assets/history.csv" ]]; then
+            continue
+        fi
 
-cd "$history_repo" ||return
-git checkout main
-git pull
-cd -
+        local full_path="$file"
+        if [[ -n "$path_prefix" ]]; then
+            full_path="$path_prefix/$file"
+        fi
 
-rm -f "$history_file"
+        local last_commit_date
+        last_commit_date="$(git -C "$repo_dir" log -1 --format=%cs -- "$file")"
+        printf '%s,%s\n' "$full_path" "$last_commit_date" >> "$TMP_FILE"
+    done < <(git -C "$repo_dir" ls-files)
 
-# Get main repository files
-git_files=$(git ls-tree -r master --name-only)
+    if [[ -f "$repo_dir/.gitmodules" ]]; then
+        local submodule_path
+        while IFS= read -r submodule_path; do
+            [[ -z "$submodule_path" ]] && continue
+            if [[ ! -d "$repo_dir/$submodule_path" ]]; then
+                continue
+            fi
 
-# Process main repository files
-set +x
-for fn in $git_files
-do
-    echo -n "$fn," >> $history_file
-    git log -1 --format=%cs "$fn" >> $history_file
-done
+            local next_prefix="$submodule_path"
+            if [[ -n "$path_prefix" ]]; then
+                next_prefix="$path_prefix/$submodule_path"
+            fi
 
-# Process submodule files
-git submodule foreach --quiet --recursive "
-    echo \"$history_file\"
-    for file in \$(git ls-tree -r HEAD --name-only); do
-        echo  \"\$sm_path/\$file,\"
-        git log -1 --format=%cs \"\$file\"
-        echo -n \"\$sm_path/\$file,\" >> \"$absolute_history_file\"
-        git log -1 --format=%cs \"\$file\" >> \"$absolute_history_file\"
-    done
-"
+            append_history_entries "$repo_dir/$submodule_path" "$next_prefix"
+        done < <(git -C "$repo_dir" config --file "$repo_dir/.gitmodules" --get-regexp '^submodule\..*\.path$' | awk '{print $2}')
+    fi
+}
 
-set -x
-mv $history_file "$history_file_target"
+append_history_entries "."
 
-cd "$history_repo" || return
-git status
-git --no-pager diff "$history_file_target"
+mv "$TMP_FILE" "$OUTPUT_FILE"
 
-git add "$history_file_target"
-# this has no effect if nothing changed
-git commit -m "update history"
+echo "Wrote $OUTPUT_FILE"
