@@ -1923,10 +1923,11 @@ function renderAll(): void {
 
     // PDim will be computed by the worker, not blocking here
 
+    const metricKey = `${graphVersion}`;
     const resolveKey = `${graphVersion}:${nodePageIndex}:${edgePageIndex}:${mixedPageIndex}`;
     const nonResolveKey = `${graphVersion}:${nodeNonResolvingPageIndex}:${edgeNonResolvingPageIndex}:${mixedNonResolvingPageIndex}`;
 
-    if (cachedResolveKey !== resolveKey || !cachedNodeRes || cachedNonResolveKey !== nonResolveKey || !cachedPdimRes) {
+    if (cachedMetricKey !== metricKey || !cachedNodeRes || cachedNonResolveKey !== nonResolveKey || !cachedPdimRes) {
         if (!metricWorker) startMetricWorker(adj01, n, PAGE_SIZE, [nodePageIndex, 0, 0], [nodeNonResolvingPageIndex, 0, 0]);
         // show loading but keep tables
     }
