@@ -1360,6 +1360,7 @@ function renderMergedDistanceMatrix(
     basis: ReadonlySet<number>,
     rowColors?: ReadonlyMap<string, string> | null,
 ): void {
+    const columnCount = n + 1;
     clearTable(table);
     table.style.alignSelf = "center";
     table.style.textAlign = "center";
@@ -1376,6 +1377,17 @@ function renderMergedDistanceMatrix(
             cell.innerText = (j + 1).toString();
             styleHeaderCell(cell, basis.has(j));
         }
+    }
+
+    {
+        const gapRow = table.insertRow();
+        const gapCell = gapRow.insertCell();
+        gapCell.colSpan = columnCount;
+        gapCell.style.borderStyle = "none";
+        gapCell.style.height = "10px";
+        gapCell.style.padding = "0";
+        gapCell.style.background = "transparent";
+        gapCell.innerText = "";
     }
 
     for (let i = 0; i < n; i++) {
@@ -1397,6 +1409,17 @@ function renderMergedDistanceMatrix(
             const d = distFlat[i * n + j];
             cell.innerText = d === -1 ? "∞" : d.toString();
         }
+    }
+
+    {
+        const gapRow = table.insertRow();
+        const gapCell = gapRow.insertCell();
+        gapCell.colSpan = columnCount;
+        gapCell.style.borderStyle = "none";
+        gapCell.style.height = "10px";
+        gapCell.style.padding = "0";
+        gapCell.style.background = "transparent";
+        gapCell.innerText = "";
     }
 
     for (let ei = 0; ei < edges.length; ei++) {
@@ -1423,6 +1446,20 @@ function renderMergedDistanceMatrix(
         }
     }
 
+    {
+        const footer = table.insertRow();
+        for (let j = -1; j < n; j++) {
+            const cell = footer.insertCell();
+            if (j === -1) {
+                cell.style.borderStyle = "none";
+                cell.innerText = "";
+                continue;
+            }
+            cell.innerText = (j + 1).toString();
+            styleHeaderCell(cell, basis.has(j));
+        }
+    }
+
     for (const r of table.rows) {
         for (const cell of r.cells) {
             cell.style.fontSize = "12px";
@@ -1435,6 +1472,10 @@ function renderSummary(graphSummaryContainer: HTMLDivElement, edgeCount: number,
         `Graph on n=${n} vertices (undirected)<br>` +
         `Edges: ${edgeCount}<br>` +
         mdText;
+}
+
+function renderGraphText(graphTextContainer: HTMLDivElement): void {
+    graphTextContainer.innerText = "";
 }
 
 type ResolvingPagerPrefix = "r-node" | "r-edge" | "r-mixed";
@@ -1854,25 +1895,26 @@ function renderSummaryOnly(): void {
     const nonResolveKey = `${graphVersion}:${nodeNonResolvingPageIndex}:${edgeNonResolvingPageIndex}:${mixedNonResolvingPageIndex}`;
     // Only start worker if graph changed, not if pages changed
     if (cachedMetricKey !== metricKey || !cachedNodeRes || !cachedPdimRes) {
-        if (!metricWorker) startMetricWorker(adj01, n, PAGE_SIZE, [nodePageIndex, 0, 0], [nodeNonResolvingPageIndex, 0, 0]);
+        if (!metricWorker) startMetricWorker(adj01, n, PAGE_SIZE, [nodePageIndex, edgePageIndex, mixedPageIndex], [nodeNonResolvingPageIndex, edgeNonResolvingPageIndex, mixedNonResolvingPageIndex]);
     }
 
-    const nodeRes = cachedNodeRes || { minDimension: 0, smallestBasis: [], subsets: [], totalCount: 0, pageCount: 1, minSizeSubsets: [] };
-    const nodeNonRes = cachedNodeNonResolveRes || { subsets: [], totalCount: 0, pageCount: 1 };
-    const edgeRes = cachedEdgeRes || { minDimension: 0, smallestBasis: [], subsets: [], totalCount: 0, pageCount: 1, minSizeSubsets: [] };
-    const edgeNonRes = cachedEdgeNonResolveRes || { subsets: [], totalCount: 0, pageCount: 1 };
-    const mixedRes = cachedMixedRes || { minDimension: 0, smallestBasis: [], subsets: [], totalCount: 0, pageCount: 1, minSizeSubsets: [] };
-    const mixedNonRes = cachedMixedNonResolveRes || { subsets: [], totalCount: 0, pageCount: 1 };
+    const nodeRes = cachedNodeRes || { minDimension: 0, smallestBasis: [], subsets: [], truncated: false, minSizeSubsets: [], minSizeTruncated: false, totalCount: 0, pageCount: 1 };
+    const nodeNonRes = cachedNodeNonResolveRes || { subsets: [], truncated: false, totalCount: 0, pageCount: 1 };
+    const edgeRes = cachedEdgeRes || { minDimension: 0, smallestBasis: [], subsets: [], truncated: false, minSizeSubsets: [], minSizeTruncated: false, totalCount: 0, pageCount: 1 };
+    const edgeNonRes = cachedEdgeNonResolveRes || { subsets: [], truncated: false, totalCount: 0, pageCount: 1 };
+    const mixedRes = cachedMixedRes || { minDimension: 0, smallestBasis: [], subsets: [], truncated: false, minSizeSubsets: [], minSizeTruncated: false, totalCount: 0, pageCount: 1 };
+    const mixedNonRes = cachedMixedNonResolveRes || { subsets: [], truncated: false, totalCount: 0, pageCount: 1 };
     const pdimRes = cachedPdimRes || { node: "computing...", edge: "computing...", mixed: "computing..." };
 
     normalizeNonResolvingSelections(nodeNonRes, edgeNonRes, mixedNonRes);
 
+    renderGraphText(graphText);
     renderSummary(graphSummary, snapshot.basicInfo.edgeCount, buildGraphSummaryHtml({
         edgeCount: snapshot.basicInfo.edgeCount,
         distFlat: snapshot.distFlat,
         edges: snapshot.edges,
         isResolvingLoading: loadingAnimationVisible && (cachedMetricKey !== metricKey || !cachedNodeRes || cachedNonResolveKey !== nonResolveKey),
-        isPdimLoading: loadingAnimationVisible && (cachedPdimRes === null || cachedPdimKey !== `${graphVersion}`),
+        isPdimLoading: loadingAnimationVisible && (metricWorker !== null || cachedPdimRes === null || cachedPdimKey !== `${graphVersion}`),
         nodeRes,
         nodeNonRes,
         edgeRes,
@@ -1928,20 +1970,21 @@ function renderAll(): void {
     const nonResolveKey = `${graphVersion}:${nodeNonResolvingPageIndex}:${edgeNonResolvingPageIndex}:${mixedNonResolvingPageIndex}`;
 
     if (cachedMetricKey !== metricKey || !cachedNodeRes || cachedNonResolveKey !== nonResolveKey || !cachedPdimRes) {
-        if (!metricWorker) startMetricWorker(adj01, n, PAGE_SIZE, [nodePageIndex, 0, 0], [nodeNonResolvingPageIndex, 0, 0]);
+        if (!metricWorker) startMetricWorker(adj01, n, PAGE_SIZE, [nodePageIndex, edgePageIndex, mixedPageIndex], [nodeNonResolvingPageIndex, edgeNonResolvingPageIndex, mixedNonResolvingPageIndex]);
         // show loading but keep tables
     }
 
-    const nodeRes = cachedNodeRes || { minDimension: 0, smallestBasis: [], subsets: [], totalCount: 0, pageCount: 1, minSizeSubsets: [] };
-    const nodeNonRes = cachedNodeNonResolveRes || { subsets: [], totalCount: 0, pageCount: 1 };
-    const edgeRes = cachedEdgeRes || { minDimension: 0, smallestBasis: [], subsets: [], totalCount: 0, pageCount: 1, minSizeSubsets: [] };
-    const edgeNonRes = cachedEdgeNonResolveRes || { subsets: [], totalCount: 0, pageCount: 1 };
-    const mixedRes = cachedMixedRes || { minDimension: 0, smallestBasis: [], subsets: [], totalCount: 0, pageCount: 1, minSizeSubsets: [] };
-    const mixedNonRes = cachedMixedNonResolveRes || { subsets: [], totalCount: 0, pageCount: 1 };
+    const nodeRes = cachedNodeRes || { minDimension: 0, smallestBasis: [], subsets: [], truncated: false, minSizeSubsets: [], minSizeTruncated: false, totalCount: 0, pageCount: 1 };
+    const nodeNonRes = cachedNodeNonResolveRes || { subsets: [], truncated: false, totalCount: 0, pageCount: 1 };
+    const edgeRes = cachedEdgeRes || { minDimension: 0, smallestBasis: [], subsets: [], truncated: false, minSizeSubsets: [], minSizeTruncated: false, totalCount: 0, pageCount: 1 };
+    const edgeNonRes = cachedEdgeNonResolveRes || { subsets: [], truncated: false, totalCount: 0, pageCount: 1 };
+    const mixedRes = cachedMixedRes || { minDimension: 0, smallestBasis: [], subsets: [], truncated: false, minSizeSubsets: [], minSizeTruncated: false, totalCount: 0, pageCount: 1 };
+    const mixedNonRes = cachedMixedNonResolveRes || { subsets: [], truncated: false, totalCount: 0, pageCount: 1 };
     const pdimRes = cachedPdimRes || { node: "computing...", edge: "computing...", mixed: "computing..." };
 
     normalizeNonResolvingSelections(nodeNonRes, edgeNonRes, mixedNonRes);
 
+    renderGraphText(graphText);
     renderControls(controls, {
         nodePageCount: nodeRes.pageCount,
         edgePageCount: edgeRes.pageCount,
@@ -1985,7 +2028,7 @@ function renderAll(): void {
         distFlat,
         edges,
         isResolvingLoading: loadingAnimationVisible && (cachedMetricKey !== metricKey || !cachedNodeRes || cachedNonResolveKey !== nonResolveKey),
-        isPdimLoading: loadingAnimationVisible && (cachedPdimRes === null || cachedPdimKey !== `${graphVersion}`),
+        isPdimLoading: loadingAnimationVisible && (metricWorker !== null || cachedPdimRes === null || cachedPdimKey !== `${graphVersion}`),
         nodeRes,
         nodeNonRes,
         edgeRes,
