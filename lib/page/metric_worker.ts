@@ -21,15 +21,28 @@ function copyToHeap(HEAP32: Int32Array, data: Int32Array, offsetInInts: number) 
     for (let i = 0; i < data.length; i++) HEAP32[offsetInInts + i] = data[i];
 }
 
+function readCString(HEAPU8: Uint8Array, ptr: number, maxBytes: number): string {
+    let end = ptr;
+    const limit = ptr + maxBytes;
+    while (end < limit && HEAPU8[end] !== 0) {
+        end++;
+    }
+    const decoder = new TextDecoder();
+    return decoder.decode(HEAPU8.subarray(ptr, end));
+}
+
 self.onmessage = async (ev: MessageEvent) => {
     const msg = ev.data as any;
     if (msg && msg.cmd === 'start') {
         await ensureGraphModule();
         try {
             const m = moduleInstance;
+            const mode = msg.mode as number;
+            if (mode < 0 || mode > 2) throw new Error(`Invalid mode: ${mode}`);
+            
             // Detect WASM memory size: HEAP32.length * 4 = total bytes
             const wasmMemoryBytes = m.HEAP32.length * 4;
-            self.postMessage({ stage: 'init', progress: 5, wasmMemoryBytes });
+            self.postMessage({ stage: 'init', progress: 5, wasmMemoryBytes, mode });
             const cacheHandle = m._wasm_graph_resolving_subsets_cache_create();
             if (cacheHandle === 0) throw new Error('cache create failed');
 
@@ -49,11 +62,12 @@ self.onmessage = async (ev: MessageEvent) => {
                 }
                 const ok = m._wasm_graph_resolving_subsets_cache_set_graph(cacheHandle, msg.n, adjPtr, distPtr);
                 if (ok === 0) throw new Error('setGraph wasm call failed');
-            } finally {
+            } catch (err) {
                 m._free(adjPtr);
                 m._free(distPtr);
+                throw err;
             }
-            self.postMessage({ stage: 'graph_set', progress: 25 });
+            self.postMessage({ stage: 'graph_set', progress: 25, mode });
 
             const modeCount = 3;
             const pageListFlatMaxIntsPerMode = Math.max(1, msg.pageSize * (msg.n + 1));
@@ -88,7 +102,7 @@ self.onmessage = async (ev: MessageEvent) => {
             const minFlat3Ptr = m._malloc(bytesMinFlat3);
 
             if (!pageIndex3Ptr || !minDim3Ptr || !smallest3Ptr || !totalCount3Ptr || !pageCount3Ptr || !pageListCount3Ptr || !pageUsed3Ptr || !pageTrunc3Ptr || !pageFlat3Ptr || !minListCount3Ptr || !minUsed3Ptr || !minTrunc3Ptr || !minFlat3Ptr) {
-                self.postMessage({ error: 'malloc failed in worker' });
+                self.postMessage({ error: 'malloc failed in worker', mode });
                 return;
             }
 
@@ -119,7 +133,7 @@ self.onmessage = async (ev: MessageEvent) => {
                     minTrunc3Ptr
                 );
                 if (ok1 === 0) throw new Error('getPage wasm call failed');
-                self.postMessage({ stage: 'resolved_page', progress: 70 });
+                self.postMessage({ stage: 'resolved_page', progress: 70, mode });
 
                 const parseMode = (modeIdx: number) => {
                     const minDim = m.HEAP32[minDim3Ptr / 4 + modeIdx];
@@ -169,13 +183,8 @@ self.onmessage = async (ev: MessageEvent) => {
                     };
                 };
 
-                const allModesRes = {
-                    node: parseMode(0),
-                    edge: parseMode(1),
-                    mixed: parseMode(2)
-                };
-
-                self.postMessage({ stage: 'resolved_parsed', progress: 80, allModesRes });
+                const modeRes = parseMode(mode);
+                self.postMessage({ stage: 'resolved_parsed', progress: 80, mode, modeRes });
 
                 m.HEAP32[pageIndex3Ptr / 4] = Math.max(0, msg.nonResolvePageIndices[0] | 0);
                 m.HEAP32[pageIndex3Ptr / 4 + 1] = Math.max(0, msg.nonResolvePageIndices[1] | 0);
@@ -216,43 +225,31 @@ self.onmessage = async (ev: MessageEvent) => {
                     return { totalCount, pageCount, subsets, truncated };
                 };
 
-                const allModesNonResolveRes = {
-                    node: parseNonMode(0),
-                    edge: parseNonMode(1),
-                    mixed: parseNonMode(2)
-                };
+                const modeNonRes = parseNonMode(mode);
 
-                // Compute PDim using adj01 from msg
-                const pdimBytesAdj = msg.n * msg.n * 4;
-                const pdimBytesOut = 128 * 3;
-                const pdimAdjPtr = m._malloc(pdimBytesAdj);
-                const pdimOutPtr = m._malloc(pdimBytesOut);
-                const pdimRes: any = { node: "error", edge: "error", mixed: "error" };
-                if (pdimAdjPtr !== 0 && pdimOutPtr !== 0) {
-                    try {
-                        copyToHeap(m.HEAP32, adj01, pdimAdjPtr / 4);
-                        const ok = m._wasm_graph_pdim_all_modes(msg.n, pdimAdjPtr, pdimOutPtr, 128);
-                        if (ok) {
-                            const readStr = (offset: number) => {
-                                let result = "";
-                                for (let i = 0; i < 128; i++) {
-                                    const c = m.HEAP8[pdimOutPtr + offset + i];
-                                    if (c === 0) break;
-                                    result += String.fromCharCode(c);
-                                }
-                                return result;
-                            };
-                            pdimRes.node = readStr(0);
-                            pdimRes.edge = readStr(128);
-                            pdimRes.mixed = readStr(256);
-                        }
-                    } finally {
-                        if (pdimAdjPtr) m._free(pdimAdjPtr);
-                        if (pdimOutPtr) m._free(pdimOutPtr);
-                    }
+                // Compute pdim for this mode only
+                self.postMessage({ stage: 'computing_pdim', progress: 85, mode });
+                
+                const stride = 128;
+                const outPtr = m._malloc(stride);
+                if (outPtr === 0) throw new Error('malloc failed for pdim output');
+                
+                try {
+                    const ok = m._wasm_graph_pdim_mode(msg.n, adjPtr, mode | 0, outPtr, stride);
+                    if (!ok) throw new Error(`wasm_graph_pdim_mode failed for mode ${mode}`);
+                    const pdimStr = readCString(m.HEAPU8, outPtr, stride);
+                    self.postMessage({ 
+                        stage: 'done', 
+                        progress: 100, 
+                        mode,
+                        modeRes,
+                        modeNonRes,
+                        distFlat: distFlatOut, 
+                        pdimStr
+                    });
+                } finally {
+                    m._free(outPtr);
                 }
-
-                self.postMessage({ stage: 'done', progress: 100, allModesRes, allModesNonResolveRes, distFlat: distFlatOut, pdimRes });
             } finally {
                 m._free(pageIndex3Ptr);
                 m._free(minDim3Ptr);
@@ -267,6 +264,8 @@ self.onmessage = async (ev: MessageEvent) => {
                 m._free(minUsed3Ptr);
                 m._free(minTrunc3Ptr);
                 m._free(minFlat3Ptr);
+                m._free(adjPtr);
+                m._free(distPtr);
                 m._wasm_graph_resolving_subsets_cache_destroy(cacheHandle);
             }
         } catch (err: any) {
@@ -274,7 +273,8 @@ self.onmessage = async (ev: MessageEvent) => {
             const isOOM = errorMsg.includes('OOM') || errorMsg.includes('out of memory') || errorMsg.includes('Aborted');
             self.postMessage({ 
                 error: errorMsg,
-                isOOM: isOOM
+                isOOM: isOOM,
+                mode: ev.data?.mode
             });
         }
     } else if (msg && msg.cmd === 'cancel') {

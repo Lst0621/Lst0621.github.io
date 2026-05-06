@@ -6,6 +6,7 @@ import {
     wasmGraphResolvingSubsetsCacheCreate,
 } from "../tsl/wasm/ts/wasm_api_graph_demo";
 
+
 let n = 8;
 const PAGE_SIZE = 50;
 type HighlightMode = "node" | "edge" | "mixed";
@@ -37,6 +38,11 @@ type PdimResult = {
     edge: string;
     mixed: string;
 };
+const DEFAULT_PDIM_RES: PdimResult = {
+    node: "",
+    edge: "",
+    mixed: "",
+};
 let graphVersion = 0;
 let nodePageIndex = 0;
 let edgePageIndex = 0;
@@ -54,7 +60,7 @@ let cachedMixedRes: ResolveResult | null = null;
 let cachedNodeNonResolveRes: NonResolveResult | null = null;
 let cachedEdgeNonResolveRes: NonResolveResult | null = null;
 let cachedMixedNonResolveRes: NonResolveResult | null = null;
-let cachedPdimRes: PdimResult | null = null;
+let cachedPdimRes: Partial<PdimResult> | null = null;
 let cachedDistKey = "";
 let cachedDistFlat: number[] | null = null;
 let cachedGraphSnapshotVersion = -1;
@@ -156,11 +162,16 @@ function updateSummaryAnimationOnly(): void {
     }
 }
 
-// Metric computation worker (for resolving / non-resolving page enumeration)
-let metricWorker: Worker | null = null;
+// Metric computation workers (3 workers, one per mode: 0=node, 1=edge, 2=mixed)
+let metricWorkers: Worker[] = [null, null, null] as (Worker | null)[];
+let metricWorkersCompleted = 0;
 let wasmMemorySizeBytes = 0; // Detected at runtime
 let graphIoText = "";
 let graphIoStatus = "";
+function hasRunningMetricWorkers(): boolean {
+    return metricWorkers.some((w) => w !== null);
+}
+
 let graphIoIsEditing = false;
 
 function startMetricWorker(
@@ -170,84 +181,120 @@ function startMetricWorker(
     resolvePageIndices: [number, number, number],
     nonResolvePageIndices: [number, number, number],
 ) {
-    if (metricWorker) {
-        try { metricWorker.terminate(); } catch (_) {}
-        metricWorker = null;
+    // Terminate existing workers
+    for (let i = 0; i < 3; i++) {
+        if (metricWorkers[i]) {
+            try { metricWorkers[i]?.terminate(); } catch (_) {}
+            metricWorkers[i] = null;
+        }
     }
+    metricWorkersCompleted = 0;
+    console.time("[ParallelWorkers] TotalTime");
 
-    metricWorker = new Worker('/assets/js/page/metric_worker.js', { type: 'module' });
-    
     // Start animation refresh while computing - only update animation frames, not full page
     startLoadingAnimationDelay();
     if (animationRefreshInterval) clearInterval(animationRefreshInterval);
     animationRefreshInterval = setInterval(() => updateSummaryAnimationOnly(), 100) as unknown as number;
     
-    metricWorker.onmessage = (e) => {
-        const d = e.data as any;
-        if (d.wasmMemoryBytes && wasmMemorySizeBytes === 0) {
-            wasmMemorySizeBytes = d.wasmMemoryBytes;
-        }
-        if (d.error) {
-            console.error('metric worker error:', d.error);
-            const isOOM = d.isOOM || d.error.includes('OOM') || d.error.includes('out of memory');
-            graphIoStatus = isOOM ? 'Worker OOM: Try smaller graph' : `Worker error: ${d.error}`;
-            metricWorker?.terminate();
-            metricWorker = null;
-            stopLoadingAnimationDelay();
-            if (animationRefreshInterval) {
-                clearInterval(animationRefreshInterval);
-                animationRefreshInterval = null;
+    // Spawn 3 workers, one for each mode
+    for (let mode = 0; mode < 3; mode++) {
+        const worker = new Worker('/assets/js/page/metric_worker.js', { type: 'module' });
+        metricWorkers[mode] = worker;
+        
+        worker.onmessage = (e) => {
+            const d = e.data as any;
+            if (d.wasmMemoryBytes && wasmMemorySizeBytes === 0) {
+                wasmMemorySizeBytes = d.wasmMemoryBytes;
             }
-            renderAll();
-            return;
-        }
-        if (d.stage === 'resolved_parsed' && d.allModesRes) {
-            cachedNodeRes = d.allModesRes.node;
-            cachedEdgeRes = d.allModesRes.edge;
-            cachedMixedRes = d.allModesRes.mixed;
-            cachedMetricKey = `${graphVersion}`;
-            cachedResolveKey = `${graphVersion}:${resolvePageIndices[0]}:${resolvePageIndices[1]}:${resolvePageIndices[2]}`;
-            renderAll();
-        }
-        if (d.stage === 'done' && d.allModesNonResolveRes) {
-            cachedNodeNonResolveRes = d.allModesNonResolveRes.node;
-            cachedEdgeNonResolveRes = d.allModesNonResolveRes.edge;
-            cachedMixedNonResolveRes = d.allModesNonResolveRes.mixed;
-            cachedNonResolveKey = `${graphVersion}:${nonResolvePageIndices[0]}:${nonResolvePageIndices[1]}:${nonResolvePageIndices[2]}`;
-            if (Array.isArray(d.distFlat)) {
-                cachedDistFlat = d.distFlat as number[];
-                cachedDistKey = `${graphVersion}`;
+            if (d.error) {
+                console.error(`metric worker mode ${d.mode} error:`, d.error);
+                const isOOM = d.isOOM || d.error.includes('OOM') || d.error.includes('out of memory');
+                graphIoStatus = isOOM ? 'Worker OOM: Try smaller graph' : `Worker error: ${d.error}`;
+                // Terminate all workers on error
+                for (let i = 0; i < 3; i++) {
+                    if (metricWorkers[i]) {
+                        try { metricWorkers[i]?.terminate(); } catch (_) {}
+                        metricWorkers[i] = null;
+                    }
+                }
+                stopLoadingAnimationDelay();
+                if (animationRefreshInterval) {
+                    clearInterval(animationRefreshInterval);
+                    animationRefreshInterval = null;
+                }
+                renderAll();
+                return;
             }
-            if (d.pdimRes) {
-                cachedPdimRes = d.pdimRes;
-                cachedPdimKey = `${graphVersion}`;
+            
+            const modeIdx = d.mode as number;
+            const modeNames = ['node', 'edge', 'mixed'] as const;
+            const modeName = modeNames[modeIdx];
+            
+            if (d.stage === 'resolved_parsed' && d.modeRes) {
+                if (modeName === 'node') cachedNodeRes = d.modeRes;
+                else if (modeName === 'edge') cachedEdgeRes = d.modeRes;
+                else if (modeName === 'mixed') cachedMixedRes = d.modeRes;
+                cachedMetricKey = `${graphVersion}`;
+                cachedResolveKey = `${graphVersion}:${resolvePageIndices[0]}:${resolvePageIndices[1]}:${resolvePageIndices[2]}`;
+                renderAll();
             }
-        }
-        if (d.stage === 'done') {
-            try { metricWorker?.terminate(); } catch (_) {}
-            metricWorker = null;
-            stopLoadingAnimationDelay();
-            if (animationRefreshInterval) {
-                clearInterval(animationRefreshInterval);
-                animationRefreshInterval = null;
+            
+            if (d.stage === 'done' && d.modeNonRes) {
+                if (modeName === 'node') cachedNodeNonResolveRes = d.modeNonRes;
+                else if (modeName === 'edge') cachedEdgeNonResolveRes = d.modeNonRes;
+                else if (modeName === 'mixed') cachedMixedNonResolveRes = d.modeNonRes;
+                
+                cachedNonResolveKey = `${graphVersion}:${nonResolvePageIndices[0]}:${nonResolvePageIndices[1]}:${nonResolvePageIndices[2]}`;
+                
+                // First worker to complete: store distFlat
+                if (Array.isArray(d.distFlat) && !cachedDistFlat) {
+                    cachedDistFlat = d.distFlat as number[];
+                    cachedDistKey = `${graphVersion}`;
+                }
+                
+                // Store pdim result for this mode
+                if (d.pdimStr) {
+                    if (!cachedPdimRes) cachedPdimRes = {};
+                    cachedPdimRes[modeName] = d.pdimStr;
+                    cachedPdimKey = `${graphVersion}`;
+                }
+                
+                metricWorkersCompleted++;
+                
+                // All 3 workers done: cleanup and final render
+                if (metricWorkersCompleted === 3) {
+                    for (let i = 0; i < 3; i++) {
+                        if (metricWorkers[i]) {
+                            try { metricWorkers[i]?.terminate(); } catch (_) {}
+                            metricWorkers[i] = null;
+                        }
+                    }
+                    stopLoadingAnimationDelay();
+                    if (animationRefreshInterval) {
+                        clearInterval(animationRefreshInterval);
+                        animationRefreshInterval = null;
+                    }
+                    console.timeEnd("[ParallelWorkers] TotalTime");
+                    graphIoStatus = '';
+                }
             }
-            graphIoStatus = '';
+            
+            // Progressive rendering after each stage
             renderAll();
-        } else {
-            // Partial update
-            renderAll();
-        }
-    };
+        };
 
-    metricWorker.postMessage({
-        cmd: 'start',
-        adj01,
-        n: nVerts,
-        pageSize,
-        resolvePageIndices,
-        nonResolvePageIndices,
-    });
+        worker.postMessage({
+            cmd: 'start',
+            adj01,
+            n: nVerts,
+            pageSize,
+            resolvePageIndices,
+            nonResolvePageIndices,
+            mode,
+        });
+    }
 }
+
 
 function ensureWasmResolveCache(): ReturnType<typeof wasmGraphResolvingSubsetsCacheCreate> {
     if (wasmResolveCache) {
@@ -1615,8 +1662,8 @@ function formatDiameter(diameter: number): string {
     return diameter < 0 ? "∞" : diameter.toString();
 }
 
-function formatPdimDisplay(raw: string): string {
-    const s = raw.trim();
+function formatPdimDisplay(raw: string | undefined | null): string {
+    const s = String(raw ?? "").trim();
     if (!s.includes("/")) return s;
     const parts = s.split("/");
     if (parts.length !== 2) return s;
@@ -1843,10 +1890,11 @@ function buildGraphSummaryHtml(args: {
     const isComputingResolving = args.isResolvingLoading;
     const isComputingPdim = args.isPdimLoading;
     // PDim uses its own loading symbol cycle so the MathJax fraction area feels visually distinct.
-    const pdimNodeDisplay = isComputingPdim ? getLoadingAnimation('pdim') : formatPdimDisplay(args.pdimRes.node);
-    const pdimEdgeDisplay = isComputingPdim ? getLoadingAnimation('pdim') : formatPdimDisplay(args.pdimRes.edge);
-    const pdimMixedDisplay = isComputingPdim ? getLoadingAnimation('pdim') : formatPdimDisplay(args.pdimRes.mixed);
-    const selectedBasisDisplay = formatSelectedBasisPlaceholder(isComputingResolving, highlightBasisList, loadingAnimationVisible);
+    const pdimNodeDisplay = formatComputingPlaceholder(args.pdimRes.node === "", formatPdimDisplay(args.pdimRes.node), 'pdim', loadingAnimationVisible);
+    const pdimEdgeDisplay = formatComputingPlaceholder(args.pdimRes.edge === "", formatPdimDisplay(args.pdimRes.edge), 'pdim', loadingAnimationVisible);
+    const pdimMixedDisplay = formatComputingPlaceholder(args.pdimRes.mixed === "", formatPdimDisplay(args.pdimRes.mixed), 'pdim', loadingAnimationVisible);
+    const isModeComputing = highlightMode === "node" ? args.nodeRes.minDimension === 0 : highlightMode === "edge" ? args.edgeRes.minDimension === 0 : args.mixedRes.minDimension === 0;
+    const selectedBasisDisplay = formatSelectedBasisPlaceholder(isModeComputing, highlightBasisList, loadingAnimationVisible);
 
     const summaryCompact =
         `Highlight mode: ${highlightMode}<br>` +
@@ -1854,9 +1902,9 @@ function buildGraphSummaryHtml(args: {
         `Selected basis (${highlightMode}): ${selectedBasisDisplay}<br>` +
         collisionLine +
         `Diameter: ${formatDiameter(diameter)}<br>` +
-        `Metric dimension (node): ${formatComputingPlaceholder(isComputingResolving, args.nodeRes.minDimension, 'metrics', loadingAnimationVisible)}<br>` +
-        `Metric dimension (edge): ${formatComputingPlaceholder(isComputingResolving, args.edgeRes.minDimension, 'metrics', loadingAnimationVisible)}<br>` +
-        `Metric dimension (mixed): ${formatComputingPlaceholder(isComputingResolving, args.mixedRes.minDimension, 'metrics', loadingAnimationVisible)}<br>` +
+        `Metric dimension (node): ${formatComputingPlaceholder(args.nodeRes.minDimension === 0, args.nodeRes.minDimension, 'metrics', loadingAnimationVisible)}<br>` +
+        `Metric dimension (edge): ${formatComputingPlaceholder(args.edgeRes.minDimension === 0, args.edgeRes.minDimension, 'metrics', loadingAnimationVisible)}<br>` +
+        `Metric dimension (mixed): ${formatComputingPlaceholder(args.mixedRes.minDimension === 0, args.mixedRes.minDimension, 'metrics', loadingAnimationVisible)}<br>` +
         `PDim (node): <span style="display:inline-block;min-height:1.2em;">${pdimNodeDisplay}</span><br>` +
         `PDim (edge): <span style="display:inline-block;min-height:1.2em;">${pdimEdgeDisplay}</span><br>` +
         `PDim (mixed): <span style="display:inline-block;min-height:1.2em;">${pdimMixedDisplay}</span><br>`;
@@ -1894,8 +1942,9 @@ function renderSummaryOnly(): void {
     const resolveKey = `${graphVersion}:${nodePageIndex}:${edgePageIndex}:${mixedPageIndex}`;
     const nonResolveKey = `${graphVersion}:${nodeNonResolvingPageIndex}:${edgeNonResolvingPageIndex}:${mixedNonResolvingPageIndex}`;
     // Only start worker if graph changed, not if pages changed
-    if (cachedMetricKey !== metricKey || !cachedNodeRes || !cachedPdimRes) {
-        if (!metricWorker) startMetricWorker(adj01, n, PAGE_SIZE, [nodePageIndex, edgePageIndex, mixedPageIndex], [nodeNonResolvingPageIndex, edgeNonResolvingPageIndex, mixedNonResolvingPageIndex]);
+    const hasActiveWorkers = hasRunningMetricWorkers();
+    if ((cachedMetricKey !== metricKey || !cachedNodeRes || !cachedPdimRes) && !hasActiveWorkers) {
+        startMetricWorker(adj01, n, PAGE_SIZE, [nodePageIndex, edgePageIndex, mixedPageIndex], [nodeNonResolvingPageIndex, edgeNonResolvingPageIndex, mixedNonResolvingPageIndex]);
     }
 
     const nodeRes = cachedNodeRes || { minDimension: 0, smallestBasis: [], subsets: [], truncated: false, minSizeSubsets: [], minSizeTruncated: false, totalCount: 0, pageCount: 1 };
@@ -1904,7 +1953,7 @@ function renderSummaryOnly(): void {
     const edgeNonRes = cachedEdgeNonResolveRes || { subsets: [], truncated: false, totalCount: 0, pageCount: 1 };
     const mixedRes = cachedMixedRes || { minDimension: 0, smallestBasis: [], subsets: [], truncated: false, minSizeSubsets: [], minSizeTruncated: false, totalCount: 0, pageCount: 1 };
     const mixedNonRes = cachedMixedNonResolveRes || { subsets: [], truncated: false, totalCount: 0, pageCount: 1 };
-    const pdimRes = cachedPdimRes || { node: "computing...", edge: "computing...", mixed: "computing..." };
+    const pdimRes: PdimResult = { ...DEFAULT_PDIM_RES, ...(cachedPdimRes ?? {}) };
 
     normalizeNonResolvingSelections(nodeNonRes, edgeNonRes, mixedNonRes);
 
@@ -1914,7 +1963,7 @@ function renderSummaryOnly(): void {
         distFlat: snapshot.distFlat,
         edges: snapshot.edges,
         isResolvingLoading: loadingAnimationVisible && (cachedMetricKey !== metricKey || !cachedNodeRes || cachedNonResolveKey !== nonResolveKey),
-        isPdimLoading: loadingAnimationVisible && (metricWorker !== null || cachedPdimRes === null || cachedPdimKey !== `${graphVersion}`),
+        isPdimLoading: loadingAnimationVisible && (hasRunningMetricWorkers() || cachedPdimRes === null || cachedPdimKey !== `${graphVersion}`),
         nodeRes,
         nodeNonRes,
         edgeRes,
@@ -1968,11 +2017,11 @@ function renderAll(): void {
     const metricKey = `${graphVersion}`;
     const resolveKey = `${graphVersion}:${nodePageIndex}:${edgePageIndex}:${mixedPageIndex}`;
     const nonResolveKey = `${graphVersion}:${nodeNonResolvingPageIndex}:${edgeNonResolvingPageIndex}:${mixedNonResolvingPageIndex}`;
-
-    if (cachedMetricKey !== metricKey || !cachedNodeRes || cachedNonResolveKey !== nonResolveKey || !cachedPdimRes) {
-        if (!metricWorker) startMetricWorker(adj01, n, PAGE_SIZE, [nodePageIndex, edgePageIndex, mixedPageIndex], [nodeNonResolvingPageIndex, edgeNonResolvingPageIndex, mixedNonResolvingPageIndex]);
-        // show loading but keep tables
+    const hasActiveWorkers = hasRunningMetricWorkers();
+    if ((cachedMetricKey !== metricKey || !cachedNodeRes || cachedNonResolveKey !== nonResolveKey || !cachedPdimRes) && !hasActiveWorkers) {
+        startMetricWorker(adj01, n, PAGE_SIZE, [nodePageIndex, edgePageIndex, mixedPageIndex], [nodeNonResolvingPageIndex, edgeNonResolvingPageIndex, mixedNonResolvingPageIndex]);
     }
+        // show loading but keep tables
 
     const nodeRes = cachedNodeRes || { minDimension: 0, smallestBasis: [], subsets: [], truncated: false, minSizeSubsets: [], minSizeTruncated: false, totalCount: 0, pageCount: 1 };
     const nodeNonRes = cachedNodeNonResolveRes || { subsets: [], truncated: false, totalCount: 0, pageCount: 1 };
@@ -1980,7 +2029,7 @@ function renderAll(): void {
     const edgeNonRes = cachedEdgeNonResolveRes || { subsets: [], truncated: false, totalCount: 0, pageCount: 1 };
     const mixedRes = cachedMixedRes || { minDimension: 0, smallestBasis: [], subsets: [], truncated: false, minSizeSubsets: [], minSizeTruncated: false, totalCount: 0, pageCount: 1 };
     const mixedNonRes = cachedMixedNonResolveRes || { subsets: [], truncated: false, totalCount: 0, pageCount: 1 };
-    const pdimRes = cachedPdimRes || { node: "computing...", edge: "computing...", mixed: "computing..." };
+    const pdimRes: PdimResult = { ...DEFAULT_PDIM_RES, ...(cachedPdimRes ?? {}) };
 
     normalizeNonResolvingSelections(nodeNonRes, edgeNonRes, mixedNonRes);
 
@@ -2028,7 +2077,7 @@ function renderAll(): void {
         distFlat,
         edges,
         isResolvingLoading: loadingAnimationVisible && (cachedMetricKey !== metricKey || !cachedNodeRes || cachedNonResolveKey !== nonResolveKey),
-        isPdimLoading: loadingAnimationVisible && (metricWorker !== null || cachedPdimRes === null || cachedPdimKey !== `${graphVersion}`),
+        isPdimLoading: loadingAnimationVisible && (hasRunningMetricWorkers() || cachedPdimRes === null || cachedPdimKey !== `${graphVersion}`),
         nodeRes,
         nodeNonRes,
         edgeRes,
