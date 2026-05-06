@@ -43,7 +43,7 @@ jobs:
         uses: emscripten-core/setup-emsdk@v15
         with:
           version: latest
-          no-cache: true
+          actions-cache-folder: emsdk-cache
 
       - name: C++ unit tests (Google Test)
         run: |
