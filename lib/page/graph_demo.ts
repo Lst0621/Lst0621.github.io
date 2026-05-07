@@ -6,6 +6,8 @@ import {
     wasmGraphResolvingSubsetsCacheCreate,
 } from "../tsl/wasm/ts/wasm_api_graph_demo";
 
+void wasmGraphPdimAllModes;
+
 
 let n = 8;
 const PAGE_SIZE = 50;
@@ -70,6 +72,10 @@ let cachedGraphBasicInfo: { edgeCount: number; diameter: number } | null = null;
 let cachedGraphDistFlat: number[] | null = null;
 let wasmResolveCache: ReturnType<typeof wasmGraphResolvingSubsetsCacheCreate> | null = null;
 let wasmResolveCacheGraphVersion = -1;
+
+void wasmResolveCache;
+void cachedResolveKey;
+void wasmResolveCacheGraphVersion;
 // Animated loading frames
 const LOADING_FRAMES_METRICS = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
 const LOADING_FRAMES_BASIS = ['⠁', '⠂', '⠄', '⡀', '⢀', '⠠', '⠐', '⠈'];
@@ -163,7 +169,7 @@ function updateSummaryAnimationOnly(): void {
 }
 
 // Metric computation workers (3 workers, one per mode: 0=node, 1=edge, 2=mixed)
-let metricWorkers: Worker[] = [null, null, null] as (Worker | null)[];
+let metricWorkers: Array<Worker | null> = [null, null, null];
 let metricWorkersCompleted = 0;
 let wasmMemorySizeBytes = 0; // Detected at runtime
 let graphIoText = "";
@@ -184,7 +190,7 @@ function startMetricWorker(
     // Terminate existing workers
     for (let i = 0; i < 3; i++) {
         if (metricWorkers[i]) {
-            try { metricWorkers[i]?.terminate(); } catch (_) {}
+            try { metricWorkers[i]?.terminate(); } catch {}
             metricWorkers[i] = null;
         }
     }
@@ -213,7 +219,7 @@ function startMetricWorker(
                 // Terminate all workers on error
                 for (let i = 0; i < 3; i++) {
                     if (metricWorkers[i]) {
-                        try { metricWorkers[i]?.terminate(); } catch (_) {}
+                        try { metricWorkers[i]?.terminate(); } catch {}
                         metricWorkers[i] = null;
                     }
                 }
@@ -265,7 +271,7 @@ function startMetricWorker(
                 if (metricWorkersCompleted === 3) {
                     for (let i = 0; i < 3; i++) {
                         if (metricWorkers[i]) {
-                            try { metricWorkers[i]?.terminate(); } catch (_) {}
+                            try { metricWorkers[i]?.terminate(); } catch {}
                             metricWorkers[i] = null;
                         }
                     }
@@ -295,23 +301,6 @@ function startMetricWorker(
     }
 }
 
-
-function ensureWasmResolveCache(): ReturnType<typeof wasmGraphResolvingSubsetsCacheCreate> {
-    if (wasmResolveCache) {
-        return wasmResolveCache;
-    }
-    wasmResolveCache = wasmGraphResolvingSubsetsCacheCreate();
-    if (typeof window !== "undefined") {
-        window.addEventListener("beforeunload", () => {
-            if (wasmResolveCache) {
-                wasmResolveCache.free();
-                wasmResolveCache = null;
-                wasmResolveCacheGraphVersion = -1;
-            }
-        });
-    }
-    return wasmResolveCache;
-}
 
 // Undirected adjacency: keep adj[i][j] === adj[j][i].
 let adj: boolean[][] = [];
@@ -1295,16 +1284,6 @@ function drawGraph(canvas: HTMLCanvasElement, basis: ReadonlySet<number>, distFl
     }
 }
 
-function adjToAdj01Flat(): number[] {
-    const flat: number[] = [];
-    for (let i = 0; i < n; i++) {
-        for (let j = 0; j < n; j++) {
-            flat.push(adj[i][j] ? 1 : 0);
-        }
-    }
-    return flat;
-}
-
 function styleHeaderCell(cell: HTMLTableCellElement, isBasis: boolean): void {
     cell.style.background = isBasis ? theme.basisHeaderBg : theme.headerBg;
     cell.style.color = isBasis ? theme.basisHeaderText : theme.headerText;
@@ -1894,6 +1873,8 @@ function buildGraphSummaryHtml(args: {
         : "";
     const isComputingResolving = args.isResolvingLoading;
     const isComputingPdim = args.isPdimLoading;
+    void isComputingResolving;
+    void isComputingPdim;
     // PDim uses its own loading symbol cycle so the MathJax fraction area feels visually distinct.
     const pdimNodeDisplay = formatComputingPlaceholder(args.pdimRes.node === "", formatPdimDisplay(args.pdimRes.node), 'pdim', loadingAnimationVisible);
     const pdimEdgeDisplay = formatComputingPlaceholder(args.pdimRes.edge === "", formatPdimDisplay(args.pdimRes.edge), 'pdim', loadingAnimationVisible);
@@ -1946,6 +1927,7 @@ function renderSummaryOnly(): void {
     const metricKey = `${graphVersion}`;
     const resolveKey = `${graphVersion}:${nodePageIndex}:${edgePageIndex}:${mixedPageIndex}`;
     const nonResolveKey = `${graphVersion}:${nodeNonResolvingPageIndex}:${edgeNonResolvingPageIndex}:${mixedNonResolvingPageIndex}`;
+    void resolveKey;
     // Only start worker if graph changed, not if pages changed
     const hasActiveWorkers = hasRunningMetricWorkers();
     if ((cachedMetricKey !== metricKey || !cachedNodeRes || cachedNonResolveKey !== nonResolveKey || !cachedPdimRes) && !hasActiveWorkers) {
@@ -2022,6 +2004,7 @@ function renderAll(): void {
     const metricKey = `${graphVersion}`;
     const resolveKey = `${graphVersion}:${nodePageIndex}:${edgePageIndex}:${mixedPageIndex}`;
     const nonResolveKey = `${graphVersion}:${nodeNonResolvingPageIndex}:${edgeNonResolvingPageIndex}:${mixedNonResolvingPageIndex}`;
+    void resolveKey;
     const hasActiveWorkers = hasRunningMetricWorkers();
     if ((cachedMetricKey !== metricKey || !cachedNodeRes || cachedNonResolveKey !== nonResolveKey || !cachedPdimRes) && !hasActiveWorkers) {
         startMetricWorker(adj01, n, PAGE_SIZE, [nodePageIndex, edgePageIndex, mixedPageIndex], [nodeNonResolvingPageIndex, edgeNonResolvingPageIndex, mixedNonResolvingPageIndex]);

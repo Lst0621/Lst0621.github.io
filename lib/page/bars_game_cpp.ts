@@ -4,7 +4,6 @@
 import {
     modulePromise,
     barsGameCreate,
-    barsGameDestroy,
     barsGameSetSeed,
     barsGameInit,
     barsGameGetState,
@@ -85,6 +84,7 @@ function drawBars(
         return;
     }
     const { barWidth, gap, scale } = barLayout(width, height, n);
+    void scale;
     const fullHeight = height;
     for (let i = 0; i < n; i++) {
         const bx = x + gap + i * (barWidth + gap);
@@ -115,6 +115,7 @@ function drawBarsWithDiff(
         return;
     }
     const { barWidth, gap, scale } = barLayout(width, height, n);
+    void scale;
     const fullHeight = height;
     const bottom = height;
     for (let i = 0; i < n; i++) {
@@ -236,13 +237,7 @@ function updateButtonText(): void {
     }
 }
 
-function wouldChoiceEndGame(future: number[]): boolean {
-    if (future.length === 0) {
-        return false;
-    }
-    const maxVal = barsGameMaxVal();
-    return future.some((v) => v === 0 || v === maxVal);
-}
+
 
 function draw(): void {
     const canvas = getCanvas();

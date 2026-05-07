@@ -21,8 +21,11 @@ export function update_table() {
         (a: number[][], b: number[][]) => matrix_multiply_zn(a, b, m),
         matrix_to_cell,
         always("lightblue"),
-        (a, b, c) =>
-            (array_eq_2d(c, [[1, 0], [0, 1]])) ? "lightgreen" : "lightblue"
+        (a, b, c) => {
+            void a;
+            void b;
+            return (array_eq_2d(c, [[1, 0], [0, 1]])) ? "lightgreen" : "lightblue";
+        }
     )
 }
 

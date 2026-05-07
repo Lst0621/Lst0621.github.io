@@ -42,7 +42,7 @@ export function draw() {
     }
 
     draw_table(tip_table, tips, columns_text, get_element, (x: number) => x.toString() + "%", x => x, x => x.toFixed(2).toString(),
-        (row: number) => (row % 2 == 0 ? "lightgreen" : "white"), always("lightyellow"), (row, col) => row % 2 == 0 ? "lightblue" : "white");
+        (row: number) => (row % 2 == 0 ? "lightgreen" : "white"), always("lightyellow"), row => row % 2 == 0 ? "lightblue" : "white");
 }
 
 document.addEventListener('keydown', (event: KeyboardEvent) => {

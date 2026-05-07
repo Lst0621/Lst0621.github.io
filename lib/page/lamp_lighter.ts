@@ -58,6 +58,7 @@ class LampLighterGame {
     greedy_timer: number | null; // Timer ID for greedy mode actions (renamed from random_timer)
 
     constructor(map_size: number = 3) {  // Start with 3x3 grid at level 1
+        void map_size;
         this.level = 1;
         this.map_size = this.get_level_map_size();  // Set map size based on level
         this.lamp_status = create_2d_array(this.map_size, this.map_size, 0);
@@ -429,6 +430,7 @@ class LampLighterGame {
             const wrapper = document.getElementById('game-wrapper');
             if (canvas && wrapper) {
                 const cellWidth = Math.floor(canvas.width / this.map_size);
+                void cellWidth;
                 wrapper.style.width = canvas.width + 'px';
                 wrapper.style.height = canvas.height + 'px';
             }

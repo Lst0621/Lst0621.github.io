@@ -50,6 +50,7 @@ function get_y(x: number, s: number) {
 }
 
 export function increment(sz: number) {
+    void sz;
     if (s_para < 100) {
         s_para += 5
     }
@@ -57,6 +58,7 @@ export function increment(sz: number) {
 }
 
 export function decrement(sz: number) {
+    void sz;
     if (s_para > 0) {
         s_para -= 5
     }

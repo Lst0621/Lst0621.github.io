@@ -1,6 +1,5 @@
 import {
     cat_subseq_of_blocklist,
-    concat_same_string_lists_leq_n_times,
     get_all_prefixes, get_all_subseq_for_blocks,
     get_alphabet_from_strings, get_regex_for_disallowed_sub_seq, sub_empty_with_ep, subseq_remove_short
 } from "../tsl/lang/string";
@@ -26,14 +25,12 @@ function update() {
     let s1 = subs[0];
     let s2 = subs.length == 1 ? s1 : subs[1]
     let disallowed = subs
-    let l = Math.max(s1.length, s2.length);
     let alphabet = get_alphabet_from_strings(subs);
     console.log(alphabet)
 
     span.innerHTML = "Disallowed subsequences: " + disallowed + "<br>"
     span.innerHTML += "Regex: " + get_regex_for_disallowed_sub_seq(disallowed) + "<br>"
 
-    let all_sub_seq = concat_same_string_lists_leq_n_times(alphabet, l)
     // let allowed_seq = Array.from(all_sub_seq).filter(x => !disallowed.includes(x))
     // span2.innerHTML += "Allowed subsequences: " + allowed_seq + "<br>"
 

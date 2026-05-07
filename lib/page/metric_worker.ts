@@ -1,7 +1,5 @@
 /// <reference lib="webworker" />
 
-declare const self: DedicatedWorkerGlobalScope & typeof globalThis;
-
 let moduleInstance: any = null;
 let modulePromise: Promise<any> | null = null;
 

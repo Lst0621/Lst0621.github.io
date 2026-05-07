@@ -60,10 +60,10 @@ canvas.addEventListener('mousemove', e => {
     mouse_y = e.offsetY
     // console.log(mouse_x, mouse_y)
 })
-canvas.addEventListener('mouseleave', e => {
+canvas.addEventListener('mouseleave', () => {
     mouse_on_canvas = false
 })
-canvas.addEventListener('mouseenter', e => {
+canvas.addEventListener('mouseenter', () => {
     mouse_on_canvas = true
 })
 

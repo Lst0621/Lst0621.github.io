@@ -33,26 +33,6 @@ function characteristicPolyInT(coeffs: number[], varName: string): string {
     return terms.join(" ").replace(/^\+\s*/, "").replace(/\s+\+\s+/g, " + ").replace(/\s+-\s+/g, " - ");
 }
 
-/** Format characteristic polynomial: p(x) = x^k - ... (descending order, e.g. x^2 - x - 1). */
-function characteristicPolyToFormula(coeffs: number[]): string {
-    if (coeffs.length === 0) return "0";
-    const terms: string[] = [];
-    for (let d = coeffs.length - 1; d >= 0; d--) {
-        const c = coeffs[d];
-        if (c === 0) continue;
-        const xPart = d === 0 ? "" : d === 1 ? "x" : `x^${d}`;
-        if (d === 0) {
-            terms.push(c < 0 ? `- ${-c}` : String(c));
-        } else {
-            if (c === 1) terms.push(xPart);
-            else if (c === -1) terms.push("- " + xPart);
-            else terms.push((c < 0 ? "- " : "+ ") + Math.abs(c) + (xPart ? " " + xPart : ""));
-        }
-    }
-    if (terms.length === 0) return "0";
-    return terms.join(" ").replace(/^\+\s*/, "").replace(/\s+\+\s+/g, " + ").replace(/\s+-\s+/g, " - ");
-}
-
 /** LaTeX for MathJax: p(x) = x^2 - x - 1 (descending order). */
 function characteristicPolyToLatex(coeffs: number[]): string {
     if (coeffs.length === 0) return "0";

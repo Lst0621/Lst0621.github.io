@@ -123,28 +123,6 @@ function evalRecurrenceFromInit(coeffs: bigint[], init: bigint[], nTerms: number
     return out;
 }
 
-function recurrenceCalcString(coeffs: bigint[], g: bigint[], n: number): string {
-    const k = coeffs.length;
-    if (n < k) {
-        return "-";
-    }
-    // Build something like: c1*g(n-1)+... = value
-    const parts: string[] = [];
-    let sum = 0n;
-    const maxShow = 6;
-    for (let i = 0; i < k; i++) {
-        const c = coeffs[i];
-        const term = c * g[n - 1 - i];
-        sum += term;
-        if (parts.length < maxShow) {
-            parts.push(`${c.toString()}·${g[n - 1 - i].toString()}`);
-        }
-    }
-    const prefix = parts.join(" + ").replace(/\+\s-\s/g, "- ");
-    const ellipsis = k > maxShow ? " + ..." : "";
-    return `${prefix}${ellipsis} = ${sum.toString()}`;
-}
-
 function convolveDirect(a: bigint[], b: bigint[], nTerms: number): bigint[] {
     const out: bigint[] = Array.from({ length: nTerms }, () => 0n);
     for (let n = 0; n < nTerms; n++) {

@@ -32,11 +32,12 @@ export function update_table(sz: number) {
         permutation_multiply,
         perm_to_str,
         (a) => (get_permutation_parity(a) ? "lightgreen" : "lightblue"),
-        (b, c, a) => (get_permutation_parity(a) ? "lightgreen" : "lightblue")
+        (b, c, a) => { void b; void c; return get_permutation_parity(a) ? "lightgreen" : "lightblue"; }
     )
 }
 
 export function increment(sz: number) {
+    void sz;
     if (table_sz < 10) {
         table_sz += 1
     }
@@ -44,6 +45,7 @@ export function increment(sz: number) {
 }
 
 export function decrement(sz: number) {
+    void sz;
     if (table_sz > 3) {
         table_sz -= 1
     }

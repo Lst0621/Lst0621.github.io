@@ -21,10 +21,6 @@ function generateRandomPartition10(): number[] {
     return parts;
 }
 
-function formatArray(a: readonly number[]): string {
-    return `[${a.join(", ")}]`;
-}
-
 function formatTupleLatex(a: readonly number[]): string {
     // Use parentheses, standard partition notation.
     return `\\left(${a.join(", ")}\\right)`;
@@ -149,10 +145,6 @@ function drawBars(lambda: readonly number[], lambdaConj: readonly number[]): voi
     drawRowsGroup(xC, lambdaConj, "#dadaeb", "#efedf5");
     // D: (λ')' = λ cols
     drawColsGroup(xD, lambdaConj[0] ?? 0, lambda, "#fdd0a2", "#fee6ce");
-}
-
-function setText(id: string, text: string): void {
-    $(id).textContent = text;
 }
 
 async function computeAndRender(partition: number[]): Promise<void> {

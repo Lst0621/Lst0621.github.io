@@ -5,9 +5,7 @@ import {
     modulePromise,
     golCreate,
     golDestroy,
-    golInit,
     golRandomInitWithSeed,
-    golGetSeed,
     golEvolve,
     golGetLiveCells,
     golGetSize,
@@ -65,7 +63,6 @@ function getCheckerSize(): number {
     return CHECKER_SIZE_AT_SCALE_2 * getNFactor() / 2;
 }
 /** Checkerboard regions: background color per region (only bg differs; live cell color is uniform). */
-const REGION_BG = ["#1a1a1a", "#2d2d2d"];
 /** Live cell: same rgba for all; alpha high enough that different region backgrounds still show through. */
 const LIVE_CELL_RGBA = "rgba(160, 160, 160, 0.82)";
 
@@ -100,7 +97,6 @@ let shaInputSize: number | null = null;
 type TopologyMode = 0 | 1 | 2; // Finite2D, Torus2D, Cylinder2D
 let topology: TopologyMode = 1;
 let targetWormholes = 0;
-let wormholeProb = 0; // derived-only (for display)
 let wormholeSeed = 0;
 let targetCuts = 0;
 let cutSeed = 0;
@@ -310,20 +306,6 @@ function maybeUpdateSha(liveCells: { x: number; y: number }[], size: number, g: 
     });
 }
 
-function computeWormholeProbForCurrentSize(): number {
-    const size = getGridSize();
-    const n = size * size;
-    const pairs = (n * (n - 1)) / 2;
-    if (!(pairs > 0)) {
-        return 0;
-    }
-    return clamp01(targetWormholes / pairs);
-}
-
-function syncWormholeProbToTarget(): void {
-    wormholeProb = computeWormholeProbForCurrentSize();
-}
-
 function backgroundColors(nowMs: number): { bg0: string; bg1: string } {
     // Long cycle (minutes) so it feels slow.
     const t = nowMs / 1000;
@@ -451,7 +433,6 @@ function drawLiveDeadMeter(liveCount: number, deadCount: number, total: number):
 
     // Solarized-ish colors.
     const colAlive = "#859900";
-    const colDead = "#dc322f";
     const colRing = "rgba(7,54,66,0.25)";
     const colNeedle = "rgba(38,139,210,0.95)";
 
@@ -595,14 +576,6 @@ function updateScaleDisplay(): void {
     if (el) el.textContent = String(getNFactor());
 }
 
-function applyTopologyWithFreshSeed(): void {
-    // Wormholes are an add-on for the selected topology.
-    golSetTopology(topology);
-    wormholeSeed = ((Date.now() >>> 0) ^ crypto.getRandomValues(new Uint32Array(1))[0]) >>> 0;
-    golSetWormholeSeed(wormholeSeed);
-    golSetWormholeCount(targetWormholes);
-}
-
 function computeSeedFromControls(): number {
     const seed = getSeedControls();
     if (seed.use.checked) {
@@ -676,7 +649,6 @@ function applyScaleAndReset(): void {
     golCreate(getGridSize());
     onRestart();
     updateScaleDisplay();
-    syncWormholeProbToTarget();
 }
 
 function onScaleDown(): void {
@@ -719,19 +691,16 @@ async function main(): Promise<void> {
     wh.down.addEventListener("click", () => {
         targetWormholes = Math.max(0, targetWormholes - TARGET_WORMHOLE_DELTA_PER_CLICK);
         wh.value.value = String(targetWormholes);
-        syncWormholeProbToTarget();
     });
     wh.up.addEventListener("click", () => {
         targetWormholes = Math.max(0, targetWormholes + TARGET_WORMHOLE_DELTA_PER_CLICK);
         wh.value.value = String(targetWormholes);
-        syncWormholeProbToTarget();
     });
     wh.value.addEventListener("change", () => {
         const v = Number(wh.value.value);
         if (Number.isFinite(v)) {
             targetWormholes = Math.max(0, Math.floor(v));
             wh.value.value = String(targetWormholes);
-            syncWormholeProbToTarget();
         }
     });
 
@@ -787,7 +756,6 @@ async function main(): Promise<void> {
 
     updateScaleDisplay();
     wh.value.value = String(targetWormholes);
-    syncWormholeProbToTarget();
     cut.value.value = String(targetCuts);
     start.value.value = String(startPercent);
     seed.use.checked = false;

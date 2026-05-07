@@ -81,11 +81,11 @@ canvas.addEventListener('mousedown', e => {
     }
 })
 
-canvas.addEventListener('mouseleave', e => {
+canvas.addEventListener('mouseleave', () => {
     grid_x = -1
     grid_y = -1
     mouse_on_canvas = false
 })
-canvas.addEventListener('mouseenter', e => {
+canvas.addEventListener('mouseenter', () => {
     mouse_on_canvas = true
 })

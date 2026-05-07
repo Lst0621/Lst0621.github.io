@@ -35,6 +35,7 @@ function fork(start: number[], dir: number[], cnt: number, left: boolean) {
 }
 
 function draw(start: number[], dir: number[], cnt: number, left: boolean) {
+    void cnt;
     let half_y: number[] = scale(dir, 0.45)
     let half_x: number[] = scale(times([0, 1], half_y), aspect_ratio)
     let top_left: number[] = add(start, add(half_x, half_y))
