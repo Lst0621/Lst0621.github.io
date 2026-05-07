@@ -743,9 +743,9 @@ function renderControls(
                     selectedResolvingIdx.mixed = Math.floor(Math.random() * pageInfo.mixedResolvingMinCount);
                 }
             } else {
-                selectedNonResolvingIdx.node = randomNonResolvingIdx(pageInfo.nodeNonResolveSubsets);
-                selectedNonResolvingIdx.edge = randomNonResolvingIdx(pageInfo.edgeNonResolveSubsets);
-                selectedNonResolvingIdx.mixed = randomNonResolvingIdx(pageInfo.mixedNonResolveSubsets);
+                normalizeNonResolvingSelectionForList(pageInfo.nodeNonResolveSubsets, "node");
+                normalizeNonResolvingSelectionForList(pageInfo.edgeNonResolveSubsets, "edge");
+                normalizeNonResolvingSelectionForList(pageInfo.mixedNonResolveSubsets, "mixed");
             }
             renderAll();
         };
@@ -1619,37 +1619,37 @@ function graphTextPageClick(ev: MouseEvent): void {
         case "nr-node-prev":
             if (nodeNonResolvingPageIndex > 0) {
                 nodeNonResolvingPageIndex--;
-                selectedNonResolvingIdx.node = 0;
+                selectedNonResolvingIdx.node = -1;  // sentinel: randomize on next render
                 cachedNonResolveKey = "";
             }
             break;
         case "nr-node-next":
             nodeNonResolvingPageIndex++;
-            selectedNonResolvingIdx.node = 0;
+            selectedNonResolvingIdx.node = -1;  // sentinel: randomize on next render
             cachedNonResolveKey = "";
             break;
         case "nr-edge-prev":
             if (edgeNonResolvingPageIndex > 0) {
                 edgeNonResolvingPageIndex--;
-                selectedNonResolvingIdx.edge = 0;
+                selectedNonResolvingIdx.edge = -1;  // sentinel: randomize on next render
                 cachedNonResolveKey = "";
             }
             break;
         case "nr-edge-next":
             edgeNonResolvingPageIndex++;
-            selectedNonResolvingIdx.edge = 0;
+            selectedNonResolvingIdx.edge = -1;  // sentinel: randomize on next render
             cachedNonResolveKey = "";
             break;
         case "nr-mixed-prev":
             if (mixedNonResolvingPageIndex > 0) {
                 mixedNonResolvingPageIndex--;
-                selectedNonResolvingIdx.mixed = 0;
+                selectedNonResolvingIdx.mixed = -1;  // sentinel: randomize on next render
                 cachedNonResolveKey = "";
             }
             break;
         case "nr-mixed-next":
             mixedNonResolvingPageIndex++;
-            selectedNonResolvingIdx.mixed = 0;
+            selectedNonResolvingIdx.mixed = -1;  // sentinel: randomize on next render
             cachedNonResolveKey = "";
             break;
         default:
@@ -1692,6 +1692,11 @@ function normalizeNonResolvingSelectionForList(subsets: readonly number[][], mod
         return;
     }
     const len = subsets.length;
+    // Sentinel value -1 means randomize
+    if (selectedNonResolvingIdx[mode] === -1) {
+        selectedNonResolvingIdx[mode] = randomNonResolvingIdx(subsets);
+        return;
+    }
     const idx = ((selectedNonResolvingIdx[mode] % len) + len) % len;
     if (subsets[idx]!.length > 0) {
         return;
@@ -1943,7 +1948,7 @@ function renderSummaryOnly(): void {
     const nonResolveKey = `${graphVersion}:${nodeNonResolvingPageIndex}:${edgeNonResolvingPageIndex}:${mixedNonResolvingPageIndex}`;
     // Only start worker if graph changed, not if pages changed
     const hasActiveWorkers = hasRunningMetricWorkers();
-    if ((cachedMetricKey !== metricKey || !cachedNodeRes || !cachedPdimRes) && !hasActiveWorkers) {
+    if ((cachedMetricKey !== metricKey || !cachedNodeRes || cachedNonResolveKey !== nonResolveKey || !cachedPdimRes) && !hasActiveWorkers) {
         startMetricWorker(adj01, n, PAGE_SIZE, [nodePageIndex, edgePageIndex, mixedPageIndex], [nodeNonResolvingPageIndex, edgeNonResolvingPageIndex, mixedNonResolvingPageIndex]);
     }
 
