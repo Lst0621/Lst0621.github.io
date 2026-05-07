@@ -1771,24 +1771,11 @@ function renderResolvingSubsetsPanel(
     const smallestLine =
         `Min dimension (${modeName}): ${res.minDimension}<br>` +
         `Smallest set: ${smallest}<br>`;
-    const pageLine = pageLineWithPagerButtons({
-        prefix: resolvingPagerPrefix(modeName),
-        pageIndex,
-        pageCountRaw: res.pageCount,
-        pageShown,
-        pageCountSafe,
-        shownCount: shownCount,
-        totalCount: res.totalCount,
-    });
-    const note = res.truncated
-        ? `<span style="color:#586e75">Note: subset list truncated (too many subsets to fit buffer).</span><br>`
-        : "";
     const minNote = res.minSizeTruncated
         ? `<span style="color:#586e75">Note: min-size subset list truncated.</span><br>`
         : "";
 
     const minHtml = minSizeSubsets.map((s) => subsetToString1Based(s)).join("<br>");
-    const allHtml = res.subsets.map((s) => subsetToString1Based(s)).join("<br>");
 
     const minDetails =
         `<details data-state-id="res-${modeName}-min">` +
@@ -1796,13 +1783,7 @@ function renderResolvingSubsetsPanel(
         `<div style="font-family:ui-monospace, Courier; font-size:13px; line-height:1.35; margin-top:6px;">${minHtml || "(none)"}</div>` +
         `</details>`;
 
-    const allDetails =
-        `<details data-state-id="res-${modeName}-all">` +
-        `<summary>Resolving subsets with a non-resolving (k-1) subset (${modeName}, current page): ${shownCount}</summary>` +
-        `<div style="font-family:ui-monospace, Courier; font-size:13px; line-height:1.35; margin-top:6px;">${allHtml || "(none)"}</div>` +
-        `</details><br>`;
-
-    return smallestLine + minNote + minDetails + "<br>" + pageLine + note + allDetails;
+    return smallestLine + minNote + minDetails + "<br>";
 }
 
 function renderNonResolvingSubsetsPanel(
