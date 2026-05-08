@@ -1779,7 +1779,7 @@ function renderResolvingSubsetsPanel(
 
     const minDetails =
         `<details data-state-id="res-${modeName}-min">` +
-        `<summary>Resolving subsets of min size with a non-resolving (k-1) subset (${modeName}, k=${res.minDimension}, all): ${minCount}</summary>` +
+        `<summary>Resolving subsets of min size (${modeName}, k=${res.minDimension}, all): ${minCount}</summary>` +
         `<div style="font-family:ui-monospace, Courier; font-size:13px; line-height:1.35; margin-top:6px;">${minHtml || "(none)"}</div>` +
         `</details>`;
 
