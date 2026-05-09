@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<head>
+  <title>Layered DAG</title>
+  <link rel="icon" href="../img/flame1.png">
+  <link rel="stylesheet" href="../resource/solarized_light.css">
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-9BLVHLETMC"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+
+    function gtag() {
+      dataLayer.push(arguments);
+    }
+
+    gtag('js', new Date());
+    gtag('config', 'G-9BLVHLETMC');
+  </script>
+  <style>
+    :root {
+      --cell0: #fdf6e3;
+      --cell1: #eee8d5;
+      --cellDisabled: #e4ddc8;
+    }
+  </style>
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']]
+      }
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <style>
+    .wrap {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 12px 14px;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      margin-top: 6px;
+      line-height: 1.35;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      justify-content: center;
+      margin: 10px 0;
+    }
+
+    .controls button, .controls input[type="text"], .controls input[type="number"] {
+      accent-color: var(--accent);
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-family: ui-monospace, Courier;
+      font-size: 12px;
+    }
+
+    .controls label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-family: ui-monospace, Courier;
+    }
+
+    .main-grid {
+      display: grid;
+      grid-template-columns: minmax(260px, 1fr) minmax(240px, auto);
+      gap: 14px;
+      align-items: start;
+      justify-content: center;
+    }
+
+    @media (max-width: 900px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .main-col-graph {
+      min-width: 0;
+    }
+
+    .graph-scroll {
+      max-width: 100%;
+      max-height: 75vh;
+      overflow: auto;
+      padding: 6px;
+    }
+
+    .main-col-stats {
+      min-width: 0;
+    }
+
+    #dag_stats {
+      padding: 12px;
+      background-color: var(--cell1);
+      border-radius: 4px;
+      font-size: 12px;
+      font-family: ui-monospace, Courier;
+      line-height: 1.6;
+    }
+
+    #dag_stats p {
+      margin: 0;
+      padding: 2px 0;
+    }
+
+    #dag_stats strong {
+      color: var(--accent);
+    }
+
+    canvas {
+      border: 1px solid var(--border);
+      background-color: var(--cell0);
+      display: block;
+    }
+  </style>
+</head>
+<body class="solarized">
+<div class="wrap">
+  <h1 style="margin: 0; font-size: 18pt; font-weight: 500; font-family: ui-monospace, Courier;">
+    Layered DAG
+  </h1>
+  <div class="subtitle" style="max-width: 520px;">
+    <div><strong>Click:</strong> start at the top dot, then pick 1 connected dot each row.</div>
+    <div><strong>Undo:</strong> right-click.</div>
+  </div>
+
+  <div class="controls panel">
+    <label>
+      Levels:
+      <input type="number" id="num_levels_input" min="2" max="20" value="10">
+    </label>
+    <label>
+      Min Nodes/Level:
+      <input type="number" id="min_nodes_input" min="1" max="10" value="3">
+    </label>
+    <label>
+      Max Nodes/Level:
+      <input type="number" id="max_nodes_input" min="1" max="15" value="6">
+    </label>
+    <label>
+      Max Degree (k):
+      <input type="number" id="max_degree_input" min="1" max="10" value="3">
+    </label>
+    <label>
+      Seed:
+      <input type="text" id="seed_input" value="42">
+    </label>
+    <button id="generate_btn">Generate</button>
+    <button id="random_seed_btn">Random Seed</button>
+    <button id="reset_path_btn">Reset Path</button>
+  </div>
+
+  <div class="main-grid">
+    <div class="panel main-col-graph">
+      <div class="graph-scroll">
+        <canvas id="dag_canvas" width="700" height="500"></canvas>
+      </div>
+    </div>
+    <div class="panel main-col-stats">
+      <div id="dag_stats">
+        <p>Loading...</p>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top: 12px;">
+    <a href="../index.html">Back</a>
+  </div>
+</div>
+
+  <script type="module" src="/assets/js/page/dag.js"></script>
+</body>
