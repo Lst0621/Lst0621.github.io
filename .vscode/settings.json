@@ -4,7 +4,7 @@
   "C_Cpp.default.intelliSenseMode": "linux-gcc-x64",
   "C_Cpp.intelliSenseEngine": "disabled",
   "clangd.arguments": [
-    "--compile-commands-dir=lib/tsl/wasm/wasm_out_v1",
+    "--compile-commands-dir=lib/tsl/wasm/wasm_out_ci",
     "--background-index"
   ],
   "chat.tools.terminal.autoApprove": {
