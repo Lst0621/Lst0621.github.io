@@ -24,6 +24,7 @@ export const sections: Section[] = [
     title: "Widgets",
     pages: [
       { name: "Fractal tree", url: "article/tree.html" },
+      { name: "Voronoi Diagram", url: "article/voronoi.html" },
       { name: "Number of Scoring Sequences", url: "article/number_of_sequences.html" },
       { name: "Partition Conjugate (C++/WASM)", url: "article/partition_conjugate.html" },
       { name: "Linear Recurrence", url: "article/linear_recur.html" },

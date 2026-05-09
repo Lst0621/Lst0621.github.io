@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Voronoi Diagram</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #f5f5f5;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 900px;
+        margin: 0 auto;
+      }
+
+      h1 {
+        text-align: center;
+        margin-bottom: 20px;
+        color: #333;
+      }
+
+      .controls {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+
+      button {
+        padding: 10px 20px;
+        font-size: 14px;
+        border: none;
+        border-radius: 4px;
+        background-color: #4ECDC4;
+        color: white;
+        cursor: pointer;
+        transition: background-color 0.3s;
+      }
+
+      button:hover {
+        background-color: #3ab8b0;
+      }
+
+      button:active {
+        transform: scale(0.98);
+      }
+
+      #point-count {
+        display: inline-block;
+        padding: 10px 20px;
+        font-size: 14px;
+        background-color: #e8e8e8;
+        border-radius: 4px;
+        color: #333;
+      }
+
+      .canvas-container {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 20px;
+      }
+
+      #voronoi-canvas {
+        border: 2px solid #333;
+        background-color: white;
+        cursor: crosshair;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .info {
+        background-color: #fff;
+        padding: 15px;
+        border-radius: 4px;
+        margin-top: 20px;
+        color: #555;
+        line-height: 1.6;
+      }
+
+      .info h2 {
+        margin-bottom: 10px;
+        color: #333;
+      }
+
+      .info ul {
+        margin-left: 20px;
+      }
+
+      .info li {
+        margin-bottom: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Voronoi Diagram</h1>
+
+      <div class="controls">
+        <button id="random-btn">Generate Random Points (10-19)</button>
+        <button id="clear-btn">Clear</button>
+        <button id="distance-euclidean-btn">Distance: Euclidean</button>
+        <button id="distance-torus-btn">Distance: Torus</button>
+        <button id="toggle-boundaries-btn">Hide Boundaries</button>
+        <span id="point-count">Points: 0</span>
+      </div>
+
+      <div class="canvas-container">
+        <canvas id="voronoi-canvas" width="800" height="600"></canvas>
+      </div>
+
+      <div class="info">
+        <h2>About Voronoi Diagrams</h2>
+        <ul>
+          <li>
+            A <strong>Voronoi diagram</strong> partitions a space into regions,
+            where each region contains all points closer to a particular seed
+            point than to any other seed point.
+          </li>
+          <li>
+            <strong>Colored regions</strong>: Each color represents a Voronoi
+            cell. All pixels in a colored region are closer to its seed point
+            than to any other seed point.
+          </li>
+          <li>
+            <strong>Boundary lines</strong>: The black lines are the edges of
+            the Voronoi diagram, where points are equidistant from two or more
+            seed points.
+          </li>
+          <li>
+            <strong>Click on the canvas</strong> to add new seed points, and
+            right-click anywhere inside a colored region to delete that seed.
+            The diagram will recompute automatically.
+          </li>
+          <li>
+            Use <strong>Distance: Euclidean/Torus</strong> to switch the metric
+            used when assigning cells to seed points.
+          </li>
+          <li>
+            This visualization uses exact rational arithmetic
+            (<code>Rational&lt;BigInt&gt;</code>) for every clipping and bisector
+            computation, so cell vertices are mathematically exact rationals
+            with no floating-point quantization. The exact numerator/denominator
+            pairs are also exposed via the WASM API
+            (<code>voronoiGetCellBoundariesExact</code>).
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <script type="module">
+      import { restart, toggleBoundaries, clearPoints } from "/assets/js/page/voronoi.js";
+      Object.assign(window, { restart, toggleBoundaries, clearPoints });
+    </script>
+  </body>
+</html>
