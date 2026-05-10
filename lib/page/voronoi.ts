@@ -31,10 +31,13 @@ const clearBtn = document.getElementById("clear-btn");
 const toggleBoundariesBtn = document.getElementById("toggle-boundaries-btn");
 const distanceEuclidBtn = document.getElementById("distance-euclidean-btn");
 const distanceTorusBtn = document.getElementById("distance-torus-btn");
+const viewLayoutBtn = document.getElementById("view-layout-btn");
 
 // State
 let drawBoundaries = true;
 let distanceMode: DistanceMode = "euclidean";
+/** `1x1` = full fundamental domain; `3x3` = nine equal tiles (same diagram, shrunk). */
+let viewLayout: "1x1" | "3x3" = "1x1";
 
 const CANVAS_WIDTH = 800;
 const CANVAS_HEIGHT = 600;
@@ -538,6 +541,7 @@ function recolorSites(adjacency: Map<number, Set<number>>): void {
 
 function buildGeometryForMode(mode: DistanceMode, previousColors: Map<number, number>): CachedGeometry {
     voronoiSetDistanceMode(mode);
+    const nSites = voronoiNumSites();
     const tCompute0 =
         typeof performance !== "undefined" && typeof performance.now === "function"
             ? performance.now()
@@ -545,7 +549,13 @@ function buildGeometryForMode(mode: DistanceMode, previousColors: Map<number, nu
     voronoiCompute();
     const tCompute1 =
         tCompute0 !== 0 ? performance.now() : 0;
-    const exactBoundaries = voronoiGetCellBoundariesExact();
+    let exactBoundaries = voronoiGetCellBoundariesExact();
+    if (nSites > 0 && exactBoundaries.length !== nSites) {
+        console.warn(
+            `voronoi: expected ${nSites} cells from WASM, got ${exactBoundaries.length} — using canvas fallback`,
+        );
+        exactBoundaries = fallbackCellBoundariesExact(nSites);
+    }
     const tFetch1 = tCompute1 !== 0 ? performance.now() : 0;
     if (tCompute0 !== 0) {
         console.debug(
@@ -556,8 +566,8 @@ function buildGeometryForMode(mode: DistanceMode, previousColors: Map<number, nu
         site: cell.site,
         polygons: cell.polygons.map((polygon) =>
             polygon.map((p) => ({
-                x: Number(p.x.num) / Number(p.x.den),
-                y: Number(p.y.num) / Number(p.y.den),
+                x: exactRationalToNumber(p.x),
+                y: exactRationalToNumber(p.y),
             })),
         ),
     }));
@@ -629,14 +639,41 @@ function generateRandomPoints(count: number): void {
 function clearAllPoints(): void {
     voronoiClear();
     resetSiteState();
+    refreshGeometry();
     updateUI();
     draw();
 }
 
-function draw(): void {
-    ctx.fillStyle = "#FFFFFF";
-    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+/** String rationals for exact-boundary fallback (WASM parse-compatible). */
+function qStr(n: number, d: number): { num: string; den: string } {
+    return { num: String(n), den: String(d) };
+}
 
+/**
+ * If WASM cell count desyncs (should not happen), single-site diagrams are
+ * always the full canvas; for more sites we only show seeds (no bogus cells).
+ */
+function fallbackCellBoundariesExact(nSites: number): VoronoiCellBoundaryExact[] {
+    const W = CANVAS_WIDTH;
+    const H = CANVAS_HEIGHT;
+    const rectLoop: VoronoiBoundaryPointExact[] = [
+        { x: qStr(0, 1), y: qStr(0, 1) },
+        { x: qStr(W, 1), y: qStr(0, 1) },
+        { x: qStr(W, 1), y: qStr(H, 1) },
+        { x: qStr(0, 1), y: qStr(H, 1) },
+    ];
+    if (nSites === 1) {
+        return [{ site: 0, polygons: [rectLoop] }];
+    }
+    return Array.from({ length: nSites }, (_, site) => ({ site, polygons: [] as VoronoiBoundaryPointExact[][] }));
+}
+
+/**
+ * Draw one copy of the diagram in fundamental-domain coordinates
+ * (0…W × 0…H). Caller sets `ctx` transform; `modelLineWidth` / `modelSeedR`
+ * compensate when the tile is scaled down (3×3 view).
+ */
+function drawOneTile(modelLineWidth: number, modelSeedR: number): void {
     // Pass 1: fill every cell (nonzero = geometric union of overlapping loops).
     if (latestBoundaries.length > 0) {
         for (const cell of latestBoundaries) {
@@ -658,10 +695,7 @@ function draw(): void {
         }
     }
 
-    // Pass 2: after all fills, stroke only each cell's *union* outline (paired
-    // directed edges removed). Prefer exact rational keys so shared seams
-    // between pieces match; fall back to snapped doubles if needed.
-    ctx.lineWidth = 1;
+    ctx.lineWidth = modelLineWidth;
     ctx.strokeStyle = "rgba(0, 0, 0, 0.18)";
     if (drawBoundaries && latestBoundaries.length > 0) {
         for (const cell of latestBoundaries) {
@@ -681,23 +715,53 @@ function draw(): void {
         }
     }
 
-    drawSeedPoints();
+    const n = voronoiNumSites();
+    if (n > 0 && modelSeedR > 0) {
+        for (let i = 0; i < n; i++) {
+            const { x, y } = voronoiGetSite(i);
+            const colorIdx = siteColors.get(siteIds[i]) ?? 0;
+            ctx.beginPath();
+            ctx.arc(x, y, modelSeedR, 0, Math.PI * 2);
+            ctx.fillStyle = rgbToCss(getColor(colorIdx));
+            ctx.fill();
+            ctx.strokeStyle = "rgba(0, 0, 0, 0.55)";
+            ctx.lineWidth = Math.max(0.5, modelLineWidth * 1.25);
+            ctx.stroke();
+        }
+    }
 }
 
-function drawSeedPoints(): void {
-    const n = voronoiNumSites();
-    if (n === 0 || SEED_POINT_RADIUS <= 0) {
-        return;
-    }
-    for (let i = 0; i < n; i++) {
-        const { x, y } = voronoiGetSite(i);
-        const colorIdx = siteColors.get(siteIds[i]) ?? 0;
+function draw(): void {
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+    if (viewLayout === "1x1") {
+        drawOneTile(1, SEED_POINT_RADIUS);
+    } else {
+        const cellW = CANVAS_WIDTH / 3;
+        const cellH = CANVAS_HEIGHT / 3;
+        const sx = cellW / CANVAS_WIDTH;
+        const sy = cellH / CANVAS_HEIGHT;
+        for (let tj = 0; tj < 3; tj++) {
+            for (let ti = 0; ti < 3; ti++) {
+                ctx.save();
+                ctx.translate(ti * cellW, tj * cellH);
+                ctx.scale(sx, sy);
+                drawOneTile(1 / Math.min(sx, sy), SEED_POINT_RADIUS / Math.min(sx, sy));
+                ctx.restore();
+            }
+        }
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.strokeStyle = "rgba(0, 0, 0, 0.22)";
+        ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.arc(x, y, SEED_POINT_RADIUS, 0, Math.PI * 2);
-        ctx.fillStyle = rgbToCss(getColor(colorIdx));
-        ctx.fill();
-        ctx.strokeStyle = "rgba(0, 0, 0, 0.55)";
-        ctx.lineWidth = 1.25;
+        for (let i = 1; i <= 2; i++) {
+            ctx.moveTo(i * cellW, 0);
+            ctx.lineTo(i * cellW, CANVAS_HEIGHT);
+            ctx.moveTo(0, i * cellH);
+            ctx.lineTo(CANVAS_WIDTH, i * cellH);
+        }
         ctx.stroke();
     }
 }
@@ -713,11 +777,35 @@ function rgbToCss(color: RgbColor): string {
     return `rgb(${color.r} ${color.g} ${color.b})`;
 }
 
+/** Map canvas pixel to fundamental-domain coordinates (same as 1×1 hit testing). */
+function canvasToModel(px: number, py: number): { x: number; y: number } {
+    if (viewLayout === "1x1") {
+        return { x: px, y: py };
+    }
+    const cellW = CANVAS_WIDTH / 3;
+    const cellH = CANVAS_HEIGHT / 3;
+    const ti = Math.min(2, Math.max(0, Math.floor(px / cellW)));
+    const tj = Math.min(2, Math.max(0, Math.floor(py / cellH)));
+    const u = (px - ti * cellW) / cellW;
+    const v = (py - tj * cellH) / cellH;
+    return {
+        x: u * CANVAS_WIDTH,
+        y: v * CANVAS_HEIGHT,
+    };
+}
+
+function updateViewLayoutButton(): void {
+    if (viewLayoutBtn) {
+        viewLayoutBtn.textContent = viewLayout === "1x1" ? "View: 1×1" : "View: 3×3";
+    }
+}
+
 canvas.addEventListener("click", (e) => {
     const rect = canvas.getBoundingClientRect();
-    const x = Math.round(e.clientX - rect.left);
-    const y = Math.round(e.clientY - rect.top);
-    addPoint(x, y);
+    const px = Math.round(e.clientX - rect.left);
+    const py = Math.round(e.clientY - rect.top);
+    const { x, y } = canvasToModel(px, py);
+    addPoint(Math.round(x), Math.round(y));
     refreshGeometry();
     updateUI();
     draw();
@@ -726,8 +814,9 @@ canvas.addEventListener("click", (e) => {
 canvas.addEventListener("contextmenu", (e) => {
     e.preventDefault();
     const rect = canvas.getBoundingClientRect();
-    const x = Math.round(e.clientX - rect.left);
-    const y = Math.round(e.clientY - rect.top);
+    const px = Math.round(e.clientX - rect.left);
+    const py = Math.round(e.clientY - rect.top);
+    const { x, y } = canvasToModel(px, py);
 
     const idx = findSiteIndexByRegion(x, y);
     if (idx >= 0) {
@@ -782,6 +871,15 @@ if (distanceTorusBtn) {
 }
 
 updateDistanceModeButtons();
+
+if (viewLayoutBtn) {
+    viewLayoutBtn.addEventListener("click", () => {
+        viewLayout = viewLayout === "1x1" ? "3x3" : "1x1";
+        updateViewLayoutButton();
+        draw();
+    });
+}
+updateViewLayoutButton();
 
 export function restart(): void {
     generateRandomPoints(25);
