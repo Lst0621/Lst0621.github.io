@@ -1,22 +1,28 @@
 ---
-description: How to build the WASM module (Emscripten, wasm_out_ci)
-globs: lib/tsl/wasm/**
+description: How to build the WASM module (Emscripten, wasm_out_ci) and native C++ tests
+globs: lib/tsl/wasm/**,lib/tsl/core/**
 alwaysApply: false
 ---
 
-# WASM build (lib/tsl/wasm)
+# WASM build (`lib/tsl/wasm`) and core tests (`lib/tsl/core`)
 
-**Only two build directories** in `lib/tsl/wasm`:
+**WASM build directory** in `lib/tsl/wasm`:
 
-- **WASM:** use folder **`wasm_out_ci`** — run `./build.sh` (matches CI and `build_assets_local.sh`).
-- **Native C++ tests (gtest):** use folder **`native_build`** — run `./test_build.sh`.
+- **WASM:** folder **`wasm_out_ci`** — run `./build.sh` (matches CI and `build_assets_local.sh`).
 
-| Purpose   | Folder to use    | Script         |
-|----------|------------------|----------------|
-| WASM     | `wasm_out_ci/`   | `./build.sh`   |
-| Native tests (gtest) | `native_build/` | `./test_build.sh` |
+**Native C++ tests (Google Test)** — sources live under **`lib/tsl/core/gtest/`**; build directory **`lib/tsl/core/native_build`**. From the repo root you can run either:
 
-Do **not** create or use a directory named `build` in this folder. Use the scripts so the correct directory and toolchain are used.
+```bash
+cd lib/tsl/core && ./test_build.sh
+```
+
+or (wrapper):
+
+```bash
+cd lib/tsl/wasm && ./test_build.sh
+```
+
+Do **not** create or use a directory named `build` in `lib/tsl/wasm`. Use the scripts so the correct directory and toolchain are used.
 
 **WASM build:**
 
@@ -33,19 +39,19 @@ cd lib/tsl/wasm && ./build.sh
 **Native C++ unit tests (Google Test):**
 
 ```bash
-cd lib/tsl/wasm && ./test_build.sh
+cd lib/tsl/core && ./test_build.sh
 ```
 
-This configures and builds in `native_build` with the system C++ compiler (not Emscripten), then runs `./tsl_core_tests` from `native_build`. Use `build.sh` for WASM; use `test_build.sh` for gtest.
+This configures and builds in `lib/tsl/core/native_build` with the system C++ compiler (not Emscripten), then runs `tsl_core_tests`. Use `wasm/build.sh` for WASM; use `core/test_build.sh` (or `wasm/test_build.sh`) for gtest.
 
 ---
 
-## Checklist after any WASM source change
+## Checklist after any C++ source change
 
-Whenever you modify files under `lib/tsl/wasm/src/` or `lib/tsl/wasm/gtest/`, **always run both builds** in order:
+Whenever you modify files under **`lib/tsl/core/src/`**, **`lib/tsl/core/gtest/`**, or **`lib/tsl/wasm/src/`**, **always run both builds** in order:
 
 ```bash
-cd lib/tsl/wasm && ./test_build.sh   # native gtest — must pass
+cd lib/tsl/core && ./test_build.sh   # native gtest — must pass
 cd lib/tsl/wasm && ./build.sh        # Emscripten WASM — must pass
 ```
 

@@ -56,15 +56,7 @@ Compiles C++ sources to WebAssembly via Emscripten. Output goes to `lib/tsl/wasm
 
 ## Test
 
-### C++ unit tests (Google Test)
-
-```bash
-cd lib/tsl/wasm && ./test_build.sh
-```
-
-Builds with the native C++ compiler and runs Google Test.
-
-### TypeScript tests (Jest)
+### TypeScript (Jest)
 
 ```bash
 cd lib && npm test
@@ -77,3 +69,13 @@ For human-readable output only (no JSON file):
 ```bash
 cd lib && npm run jest
 ```
+
+### C++ unit tests (Google Test)
+
+Sources live under `lib/tsl/core/gtest/`. Build output: `lib/tsl/core/native_build/`.
+
+```bash
+cd lib/tsl/core && ./test_build.sh
+```
+
+You can also run the wrapper `cd lib/tsl/wasm && ./test_build.sh` (it delegates to `core/test_build.sh`).
