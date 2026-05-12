@@ -49,7 +49,7 @@ jobs:
 
       - name: C++ unit tests (Google Test)
         run: |
-          cd lib/tsl/wasm
+          cd lib/tsl/core
           ./test_build.sh
 
       - name: Build WASM (CI folder)
