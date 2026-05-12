@@ -1,5 +1,5 @@
-import {draw_table} from "../tsl/visual";
-import {always} from "../tsl/func";
+import {draw_table} from "../tsl/ts/visual";
+import {always} from "../tsl/ts/func";
 
 // TODO move to some common
 function get_float(element_id: string) {

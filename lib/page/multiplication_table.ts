@@ -1,7 +1,7 @@
-import {get_sub} from "../tsl/util";
-import {draw_multiplication_table} from "../tsl/visual";
-import {are_co_prime, get_multiply_mod_n_function, totient} from "../tsl/math/number";
-import {get_primitive_roots} from "../tsl/math/group";
+import {get_sub} from "../tsl/ts/util";
+import {draw_multiplication_table} from "../tsl/ts/visual";
+import {are_co_prime, get_multiply_mod_n_function, totient} from "../tsl/ts/math/number";
+import {get_primitive_roots} from "../tsl/ts/math/group";
 
 let table_sz: number = 6
 

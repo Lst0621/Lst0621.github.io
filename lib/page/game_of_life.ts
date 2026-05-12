@@ -1,5 +1,5 @@
-import {cartesian_product} from "../tsl/math/set";
-import {random_fill} from "../tsl/util";
+import {cartesian_product} from "../tsl/ts/math/set";
+import {random_fill} from "../tsl/ts/util";
 
 let canvas: HTMLCanvasElement = document.getElementById('gol') as
     HTMLCanvasElement;

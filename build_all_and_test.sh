@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Build everything (native gtest target, Emscripten WASM, JS bundle to /assets) and run all tests.
-# Delegates to existing scripts: lib/tsl/wasm/test_build.sh, build_assets_local.sh, lib/package.json (npm).
+# Delegates to existing scripts: lib/tsl/core/test_build.sh, build_assets_local.sh, lib/package.json (npm).
 
 set -euo pipefail
 

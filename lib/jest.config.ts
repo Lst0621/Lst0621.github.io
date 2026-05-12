@@ -16,7 +16,7 @@ const config: Config = {
             },
         ],
     },
-    testMatch: ["**/tsl/test/**/*.test.ts"],
+    testMatch: ["**/tsl/ts/test/**/*.test.ts"],
 };
 
 export default config;

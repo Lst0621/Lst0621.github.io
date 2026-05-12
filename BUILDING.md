@@ -78,4 +78,3 @@ Sources live under `lib/tsl/core/gtest/`. Build output: `lib/tsl/core/native_bui
 cd lib/tsl/core && ./test_build.sh
 ```
 
-You can also run the wrapper `cd lib/tsl/wasm && ./test_build.sh` (it delegates to `core/test_build.sh`).

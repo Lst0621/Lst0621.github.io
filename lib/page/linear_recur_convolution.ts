@@ -1,4 +1,4 @@
-import { draw_table } from "../tsl/visual";
+import { draw_table } from "../tsl/ts/visual";
 
 function parseCsvBigInts(input: string): bigint[] {
     return input

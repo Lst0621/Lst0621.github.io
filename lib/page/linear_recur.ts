@@ -9,8 +9,8 @@ import {
     wasmMatrixPower,
     wasmMatrixTimesConst,
 } from "../tsl/wasm/ts/wasm_api_linear_recur";
-import { array_to_matrix } from "../tsl/math/matrix";
-import { draw_table } from "../tsl/visual";
+import { array_to_matrix } from "../tsl/ts/math/matrix";
+import { draw_table } from "../tsl/ts/visual";
 
 /** LaTeX for a matrix (for MathJax). Returns string to wrap in $ $ */
 function matrix_to_latex(M: number[][]): string {

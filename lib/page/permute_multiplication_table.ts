@@ -1,6 +1,6 @@
-import {get_sub} from "../tsl/util";
-import {draw_multiplication_table} from "../tsl/visual";
-import {get_all_permutations, get_permutation_parity, perm_to_str, permutation_multiply} from "../tsl/math/group";
+import {get_sub} from "../tsl/ts/util";
+import {draw_multiplication_table} from "../tsl/ts/visual";
+import {get_all_permutations, get_permutation_parity, perm_to_str, permutation_multiply} from "../tsl/ts/math/group";
 
 let table_sz: number = 4
 

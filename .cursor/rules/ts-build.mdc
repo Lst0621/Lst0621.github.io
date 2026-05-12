@@ -12,9 +12,9 @@ alwaysApply: false
 ```bash
 cd lib && npm run build
 ```
-This keeps emitted `.js` path comments relative to `lib` (e.g. `page/foo.ts`, `tsl/util.ts`). Building from root with `node lib/build.js` can produce different comments (`lib/page/foo.ts`) and is not the default.
+This keeps emitted `.js` path comments relative to `lib` (e.g. `page/foo.ts`, `tsl/ts/util.ts`). Building from root with `node lib/build.js` can produce different comments (`lib/page/foo.ts`) and is not the default.
 
-This uses **esbuild** to bundle each entry; output stays alongside source (`lib/page/*.js`, `lib/common/*.js`). **Imports in TS can be extensionless** (e.g. `from "../tsl/visual"` instead of `from "../tsl/visual.js"`); the bundler resolves them.
+This uses **esbuild** to bundle each entry; output stays alongside source (`lib/page/*.js`, `lib/common/*.js`). **Imports in TS can be extensionless** (e.g. `from "../tsl/ts/visual"` instead of `from "../tsl/ts/visual.js"`); the bundler resolves them.
 
 **Single file not used in HTML** (e.g. `lib/test/test_math.ts`): you can still compile with tsc if you need a standalone .js:
 

@@ -1,6 +1,6 @@
-import {add_mod_n, add_inverse_mod_n} from "../tsl/math/number";
-import {array_eq} from "../tsl/math/math";
-import {create_2d_array, random_fill} from "../tsl/util";
+import {add_mod_n, add_inverse_mod_n} from "../tsl/ts/math/number";
+import {array_eq} from "../tsl/ts/math/math";
+import {create_2d_array, random_fill} from "../tsl/ts/util";
 
 // Player image container (we will create one img per mirrored visual cell)
 const PLAYER_GIF_SRC = 'https://media.tenor.com/fXVhjC7EAOAAAAAi/the-binding-of-isaac.gif';
