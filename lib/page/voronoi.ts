@@ -17,7 +17,7 @@ import {
     type VoronoiBoundaryPointExact,
 } from "../tsl/wasm/ts/wasm_api_voronoi";
 
-type DistanceMode = "euclidean" | "torus";
+type DistanceMode = "euclidean" | "torus" | "cylinder" | "mobius" | "klein";
 type RgbColor = { r: number; g: number; b: number };
 
 // Canvas setup
@@ -31,6 +31,9 @@ const clearBtn = document.getElementById("clear-btn");
 const toggleBoundariesBtn = document.getElementById("toggle-boundaries-btn");
 const distanceEuclidBtn = document.getElementById("distance-euclidean-btn");
 const distanceTorusBtn = document.getElementById("distance-torus-btn");
+const distanceCylinderBtn = document.getElementById("distance-cylinder-btn");
+const distanceMobiusBtn = document.getElementById("distance-mobius-btn");
+const distanceKleinBtn = document.getElementById("distance-klein-btn");
 const viewLayoutBtn = document.getElementById("view-layout-btn");
 
 // State
@@ -96,6 +99,9 @@ function emptyGeometry(): CachedGeometry {
 function invalidateGeometryCache(): void {
     delete geometryByMode.euclidean;
     delete geometryByMode.torus;
+    delete geometryByMode.cylinder;
+    delete geometryByMode.mobius;
+    delete geometryByMode.klein;
 }
 
 function hslToRgb(h: number, s: number, l: number): RgbColor {
@@ -603,7 +609,11 @@ function refreshGeometry(): void {
     }
 
     const previousColors = new Map(
-        (geometryByMode.euclidean ?? geometryByMode.torus ?? emptyGeometry()).siteColors,
+        (geometryByMode[distanceMode] ??
+            geometryByMode.euclidean ??
+            geometryByMode.torus ??
+            geometryByMode.cylinder ??
+            emptyGeometry()).siteColors,
     );
     const t0 =
         typeof performance !== "undefined" && typeof performance.now === "function"
@@ -748,6 +758,23 @@ function draw(): void {
                 ctx.save();
                 ctx.translate(ti * cellW, tj * cellH);
                 ctx.scale(sx, sy);
+                // Möbius strip tiling: across an odd x-wrap, y is reflected.
+                // Our 3×3 view represents shifts (ti-1, tj-1); reflect on odd x shift.
+                if (distanceMode === "mobius") {
+                    const shiftX = ti - 1;
+                    if ((shiftX & 1) !== 0) {
+                        ctx.translate(0, CANVAS_HEIGHT);
+                        ctx.scale(1, -1);
+                    }
+                } else if (distanceMode === "klein") {
+                    // Klein bottle tiling: across an odd y-wrap, x is reflected.
+                    // Our 3×3 view represents shifts (ti-1, tj-1); reflect on odd y shift.
+                    const shiftY = tj - 1;
+                    if ((shiftY & 1) !== 0) {
+                        ctx.translate(CANVAS_WIDTH, 0);
+                        ctx.scale(-1, 1);
+                    }
+                }
                 drawOneTile(1 / Math.min(sx, sy), SEED_POINT_RADIUS / Math.min(sx, sy));
                 ctx.restore();
             }
@@ -788,9 +815,17 @@ function canvasToModel(px: number, py: number): { x: number; y: number } {
     const tj = Math.min(2, Math.max(0, Math.floor(py / cellH)));
     const u = (px - ti * cellW) / cellW;
     const v = (py - tj * cellH) / cellH;
+    const shiftX = ti - 1;
+    const shiftY = tj - 1;
+    // In Möbius mode, odd x-shift tiles are drawn with vertical reflection.
+    const yFrac =
+        distanceMode === "mobius" && (shiftX & 1) !== 0 ? 1 - v : v;
+    // In Klein mode, odd y-shift tiles are drawn with horizontal reflection.
+    const xFrac =
+        distanceMode === "klein" && (shiftY & 1) !== 0 ? 1 - u : u;
     return {
-        x: u * CANVAS_WIDTH,
-        y: v * CANVAS_HEIGHT,
+        x: xFrac * CANVAS_WIDTH,
+        y: yFrac * CANVAS_HEIGHT,
     };
 }
 
@@ -852,6 +887,15 @@ function updateDistanceModeButtons(): void {
     if (distanceTorusBtn) {
         (distanceTorusBtn as HTMLButtonElement).disabled = distanceMode === "torus";
     }
+    if (distanceCylinderBtn) {
+        (distanceCylinderBtn as HTMLButtonElement).disabled = distanceMode === "cylinder";
+    }
+    if (distanceMobiusBtn) {
+        (distanceMobiusBtn as HTMLButtonElement).disabled = distanceMode === "mobius";
+    }
+    if (distanceKleinBtn) {
+        (distanceKleinBtn as HTMLButtonElement).disabled = distanceMode === "klein";
+    }
 }
 
 if (distanceEuclidBtn) {
@@ -865,6 +909,30 @@ if (distanceEuclidBtn) {
 if (distanceTorusBtn) {
     distanceTorusBtn.addEventListener("click", () => {
         distanceMode = "torus";
+        updateDistanceModeButtons();
+        recomputeAndDraw();
+    });
+}
+
+if (distanceCylinderBtn) {
+    distanceCylinderBtn.addEventListener("click", () => {
+        distanceMode = "cylinder";
+        updateDistanceModeButtons();
+        recomputeAndDraw();
+    });
+}
+
+if (distanceMobiusBtn) {
+    distanceMobiusBtn.addEventListener("click", () => {
+        distanceMode = "mobius";
+        updateDistanceModeButtons();
+        recomputeAndDraw();
+    });
+}
+
+if (distanceKleinBtn) {
+    distanceKleinBtn.addEventListener("click", () => {
+        distanceMode = "klein";
         updateDistanceModeButtons();
         recomputeAndDraw();
     });

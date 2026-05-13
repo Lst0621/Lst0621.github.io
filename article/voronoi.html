@@ -109,6 +109,9 @@
         <button id="clear-btn" type="button">Remove all dots</button>
         <button id="distance-euclidean-btn">Distance: Euclidean</button>
         <button id="distance-torus-btn">Distance: Torus</button>
+        <button id="distance-cylinder-btn">Distance: Cylinder</button>
+        <button id="distance-mobius-btn">Distance: Möbius</button>
+        <button id="distance-klein-btn">Distance: Klein</button>
         <button id="view-layout-btn" type="button">View: 1×1</button>
         <button id="toggle-boundaries-btn">Hide Boundaries</button>
         <span id="point-count">Points: 0</span>
@@ -142,8 +145,20 @@
             The diagram will recompute automatically.
           </li>
           <li>
-            Use <strong>Distance: Euclidean/Torus</strong> to switch the metric
-            used when assigning cells to seed points.
+            Use <strong>Distance: Euclidean/Torus/Cylinder/Möbius/Klein</strong> to switch the metric
+            used when assigning cells to seed points:
+            <ul>
+              <li><strong>Euclidean:</strong> Standard distance metric where cells are
+              determined by the closest seed using straight-line distance.</li>
+              <li><strong>Torus:</strong> Periodic distance metric where both horizontal and
+              vertical directions wrap around (like a doughnut surface).</li>
+              <li><strong>Cylinder:</strong> Periodic distance metric where only the horizontal
+              direction wraps around, while vertical direction is finite (like a cylinder).</li>
+              <li><strong>Möbius:</strong> Periodic in the horizontal direction, but wrapping
+              across the seam flips vertical position (a Möbius strip).</li>
+              <li><strong>Klein:</strong> Wraps in both directions, but wrapping across the
+              vertical seam flips horizontal position (a Klein bottle).</li>
+            </ul>
           </li>
           <li>
             This visualization uses exact rational arithmetic
