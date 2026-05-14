@@ -117,24 +117,30 @@ function hslToRgb(h: number, s: number, l: number): RgbColor {
     let g1 = 0;
     let b1 = 0;
 
-    if (hue < 60) {
-        r1 = chroma;
-        g1 = x;
-    } else if (hue < 120) {
-        r1 = x;
-        g1 = chroma;
-    } else if (hue < 180) {
-        g1 = chroma;
-        b1 = x;
-    } else if (hue < 240) {
-        g1 = x;
-        b1 = chroma;
-    } else if (hue < 300) {
-        r1 = x;
-        b1 = chroma;
-    } else {
-        r1 = chroma;
-        b1 = x;
+    switch (Math.floor(hue / 60)) {
+        case 0:
+            r1 = chroma;
+            g1 = x;
+            break;
+        case 1:
+            r1 = x;
+            g1 = chroma;
+            break;
+        case 2:
+            g1 = chroma;
+            b1 = x;
+            break;
+        case 3:
+            g1 = x;
+            b1 = chroma;
+            break;
+        case 4:
+            r1 = x;
+            b1 = chroma;
+            break;
+        default:
+            r1 = chroma;
+            b1 = x;
     }
 
     return {
@@ -759,21 +765,24 @@ function draw(): void {
                 ctx.translate(ti * cellW, tj * cellH);
                 ctx.scale(sx, sy);
                 // Möbius strip tiling: across an odd x-wrap, y is reflected.
-                // Our 3×3 view represents shifts (ti-1, tj-1); reflect on odd x shift.
-                if (distanceMode === "mobius") {
-                    const shiftX = ti - 1;
-                    if ((shiftX & 1) !== 0) {
-                        ctx.translate(0, CANVAS_HEIGHT);
-                        ctx.scale(1, -1);
-                    }
-                } else if (distanceMode === "klein") {
-                    // Klein bottle tiling: across an odd y-wrap, x is reflected.
-                    // Our 3×3 view represents shifts (ti-1, tj-1); reflect on odd y shift.
-                    const shiftY = tj - 1;
-                    if ((shiftY & 1) !== 0) {
-                        ctx.translate(CANVAS_WIDTH, 0);
-                        ctx.scale(-1, 1);
-                    }
+                // Klein bottle tiling: across an odd y-wrap, x is reflected.
+                // Our 3×3 view represents shifts (ti-1, tj-1)
+                const shiftX = ti - 1;
+                const shiftY = tj - 1;
+                
+                switch (distanceMode) {
+                    case "mobius":
+                        if ((shiftX & 1) !== 0) {
+                            ctx.translate(0, CANVAS_HEIGHT);
+                            ctx.scale(1, -1);
+                        }
+                        break;
+                    case "klein":
+                        if ((shiftY & 1) !== 0) {
+                            ctx.translate(CANVAS_WIDTH, 0);
+                            ctx.scale(-1, 1);
+                        }
+                        break;
                 }
                 drawOneTile(1 / Math.min(sx, sy), SEED_POINT_RADIUS / Math.min(sx, sy));
                 ctx.restore();
@@ -817,12 +826,24 @@ function canvasToModel(px: number, py: number): { x: number; y: number } {
     const v = (py - tj * cellH) / cellH;
     const shiftX = ti - 1;
     const shiftY = tj - 1;
+    
     // In Möbius mode, odd x-shift tiles are drawn with vertical reflection.
-    const yFrac =
-        distanceMode === "mobius" && (shiftX & 1) !== 0 ? 1 - v : v;
     // In Klein mode, odd y-shift tiles are drawn with horizontal reflection.
-    const xFrac =
-        distanceMode === "klein" && (shiftY & 1) !== 0 ? 1 - u : u;
+    let yFrac = v;
+    let xFrac = u;
+    
+    switch (distanceMode) {
+        case "mobius":
+            if ((shiftX & 1) !== 0) {
+                yFrac = 1 - v;
+            }
+            break;
+        case "klein":
+            if ((shiftY & 1) !== 0) {
+                xFrac = 1 - u;
+            }
+            break;
+    }
     return {
         x: xFrac * CANVAS_WIDTH,
         y: yFrac * CANVAS_HEIGHT,
@@ -881,20 +902,64 @@ if (toggleBoundariesBtn) {
 }
 
 function updateDistanceModeButtons(): void {
-    if (distanceEuclidBtn) {
-        (distanceEuclidBtn as HTMLButtonElement).disabled = distanceMode === "euclidean";
+    switch (distanceMode) {
+        case "euclidean":
+            if (distanceEuclidBtn) {
+                (distanceEuclidBtn as HTMLButtonElement).disabled = true;
+            }
+            break;
+        default:
+            if (distanceEuclidBtn) {
+                (distanceEuclidBtn as HTMLButtonElement).disabled = false;
+            }
     }
-    if (distanceTorusBtn) {
-        (distanceTorusBtn as HTMLButtonElement).disabled = distanceMode === "torus";
+    
+    switch (distanceMode) {
+        case "torus":
+            if (distanceTorusBtn) {
+                (distanceTorusBtn as HTMLButtonElement).disabled = true;
+            }
+            break;
+        default:
+            if (distanceTorusBtn) {
+                (distanceTorusBtn as HTMLButtonElement).disabled = false;
+            }
     }
-    if (distanceCylinderBtn) {
-        (distanceCylinderBtn as HTMLButtonElement).disabled = distanceMode === "cylinder";
+    
+    switch (distanceMode) {
+        case "cylinder":
+            if (distanceCylinderBtn) {
+                (distanceCylinderBtn as HTMLButtonElement).disabled = true;
+            }
+            break;
+        default:
+            if (distanceCylinderBtn) {
+                (distanceCylinderBtn as HTMLButtonElement).disabled = false;
+            }
     }
-    if (distanceMobiusBtn) {
-        (distanceMobiusBtn as HTMLButtonElement).disabled = distanceMode === "mobius";
+    
+    switch (distanceMode) {
+        case "mobius":
+            if (distanceMobiusBtn) {
+                (distanceMobiusBtn as HTMLButtonElement).disabled = true;
+            }
+            break;
+        default:
+            if (distanceMobiusBtn) {
+                (distanceMobiusBtn as HTMLButtonElement).disabled = false;
+            }
     }
-    if (distanceKleinBtn) {
-        (distanceKleinBtn as HTMLButtonElement).disabled = distanceMode === "klein";
+    
+    switch (distanceMode) {
+        case "klein":
+            if (distanceKleinBtn) {
+                (distanceKleinBtn as HTMLButtonElement).disabled = true;
+            }
+            break;
+        default:
+            if (distanceKleinBtn) {
+                (distanceKleinBtn as HTMLButtonElement).disabled = false;
+            }
     }
 }
 
