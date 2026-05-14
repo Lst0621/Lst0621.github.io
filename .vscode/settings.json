@@ -3,14 +3,17 @@
   "C_Cpp.default.cStandard": "c17",
   "C_Cpp.default.intelliSenseMode": "linux-gcc-x64",
   "C_Cpp.intelliSenseEngine": "disabled",
+  "clangd.path": "/usr/bin/clangd-19",
   "clangd.arguments": [
-    "--compile-commands-dir=lib/tsl/wasm/wasm_out_ci",
-    "--background-index"
+    "--background-index",
+    "--query-driver=/usr/bin/g++,/usr/bin/c++,**/em++"
   ],
   "chat.tools.terminal.autoApprove": {
     "/^node lib/build\\.js$/": {
       "approve": true,
       "matchCommandLine": true
     }
-  }
+  },
+  "python-envs.defaultEnvManager": "ms-python.python:system",
+  "cmake.sourceDirectory": "${workspaceFolder}/lib/tsl/wasm"
 }

@@ -5,7 +5,9 @@
       "includePath": [
         "${workspaceFolder}/**",
         "${workspaceFolder}/lib/tsl/core/src",
-        "${workspaceFolder}/lib/tsl/wasm/src"
+        "${workspaceFolder}/lib/tsl/wasm/src",
+        "${workspaceFolder}/lib/tsl/py/cpp",
+        "${env:HOME}/.local/lib/python3.10/site-packages/pybind11/include"
       ],
       "defines": [],
       "compilerPath": "/usr/bin/g++",
