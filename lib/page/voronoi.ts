@@ -17,7 +17,7 @@ import {
     type VoronoiBoundaryPointExact,
 } from "../tsl/wasm/ts/wasm_api_voronoi";
 
-type DistanceMode = "euclidean" | "torus" | "cylinder" | "mobius" | "klein";
+type DistanceMode = "euclidean" | "torus" | "cylinder" | "mobius" | "klein" | "chebyshev" | "chebyshev-tie" | "raw";
 type RgbColor = { r: number; g: number; b: number };
 
 // Canvas setup
@@ -29,16 +29,20 @@ const pointCountElem = document.getElementById("point-count");
 const randomBtn = document.getElementById("random-btn");
 const clearBtn = document.getElementById("clear-btn");
 const toggleBoundariesBtn = document.getElementById("toggle-boundaries-btn");
+const distanceRawBtn = document.getElementById("distance-raw-btn");
 const distanceEuclidBtn = document.getElementById("distance-euclidean-btn");
 const distanceTorusBtn = document.getElementById("distance-torus-btn");
 const distanceCylinderBtn = document.getElementById("distance-cylinder-btn");
 const distanceMobiusBtn = document.getElementById("distance-mobius-btn");
 const distanceKleinBtn = document.getElementById("distance-klein-btn");
+const distanceChebyshevBtn = document.getElementById("distance-chebyshev-btn");
+const distanceChebyshevTieBtn = document.getElementById("distance-chebyshev-tie-btn");
 const viewLayoutBtn = document.getElementById("view-layout-btn");
 
 // State
 let drawBoundaries = true;
-let distanceMode: DistanceMode = "euclidean";
+// DEBUG: start in Chebyshev mode for local testing
+let distanceMode: DistanceMode = "chebyshev";
 /** `1x1` = full fundamental domain; `3x3` = nine equal tiles (same diagram, shrunk). */
 let viewLayout: "1x1" | "3x3" = "1x1";
 
@@ -90,8 +94,6 @@ type CachedGeometry = {
 // entries — only the active mode is recomputed at that point.
 const geometryByMode: Partial<Record<DistanceMode, CachedGeometry>> = {};
 
-let latestExactBoundaries: VoronoiCellBoundaryExact[] = [];
-
 function emptyGeometry(): CachedGeometry {
     return { boundaries: [], exactBoundaries: [], siteColors: new Map<number, number>() };
 }
@@ -102,6 +104,9 @@ function invalidateGeometryCache(): void {
     delete geometryByMode.cylinder;
     delete geometryByMode.mobius;
     delete geometryByMode.klein;
+    delete geometryByMode.chebyshev;
+    delete geometryByMode["chebyshev-tie"];
+    delete geometryByMode.raw;
 }
 
 function hslToRgb(h: number, s: number, l: number): RgbColor {
@@ -158,8 +163,69 @@ function resetSiteState(): void {
     siteIds = [];
     siteColors = new Map<number, number>();
     latestBoundaries = [];
-    latestExactBoundaries = [];
     invalidateGeometryCache();
+}
+
+function rgbToCss(color: RgbColor): string {
+    return `rgb(${color.r} ${color.g} ${color.b})`;
+}
+
+/** Compute approximate signed area (double) for a polygon loop. */
+function polygonAreaDouble(loop: { x: number; y: number }[]): number {
+    const n = loop.length;
+    if (n < 3) return 0;
+    let a = 0;
+    for (let i = 0; i < n; i++) {
+        const p0 = loop[i]!;
+        const p1 = loop[(i + 1) % n]!;
+        a += p0.x * p1.y - p1.x * p0.y;
+    }
+    return a * 0.5;
+}
+
+/** Debug log: one collapsible group per mode with site table + compact polygon strings. */
+function logVoronoiGeometryDebug(
+    mode: DistanceMode,
+    boundaries: VoronoiCellBoundary[],
+    exactBoundaries: VoronoiCellBoundaryExact[],
+    colorsByStableId: Map<number, number>,
+): void {
+    const n = voronoiNumSites();
+    if (n === 0) {
+        return;
+    }
+    console.group(`voronoi ${mode} geometry`);
+    const rows: Record<string, unknown>[] = [];
+    for (let i = 0; i < n; i++) {
+        const { x, y } = voronoiGetSite(i);
+        const sid = siteIds[i];
+        const cidx = sid !== undefined ? (colorsByStableId.get(sid) ?? 0) : 0;
+        const cellBoundary = boundaries.find((c) => c.site === i);
+        const polys = (cellBoundary?.polygons ?? []).map((loop) => loop.map((p) => p));
+        const polyCount = polys.length;
+        const areas = polys.map((loop) => Math.abs(polygonAreaDouble(loop)).toFixed(0));
+        const polySummary = polys
+            .map((loop, pi) => {
+                const nv = loop.length;
+                const pts = loop
+                    .slice(0, Math.min(nv, 8))
+                    .map((p) => `[${Math.round(p.x * 100) / 100},${Math.round(p.y * 100) / 100}]`)
+                    .join(",");
+                return nv > 8 ? `(${nv}v)[${pts},…]` : `(${nv}v)[${pts}]`;
+            })
+            .join(" ") || "∅";
+
+        rows.push({
+            site: i,
+            pos: `${Math.round(x * 100) / 100},${Math.round(y * 100) / 100}`,
+            fill: rgbToCss(getColor(cidx)),
+            n: polyCount,
+            area: areas.join(" "),
+            polys: polySummary,
+        });
+    }
+    console.table(rows);
+    console.groupEnd();
 }
 
 function normalizeVertices(vertices: { x: number; y: number }[]): { x: number; y: number }[] {
@@ -186,121 +252,9 @@ function normalizeVertices(vertices: { x: number; y: number }[]): { x: number; y
     return deduped;
 }
 
-/** Scale for snapping vertex coords when matching polygon edges (doubles from exact rationals). */
-const UNION_BOUNDARY_KEY_SCALE = 1_000_000;
-
-function vertexKeyForBoundary(p: { x: number; y: number }): string {
-    return `${Math.round(p.x * UNION_BOUNDARY_KEY_SCALE)},${Math.round(p.y * UNION_BOUNDARY_KEY_SCALE)}`;
-}
-
-function directedEdgeKey(a: { x: number; y: number }, b: { x: number; y: number }): string {
-    return `${vertexKeyForBoundary(a)}→${vertexKeyForBoundary(b)}`;
-}
-
-function reverseDirectedKey(k: string): string {
-    const sep = "→";
-    const i = k.indexOf(sep);
-    if (i < 0) {
-        return k;
-    }
-    return k.slice(i + sep.length) + sep + k.slice(0, i);
-}
-
-/**
- * After counting directed boundary edges: cancel opposite pairs, then mod-2
- * on same-direction multiplicity (see collectUnionBoundarySegmentsExact).
- */
-function directedEdgeCountsToSegments(
-    counts: Map<string, number>,
-    repr: Map<string, [{ x: number; y: number }, { x: number; y: number }]>,
-): Array<[{ x: number; y: number }, { x: number; y: number }]> {
-    const seen = new Set<string>();
-    for (const k of Array.from(counts.keys())) {
-        if (seen.has(k)) {
-            continue;
-        }
-        const rk = reverseDirectedKey(k);
-        seen.add(k);
-        seen.add(rk);
-        const c = counts.get(k) ?? 0;
-        const cr = counts.get(rk) ?? 0;
-        const t = Math.min(c, cr);
-        if (t > 0) {
-            const nk = c - t;
-            const nrk = cr - t;
-            if (nk === 0) {
-                counts.delete(k);
-            } else {
-                counts.set(k, nk);
-            }
-            if (nrk === 0) {
-                counts.delete(rk);
-            } else {
-                counts.set(rk, nrk);
-            }
-        }
-    }
-
-    for (const k of Array.from(counts.keys())) {
-        const c = counts.get(k) ?? 0;
-        if (c % 2 === 0) {
-            counts.delete(k);
-        } else {
-            counts.set(k, 1);
-        }
-    }
-
-    const out: Array<[{ x: number; y: number }, { x: number; y: number }]> = [];
-    for (const k of counts.keys()) {
-        const seg = repr.get(k);
-        if (seg) {
-            out.push(seg);
-        }
-    }
-    return out;
-}
-
-/**
- * Fallback union outline when exact vertices are unavailable (snapped doubles).
- */
-function collectUnionBoundarySegments(
-    loops: { x: number; y: number }[][],
-): Array<[{ x: number; y: number }, { x: number; y: number }]> {
-    const minLenSq = 1e-20;
-    const counts = new Map<string, number>();
-    const repr = new Map<string, [{ x: number; y: number }, { x: number; y: number }]>();
-
-    for (const loop of loops) {
-        const poly = normalizeVertices(loop);
-        const n = poly.length;
-        if (n < 2) {
-            continue;
-        }
-        for (let i = 0; i < n; i++) {
-            const a = poly[i]!;
-            const b = poly[(i + 1) % n]!;
-            const dx = b.x - a.x;
-            const dy = b.y - a.y;
-            if (dx * dx + dy * dy < minLenSq) {
-                continue;
-            }
-            const k = directedEdgeKey(a, b);
-            counts.set(k, (counts.get(k) ?? 0) + 1);
-            if (!repr.has(k)) {
-                repr.set(k, [a, b]);
-            }
-        }
-    }
-
-    return directedEdgeCountsToSegments(counts, repr);
-}
-
+/** Exact-rational vertex key used by adjacency building (shared-edge detection). */
 function exactVertexKey(p: VoronoiBoundaryPointExact): string {
     return `${p.x.num}:${p.x.den}:${p.y.num}:${p.y.den}`;
-}
-
-function directedExactEdgeKey(a: VoronoiBoundaryPointExact, b: VoronoiBoundaryPointExact): string {
-    return `${exactVertexKey(a)}→${exactVertexKey(b)}`;
 }
 
 function normalizeExactLoop(loop: VoronoiBoundaryPointExact[]): VoronoiBoundaryPointExact[] {
@@ -318,46 +272,6 @@ function normalizeExactLoop(loop: VoronoiBoundaryPointExact[]): VoronoiBoundaryP
         deduped.pop();
     }
     return deduped;
-}
-
-function exactToCanvasPoint(p: VoronoiBoundaryPointExact): { x: number; y: number } {
-    return {
-        x: exactRationalToNumber(p.x),
-        y: exactRationalToNumber(p.y),
-    };
-}
-
-/**
- * Same as collectUnionBoundarySegments but keys edges by exact rational
- * vertices so shared seams between lattice pieces match bit-for-bit.
- */
-function collectUnionBoundarySegmentsExact(
-    cell: VoronoiCellBoundaryExact,
-): Array<[{ x: number; y: number }, { x: number; y: number }]> {
-    const counts = new Map<string, number>();
-    const repr = new Map<string, [{ x: number; y: number }, { x: number; y: number }]>();
-
-    for (const loop of cell.polygons) {
-        const poly = normalizeExactLoop(loop);
-        const n = poly.length;
-        if (n < 2) {
-            continue;
-        }
-        for (let i = 0; i < n; i++) {
-            const a = poly[i]!;
-            const b = poly[(i + 1) % n]!;
-            if (exactVertexKey(a) === exactVertexKey(b)) {
-                continue;
-            }
-            const k = directedExactEdgeKey(a, b);
-            counts.set(k, (counts.get(k) ?? 0) + 1);
-            if (!repr.has(k)) {
-                repr.set(k, [exactToCanvasPoint(a), exactToCanvasPoint(b)]);
-            }
-        }
-    }
-
-    return directedEdgeCountsToSegments(counts, repr);
 }
 
 function addPoint(x: number, y: number): void {
@@ -397,6 +311,83 @@ function torusDistSq(px: number, py: number, sx: number, sy: number, w: number, 
  * Closest seed by the active metric (brute force). Used for context-menu hit
  * testing; diagram ownership comes from exported cell polygons.
  */
+/** Chebyshev: unique strict minimizer of Chebyshev distance, or -1 if tie. */
+function strictChebyshevUniqueSiteIndex(x: number, y: number): number {
+    const n = voronoiNumSites();
+    if (n <= 0) {
+        return -1;
+    }
+    const gx = Math.floor(x);
+    const gy = Math.floor(y);
+    const sites = Array.from({ length: n }, (_, i) => voronoiGetSite(i));
+    return strictChebyshevPixelCenterOwner(gx, gy, sites);
+}
+
+function strictChebyshevPixelCenterOwner(
+    ix: number,
+    iy: number,
+    sites: readonly { x: number; y: number }[],
+): number {
+    const n = sites.length;
+    if (n === 0) {
+        return -1;
+    }
+    const px = ix * 2 + 1;
+    const py = iy * 2 + 1;
+    let best = Number.MAX_SAFE_INTEGER;
+    let second = Number.MAX_SAFE_INTEGER;
+    let bestIdx = -1;
+    for (let i = 0; i < n; i++) {
+        const s = sites[i]!;
+        const sx = s.x * 2 + 1;
+        const sy = s.y * 2 + 1;
+        const d = Math.max(Math.abs(px - sx), Math.abs(py - sy));
+        if (d < best) {
+            second = best;
+            best = d;
+            bestIdx = i;
+        } else if (d < second) {
+            second = d;
+        }
+    }
+    return best < second ? bestIdx : -1;
+}
+
+/**
+ * Chebyshev-tie variant: returns the smallest-index site among those at
+ * minimum Chebyshev distance. Never returns -1 (unless no sites).
+ */
+function strictChebyshevFirstTieOwner(
+    ix: number,
+    iy: number,
+    sites: readonly { x: number; y: number }[],
+): number {
+    const n = sites.length;
+    if (n === 0) {
+        return -1;
+    }
+    const px = ix * 2 + 1;
+    const py = iy * 2 + 1;
+    let best = Number.MAX_SAFE_INTEGER;
+    let bestIdx = 0;
+    for (let i = 0; i < n; i++) {
+        const s = sites[i]!;
+        const sx = s.x * 2 + 1;
+        const sy = s.y * 2 + 1;
+        const d = Math.max(Math.abs(px - sx), Math.abs(py - sy));
+        if (d < best) {
+            best = d;
+            bestIdx = i;
+        }
+    }
+    return bestIdx;
+}
+
+/**
+ * Closest seed by the active metric (brute force). Used for context-menu hit
+ * testing. Chebyshev uses strict pixel-center dominance (ties return -1).
+ * Chebyshev-tie assigns ties to smallest-index closest site.
+ */
 function findSiteIndexByRegion(
     x: number,
     y: number,
@@ -405,6 +396,15 @@ function findSiteIndexByRegion(
     const n = voronoiNumSites();
     if (n <= 0) {
         return -1;
+    }
+    if (metric === "chebyshev" || metric === "raw") {
+        return strictChebyshevUniqueSiteIndex(x, y);
+    }
+    if (metric === "chebyshev-tie") {
+        const gx = Math.floor(x);
+        const gy = Math.floor(y);
+        const sites = Array.from({ length: n }, (_, i) => voronoiGetSite(i));
+        return strictChebyshevFirstTieOwner(gx, gy, sites);
     }
     let bestIdx = 0;
     let bestD = Infinity;
@@ -431,8 +431,18 @@ function undirectedExactEdgeKey(a: VoronoiBoundaryPointExact, b: VoronoiBoundary
  * Adjacency for graph coloring: two sites are neighbors if they share a cell
  * edge. Uses exact rational endpoints so torus pieces agree with neighbors
  * (float rounding was dropping links or pairing wrong edges).
+ *
+ * For Chebyshev, cells are unions of multiple convex pieces whose edge
+ * decompositions may not align — use pixel-center sampling instead.
  */
-function buildAdjacencyFromCellsExact(cells: VoronoiCellBoundaryExact[]): Map<number, Set<number>> {
+function buildAdjacencyFromCellsExact(
+    cells: VoronoiCellBoundaryExact[],
+    mode: DistanceMode = distanceMode,
+): Map<number, Set<number>> {
+    if (mode === "chebyshev" || mode === "chebyshev-tie" || mode === "raw") {
+        return buildChebyshevAdjacency(mode);
+    }
+
     const adjacency = new Map<number, Set<number>>();
     const edgeOwner = new Map<string, number>();
 
@@ -477,6 +487,95 @@ function buildAdjacencyFromCellsExact(cells: VoronoiCellBoundaryExact[]): Map<nu
                     edgeOwner.set(key, cell.site);
                 } else {
                     link(owner, cell.site);
+                }
+            }
+        }
+    }
+
+    return adjacency;
+}
+
+/**
+ * Chebyshev-mode adjacency: sample pixel centers on a grid, detect
+ * neighboring pixels that belong to different sites (strict, no ties).
+ * Grid step of 8 gives 100×75 ≈ 7500 samples for 800×600 — fast enough.
+ */
+function buildChebyshevAdjacency(mode: DistanceMode): Map<number, Set<number>> {
+    const n = voronoiNumSites();
+    if (n <= 1) {
+        return new Map();
+    }
+
+    const sites = Array.from({ length: n }, (_, i) => voronoiGetSite(i));
+    const gridStep = 8;
+    const cols = Math.ceil(CANVAS_WIDTH / gridStep);
+    const rows = Math.ceil(CANVAS_HEIGHT / gridStep);
+    const ownerFn = mode === "chebyshev-tie"
+        ? strictChebyshevFirstTieOwner
+        : strictChebyshevPixelCenterOwner;
+
+    // Compute ownership for each grid cell center
+    const ownership: number[][] = [];
+    for (let gy = 0; gy < rows; gy++) {
+        const row: number[] = [];
+        const iy = gy * gridStep;
+        for (let gx = 0; gx < cols; gx++) {
+            const ix = gx * gridStep;
+            row.push(ownerFn(ix, iy, sites));
+        }
+        ownership.push(row);
+    }
+
+    // Detect adjacency from grid neighbors (4-connected)
+    const adjacency = new Map<number, Set<number>>();
+    const link = (a: number, b: number): void => {
+        if (a === b || a < 0 || b < 0) {
+            return;
+        }
+        const idA = siteIds[a];
+        const idB = siteIds[b];
+        if (idA === undefined || idB === undefined) {
+            return;
+        }
+
+        let neighborsA = adjacency.get(idA);
+        if (!neighborsA) {
+            neighborsA = new Set<number>();
+            adjacency.set(idA, neighborsA);
+        }
+        let neighborsB = adjacency.get(idB);
+        if (!neighborsB) {
+            neighborsB = new Set<number>();
+            adjacency.set(idB, neighborsB);
+        }
+
+        neighborsA.add(idB);
+        neighborsB.add(idA);
+    };
+
+    for (let gy = 0; gy < rows; gy++) {
+        for (let gx = 0; gx < cols; gx++) {
+            const owner = ownership[gy]![gx]!;
+            if (owner < 0) {
+                continue;
+            }
+            // Right neighbor
+            if (gx + 1 < cols) {
+                link(owner, ownership[gy]![gx + 1]!);
+            }
+            // Down neighbor
+            if (gy + 1 < rows) {
+                link(owner, ownership[gy + 1]![gx]!);
+            }
+            // Down-right diagonal (catch checkerboard corner touches)
+            if (gx + 1 < cols && gy + 1 < rows) {
+                const diag = ownership[gy + 1]![gx + 1]!;
+                if (diag >= 0 && diag !== owner) {
+                    const right = ownership[gy]![gx + 1]!;
+                    const down = ownership[gy + 1]![gx]!;
+                    if (right !== owner || down !== owner) {
+                        link(owner, diag);
+                    }
                 }
             }
         }
@@ -552,7 +651,21 @@ function recolorSites(adjacency: Map<number, Set<number>>): void {
 }
 
 function buildGeometryForMode(mode: DistanceMode, previousColors: Map<number, number>): CachedGeometry {
-    voronoiSetDistanceMode(mode);
+    // Map frontend modes to WASM distance modes:
+    //   "chebyshev-tie" → "chebyshev"
+    //   "raw"          → "chebyshev-raw"
+    const wasmModeLookup: Record<DistanceMode, string> = {
+        euclidean: "euclidean",
+        torus: "torus",
+        cylinder: "cylinder",
+        mobius: "mobius",
+        klein: "klein",
+        chebyshev: "chebyshev",
+        "chebyshev-tie": "chebyshev",
+        raw: "chebyshev-raw",
+    };
+    const wasmMode = wasmModeLookup[mode] ?? "euclidean";
+    voronoiSetDistanceMode(wasmMode as "euclidean" | "torus" | "cylinder" | "mobius" | "klein" | "chebyshev" | "chebyshev-raw");
     const nSites = voronoiNumSites();
     const tCompute0 =
         typeof performance !== "undefined" && typeof performance.now === "function"
@@ -583,7 +696,7 @@ function buildGeometryForMode(mode: DistanceMode, previousColors: Map<number, nu
             })),
         ),
     }));
-    const adjacency = buildAdjacencyFromCellsExact(exactBoundaries);
+    const adjacency = buildAdjacencyFromCellsExact(exactBoundaries, mode);
 
     const savedColors = siteColors;
     siteColors = new Map(previousColors);
@@ -591,13 +704,13 @@ function buildGeometryForMode(mode: DistanceMode, previousColors: Map<number, nu
     const recolored = new Map(siteColors);
     siteColors = savedColors;
 
+    logVoronoiGeometryDebug(mode, boundaries, exactBoundaries, recolored);
     return { boundaries, exactBoundaries, siteColors: recolored };
 }
 
 function syncActiveGeometry(): void {
     const active = geometryByMode[distanceMode] ?? emptyGeometry();
     latestBoundaries = active.boundaries;
-    latestExactBoundaries = active.exactBoundaries;
     siteColors = new Map(active.siteColors);
 }
 
@@ -713,19 +826,19 @@ function drawOneTile(modelLineWidth: number, modelSeedR: number): void {
 
     ctx.lineWidth = modelLineWidth;
     ctx.strokeStyle = "rgba(0, 0, 0, 0.18)";
+    // C++ already returns merged polygons (merge_polygons_drop_contained) for
+    // all modes except raw. Raw mode keeps individual convex pieces.
     if (drawBoundaries && latestBoundaries.length > 0) {
         for (const cell of latestBoundaries) {
-            const exactCell = latestExactBoundaries[cell.site];
-            const segs = exactCell
-                ? collectUnionBoundarySegmentsExact(exactCell)
-                : collectUnionBoundarySegments(cell.polygons);
-            if (segs.length === 0) {
-                continue;
-            }
             ctx.beginPath();
-            for (const [a, b] of segs) {
-                ctx.moveTo(a.x, a.y);
-                ctx.lineTo(b.x, b.y);
+            for (const loop of cell.polygons) {
+                const poly = normalizeVertices(loop);
+                if (poly.length < 2) continue;
+                ctx.moveTo(poly[0].x, poly[0].y);
+                for (let i = 1; i < poly.length; i++) {
+                    ctx.lineTo(poly[i].x, poly[i].y);
+                }
+                ctx.closePath();
             }
             ctx.stroke();
         }
@@ -809,10 +922,6 @@ function updateUI(): void {
     }
 }
 
-function rgbToCss(color: RgbColor): string {
-    return `rgb(${color.r} ${color.g} ${color.b})`;
-}
-
 /** Map canvas pixel to fundamental-domain coordinates (same as 1×1 hit testing). */
 function canvasToModel(px: number, py: number): { x: number; y: number } {
     if (viewLayout === "1x1") {
@@ -881,6 +990,86 @@ canvas.addEventListener("contextmenu", (e) => {
         updateUI();
         draw();
     }
+});
+
+function buildHoverText(px: number, py: number): string {
+    const { x, y } = canvasToModel(px, py);
+    const n = voronoiNumSites();
+    if (n === 0) {
+        return `pos: (${x.toFixed(1)}, ${y.toFixed(1)})\n\nno sites`;
+    }
+
+    const isChebLike = distanceMode === "chebyshev" || distanceMode === "chebyshev-tie" || distanceMode === "raw";
+
+    const entries: { idx: number; sx: number; sy: number; d: number }[] = [];
+    let bestD = Number.MAX_SAFE_INTEGER;
+    for (let i = 0; i < n; i++) {
+        const s = voronoiGetSite(i);
+        let d: number;
+        if (isChebLike) {
+            // Chebyshev: pixel-center distance (half-integer grid)
+            const cx = Math.floor(x);
+            const cy = Math.floor(y);
+            const pcx = cx * 2 + 1;
+            const pcy = cy * 2 + 1;
+            const ssx = s.x * 2 + 1;
+            const ssy = s.y * 2 + 1;
+            d = Math.max(Math.abs(pcx - ssx), Math.abs(pcy - ssy)) / 2;
+        } else if (distanceMode === "torus") {
+            d = Math.sqrt(torusDistSq(x, y, s.x, s.y, CANVAS_WIDTH, CANVAS_HEIGHT));
+        } else {
+            // euclidean, cylinder, mobius, klein — locally Euclidean in fundamental domain
+            d = Math.sqrt(euclideanDistSq(x, y, s.x, s.y));
+        }
+        if (d < bestD) bestD = d;
+        entries.push({ idx: i, sx: s.x, sy: s.y, d });
+    }
+
+    let text = `pos: (${x.toFixed(0)}, ${y.toFixed(0)})\n\n`;
+    for (const e of entries) {
+        const tied = Math.abs(e.d - bestD) < 1e-9;
+        const marker = tied ? " ← closest" : "";
+        const dDisplay = e.d.toFixed(2);
+        text += `site ${e.idx} (${e.sx},${e.sy}): d=${dDisplay}${marker}\n`;
+    }
+    if (entries.filter(e => Math.abs(e.d - bestD) < 1e-9).length > 1) {
+        if (distanceMode === "chebyshev-tie") {
+            const firstTie = entries.filter(e => Math.abs(e.d - bestD) < 1e-9)[0]!;
+            text += `\n(tie → site ${firstTie.idx})`;
+        } else if (isChebLike) {
+            text += "\n(tie)";
+        }
+        // Euclidean metrics: ties are naturally possible, don't annotate
+    }
+    return text;
+}
+
+// DEBUG: hover info showing cursor position and distance to all sites (mode-aware)
+const hoverInfo = document.getElementById("hover-info");
+canvas.addEventListener("mousemove", (e) => {
+    if (!hoverInfo) {
+        return;
+    }
+    const rect = canvas.getBoundingClientRect();
+    const px = Math.round(e.clientX - rect.left);
+    const py = Math.round(e.clientY - rect.top);
+    hoverInfo.textContent = buildHoverText(px, py);
+});
+
+canvas.addEventListener("mouseleave", () => {
+    if (hoverInfo) {
+        hoverInfo.textContent = "";
+    }
+});
+
+// Middle-click: dump current hover info to console
+canvas.addEventListener("mousedown", (e) => {
+    if (e.button !== 1) return;  // middle button only
+    e.preventDefault();
+    const rect = canvas.getBoundingClientRect();
+    const px = Math.round(e.clientX - rect.left);
+    const py = Math.round(e.clientY - rect.top);
+    console.log(buildHoverText(px, py));
 });
 
 if (randomBtn) {
@@ -961,6 +1150,42 @@ function updateDistanceModeButtons(): void {
                 (distanceKleinBtn as HTMLButtonElement).disabled = false;
             }
     }
+
+    switch (distanceMode) {
+        case "chebyshev":
+            if (distanceChebyshevBtn) {
+                (distanceChebyshevBtn as HTMLButtonElement).disabled = true;
+            }
+            break;
+        default:
+            if (distanceChebyshevBtn) {
+                (distanceChebyshevBtn as HTMLButtonElement).disabled = false;
+            }
+    }
+
+    switch (distanceMode) {
+        case "chebyshev-tie":
+            if (distanceChebyshevTieBtn) {
+                (distanceChebyshevTieBtn as HTMLButtonElement).disabled = true;
+            }
+            break;
+        default:
+            if (distanceChebyshevTieBtn) {
+                (distanceChebyshevTieBtn as HTMLButtonElement).disabled = false;
+            }
+    }
+
+    switch (distanceMode) {
+        case "raw":
+            if (distanceRawBtn) {
+                (distanceRawBtn as HTMLButtonElement).disabled = true;
+            }
+            break;
+        default:
+            if (distanceRawBtn) {
+                (distanceRawBtn as HTMLButtonElement).disabled = false;
+            }
+    }
 }
 
 if (distanceEuclidBtn) {
@@ -1003,6 +1228,30 @@ if (distanceKleinBtn) {
     });
 }
 
+if (distanceChebyshevBtn) {
+    distanceChebyshevBtn.addEventListener("click", () => {
+        distanceMode = "chebyshev";
+        updateDistanceModeButtons();
+        recomputeAndDraw();
+    });
+}
+
+if (distanceChebyshevTieBtn) {
+    distanceChebyshevTieBtn.addEventListener("click", () => {
+        distanceMode = "chebyshev-tie";
+        updateDistanceModeButtons();
+        recomputeAndDraw();
+    });
+}
+
+if (distanceRawBtn) {
+    distanceRawBtn.addEventListener("click", () => {
+        distanceMode = "raw";
+        updateDistanceModeButtons();
+        recomputeAndDraw();
+    });
+}
+
 updateDistanceModeButtons();
 
 if (viewLayoutBtn) {
@@ -1015,7 +1264,8 @@ if (viewLayoutBtn) {
 updateViewLayoutButton();
 
 export function restart(): void {
-    generateRandomPoints(25);
+    // DEBUG: start with 4 points for local Chebyshev testing
+    generateRandomPoints(4);
 }
 
 export function toggleBoundaries(): void {
@@ -1030,7 +1280,8 @@ export function clearPoints(): void {
 async function init(): Promise<void> {
     await modulePromise;
     voronoiCreate(CANVAS_WIDTH, CANVAS_HEIGHT);
-    generateRandomPoints(25);
+    // DEBUG: start with 4 points for local Chebyshev testing
+    generateRandomPoints(4);
 }
 
 init().catch(console.error);

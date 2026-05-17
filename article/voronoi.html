@@ -67,6 +67,8 @@
       .canvas-container {
         display: flex;
         justify-content: center;
+        align-items: flex-start;
+        gap: 10px;
         margin-bottom: 20px;
       }
 
@@ -75,6 +77,22 @@
         background-color: white;
         cursor: crosshair;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .hover-info {
+        font-family: monospace;
+        font-size: 12px;
+        color: #333;
+        background: rgba(255, 255, 255, 0.94);
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        padding: 8px 12px;
+        min-width: 280px;
+        max-height: 600px;
+        overflow-y: auto;
+        line-height: 1.6;
+        white-space: pre;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.08);
       }
 
       .info {
@@ -112,6 +130,9 @@
         <button id="distance-cylinder-btn">Distance: Cylinder</button>
         <button id="distance-mobius-btn">Distance: Möbius</button>
         <button id="distance-klein-btn">Distance: Klein</button>
+        <button id="distance-chebyshev-btn">Distance: Chebyshev</button>
+        <button id="distance-chebyshev-tie-btn">Distance: Chebyshev (tie→first)</button>
+        <button id="distance-raw-btn">Distance: Raw</button>
         <button id="view-layout-btn" type="button">View: 1×1</button>
         <button id="toggle-boundaries-btn">Hide Boundaries</button>
         <span id="point-count">Points: 0</span>
@@ -119,6 +140,7 @@
 
       <div class="canvas-container">
         <canvas id="voronoi-canvas" width="800" height="600"></canvas>
+        <div id="hover-info" class="hover-info"></div>
       </div>
 
       <div class="info">
@@ -145,7 +167,7 @@
             The diagram will recompute automatically.
           </li>
           <li>
-            Use <strong>Distance: Euclidean/Torus/Cylinder/Möbius/Klein</strong> to switch the metric
+            Use <strong>Distance: Euclidean/Torus/Cylinder/Möbius/Klein/Chebyshev/Raw</strong> to switch the metric
             used when assigning cells to seed points:
             <ul>
               <li><strong>Euclidean:</strong> Standard distance metric where cells are
@@ -158,6 +180,11 @@
               across the seam flips vertical position (a Möbius strip).</li>
               <li><strong>Klein:</strong> Wraps in both directions, but wrapping across the
               vertical seam flips horizontal position (a Klein bottle).</li>
+              <li><strong>Chebyshev:</strong> L∞ metric where distance is
+              <code>max(|dx|, |dy|)</code> — cells are axis-aligned
+              rectangles determined by coordinate-wise bisectors.</li>
+              <li><strong>Raw:</strong> The same Chebyshev construction before the
+              final merge step, useful for inspecting the clipped pieces directly.</li>
             </ul>
           </li>
           <li>
