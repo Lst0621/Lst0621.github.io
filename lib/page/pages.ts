@@ -21,17 +21,22 @@ export const sections: Section[] = [
     ],
   },
   {
+    title: "WASM",
+    pages: [
+      { name: "Game of Life (C++/WASM)", url: "article/gol_cpp.html" },
+      { name: "Voronoi Diagram", url: "article/voronoi.html" },
+      { name: "Bars game (C++/WASM)", url: "article/bars_game.html" },
+      { name: "Partition Conjugate (C++/WASM)", url: "article/partition_conjugate.html" },
+    ],
+  },
+  {
     title: "Widgets",
     pages: [
       { name: "Fractal tree", url: "article/tree.html" },
-      { name: "Voronoi Diagram", url: "article/voronoi.html" },
       { name: "Number of Scoring Sequences", url: "article/number_of_sequences.html" },
-      { name: "Partition Conjugate (C++/WASM)", url: "article/partition_conjugate.html" },
       { name: "Linear Recurrence", url: "article/linear_recur.html" },
       { name: "Linear Recurrence Convolution", url: "article/linear_recur_convolution.html" },
       { name: "Game of Life", url: "article/gol.html" },
-      { name: "Game of Life (C++/WASM)", url: "article/gol_cpp.html" },
-      { name: "Bars game (C++/WASM)", url: "article/bars_game.html" },
       { name: "Calendar", url: "article/calendar.html" },
       { name: "Labyrinth", url: "article/labyrinth.html" },
       { name: "Recursive Page", url: "article/recursive_page.html" },
