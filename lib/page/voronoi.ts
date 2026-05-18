@@ -6,6 +6,7 @@ import {
     voronoiClear,
     voronoiCompute,
     voronoiSetDistanceMode,
+    voronoiSetChebyshevNoTie,
     voronoiNumSites,
     voronoiGetSite,
     voronoiGetCellBoundaries,
@@ -651,9 +652,10 @@ function recolorSites(adjacency: Map<number, Set<number>>): void {
 }
 
 function buildGeometryForMode(mode: DistanceMode, previousColors: Map<number, number>): CachedGeometry {
-    // Map frontend modes to WASM distance modes:
-    //   "chebyshev-tie" → "chebyshev"
-    //   "raw"          → "chebyshev-raw"
+    // Map frontend modes to WASM distance modes.
+    // "chebyshev"  → Chebyshev (mode 5), no_tie=true  (ties → white)
+    // "chebyshev-tie" → Chebyshev (mode 5), no_tie=false (ties → smallest-index site)
+    // "raw"        → ChebyshevRaw (mode 6), no_tie=true  (unmerged)
     const wasmModeLookup: Record<DistanceMode, string> = {
         euclidean: "euclidean",
         torus: "torus",
@@ -666,6 +668,7 @@ function buildGeometryForMode(mode: DistanceMode, previousColors: Map<number, nu
     };
     const wasmMode = wasmModeLookup[mode] ?? "euclidean";
     voronoiSetDistanceMode(wasmMode as "euclidean" | "torus" | "cylinder" | "mobius" | "klein" | "chebyshev" | "chebyshev-raw");
+    voronoiSetChebyshevNoTie(mode !== "chebyshev-tie");
     const nSites = voronoiNumSites();
     const tCompute0 =
         typeof performance !== "undefined" && typeof performance.now === "function"
