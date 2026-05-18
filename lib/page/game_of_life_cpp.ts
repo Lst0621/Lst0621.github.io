@@ -32,6 +32,8 @@ const SCALE_UP_ID = "gol-cpp-scale-up";
 const TOPO_TORUS_ID = "gol-cpp-topo-torus";
 const TOPO_FINITE_ID = "gol-cpp-topo-finite";
 const TOPO_CYLINDER_ID = "gol-cpp-topo-cylinder";
+const TOPO_MOBIUS_ID = "gol-cpp-topo-mobius";
+const TOPO_KLEIN_ID = "gol-cpp-topo-klein";
 const WH_VALUE_ID = "gol-cpp-wh-value";
 const WH_DOWN_ID = "gol-cpp-wh-down";
 const WH_UP_ID = "gol-cpp-wh-up";
@@ -94,7 +96,7 @@ let shaBitsetBytes: Uint8Array | null = null;
 let shaInputBytes: Uint8Array | null = null;
 let shaInputSize: number | null = null;
 
-type TopologyMode = 0 | 1 | 2; // Finite2D, Torus2D, Cylinder2D
+type TopologyMode = 0 | 1 | 2 | 3 | 4; // Finite2D, Torus2D, Cylinder2D, Mobius2D, Klein2D
 let topology: TopologyMode = 1;
 let targetWormholes = 0;
 let wormholeSeed = 0;
@@ -113,18 +115,24 @@ function getTopologyButtons(): {
     torus: HTMLButtonElement;
     finite: HTMLButtonElement;
     cylinder: HTMLButtonElement;
+    mobius: HTMLButtonElement;
+    klein: HTMLButtonElement;
 } {
     const torus = document.getElementById(TOPO_TORUS_ID);
     const finite = document.getElementById(TOPO_FINITE_ID);
     const cylinder = document.getElementById(TOPO_CYLINDER_ID);
+    const mobius = document.getElementById(TOPO_MOBIUS_ID);
+    const klein = document.getElementById(TOPO_KLEIN_ID);
     if (
         !torus || !(torus instanceof HTMLButtonElement) ||
         !finite || !(finite instanceof HTMLButtonElement) ||
         !cylinder || !(cylinder instanceof HTMLButtonElement)
+        || !mobius || !(mobius instanceof HTMLButtonElement) ||
+        !klein || !(klein instanceof HTMLButtonElement)
     ) {
         throw new Error("Topology buttons not found");
     }
-    return { torus, finite, cylinder };
+    return { torus, finite, cylinder, mobius, klein };
 }
 
 function getButtons(): { restart: HTMLButtonElement; pause: HTMLButtonElement } {
@@ -482,6 +490,12 @@ function drawLiveDeadMeter(liveCount: number, deadCount: number, total: number):
 }
 
 function topologyLabel(): string {
+    if (topology === 4) {
+        return "Klein";
+    }
+    if (topology === 3) {
+        return "Mobius";
+    }
     if (topology === 2) {
         return "Cylinder";
     }
@@ -573,7 +587,11 @@ function updateStatsDisplay(liveCount: number, deadCount: number, seed: number |
 
 function updateScaleDisplay(): void {
     const el = document.getElementById(SCALE_VALUE_ID);
-    if (el) el.textContent = String(getNFactor());
+    if (el) {
+        const gridSize = getGridSize();
+        el.textContent = `${gridSize}×${gridSize}`;
+        el.title = `${getNFactor()} pixels per cell`;
+    }
 }
 
 function computeSeedFromControls(): number {
@@ -685,6 +703,14 @@ async function main(): Promise<void> {
     });
     topoBtns.cylinder.addEventListener("click", () => {
         topology = 2;
+        applyScaleAndReset();
+    });
+    topoBtns.mobius.addEventListener("click", () => {
+        topology = 3;
+        applyScaleAndReset();
+    });
+    topoBtns.klein.addEventListener("click", () => {
+        topology = 4;
         applyScaleAndReset();
     });
 

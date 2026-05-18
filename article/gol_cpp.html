@@ -68,6 +68,23 @@
             z-index: 20;
         }
     </style>
+    <style>
+        /* Topology button grid: responsive, allow labels to wrap and shrink */
+        .topo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+            gap: 6px;
+            min-width: 0;
+        }
+        .topo-grid button {
+            min-width: 0;
+            padding: 6px 8px;
+            font-size: 13px;
+            line-height: 1.15;
+            white-space: normal;
+            text-align: center;
+        }
+    </style>
 </head>
 
 <h1 style="margin-top: 10;" align="center">
@@ -79,7 +96,7 @@
     <div>
         <canvas id="gol-cpp" width="640" height="640" style="border: 12px solid var(--panel);"></canvas>
     </div>
-    <div id="gol-cpp-panel" style="width: 360px; text-align:left;">
+    <div id="gol-cpp-panel" style="width: 400px; text-align:left;">
         <div id="gol-cpp-stats" class="panel" style="padding: 10px; margin-bottom: 12px;">
             <canvas id="gol-cpp-meter" width="320" height="180" style="display:block;"></canvas>
             <div id="gol-cpp-stats-text"></div>
@@ -142,19 +159,24 @@
                 <button type="button" id="gol-cpp-scale-up">+</button>
             </div>
 
-            <div style="display:grid; grid-template-columns: 120px 1fr 1fr 1fr; gap: 8px; align-items:center; margin-bottom: 10px;">
-                <span class="gol-label">
+            <div style="display:grid; grid-template-columns: 120px 1fr; gap: 8px; align-items:start; margin-bottom: 10px;">
+                <span class="gol-label" style="padding-top:4px;">
                     Topology
                     <span class="gol-tip" tabindex="0" aria-label="Topology info">i
                         <span class="gol-tip-text">
                             Underlying state space is the cartesian product of coordinates.
-                            Finite: [0..n) × [0..n). Torus: Zₙ × Zₙ (wrap x and y). Cylinder: Zₙ × [0..n) (wrap x only).
+                            Finite: [0..n) × [0..n). Torus: Zₙ × Zₙ (wrap x and y).
+                            Cylinder: Zₙ × [0..n) (wrap x only). Möbius: x wraps with a vertical flip on seam crossings. Klein: left-right glued with a flip (non-orientable).
                         </span>
                     </span>
                 </span>
-                <button type="button" id="gol-cpp-topo-torus" title="Torus: Zₙ × Zₙ (wrap both axes).">Torus</button>
-                <button type="button" id="gol-cpp-topo-finite" title="Finite: [0..n) × [0..n) (no wrap).">Finite</button>
-                <button type="button" id="gol-cpp-topo-cylinder" title="Cylinder: Zₙ × [0..n) (wrap x only).">Cylinder</button>
+                <div class="topo-grid">
+                    <button type="button" id="gol-cpp-topo-torus" title="Torus: Zₙ × Zₙ (wrap both axes).">Torus</button>
+                    <button type="button" id="gol-cpp-topo-finite" title="Finite: [0..n) × [0..n) (no wrap).">Finite</button>
+                    <button type="button" id="gol-cpp-topo-cylinder" title="Cylinder: Zₙ × [0..n) (wrap x only).">Cylinder</button>
+                    <button type="button" id="gol-cpp-topo-mobius" title="Möbius: x wraps, flip y on seam crossings.">Mobius</button>
+                    <button type="button" id="gol-cpp-topo-klein" title="Klein: non-orientable bottle (flip on one seam).">Klein</button>
+                </div>
             </div>
         </div>
     </div>
