@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta charset="UTF-8">
+    <title>Use DeepSeek in Cursor (with WSL) — A Step-by-Step Guide</title>
+    <link rel="icon" href="../img/flame1.png">
+    <link rel="stylesheet" href="../resource/solarized_light.css">
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-9BLVHLETMC"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-9BLVHLETMC');
+    </script>
+    <style>
+        /* ── Article layout (solarized-aware) ── */
+        body {
+            max-width: 820px;
+            margin: 0 auto;
+            padding: 24px 20px 60px;
+        }
+
+        h1 { font-size: 28px; margin-top: 32px; }
+        h2 { font-size: 20px; margin-top: 28px; border-bottom: 1px solid var(--border); padding-bottom: 4px; }
+        h3 { font-size: 16px; margin-top: 22px; }
+
+        p, li { line-height: 1.7; }
+        ul, ol { padding-left: 22px; }
+
+        /* ── Code blocks ── */
+        pre {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 14px 18px;
+            overflow-x: auto;
+            font-size: 13px;
+            line-height: 1.55;
+        }
+        code {
+            font-family: "Fira Code", "Cascadia Code", "JetBrains Mono", Consolas, "Courier New", monospace;
+            font-size: 13px;
+        }
+        :not(pre) > code {
+            background: var(--panel);
+            padding: 1px 5px;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+        }
+
+        /* ── Info / warning / tip boxes ── */
+        .box {
+            border-left: 4px solid var(--accent);
+            background: var(--panel);
+            border-radius: 0 8px 8px 0;
+            padding: 10px 16px;
+            margin: 16px 0;
+        }
+        .box.warn {
+            border-left-color: #dc322f;
+        }
+        .box.tip {
+            border-left-color: #859900;
+        }
+
+        /* ── Step numbers ── */
+        .step {
+            display: inline-block;
+            background: var(--accent);
+            color: #fff;
+            width: 26px; height: 26px;
+            line-height: 26px;
+            text-align: center;
+            border-radius: 50%;
+            font-weight: 600;
+            font-size: 14px;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        /* ── Back link ── */
+        .back {
+            display: inline-block;
+            margin-top: 40px;
+        }
+
+        /* ── Responsive table ── */
+        .tbl-wrapper { overflow-x: auto; margin: 12px 0; }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 14px;
+        }
+        th, td {
+            border: 1px solid var(--border);
+            padding: 8px 12px;
+            text-align: left;
+        }
+        th {
+            background: var(--panel);
+            font-weight: 600;
+        }
+
+        /* ── Misc ── */
+        .cmd-desc { color: var(--muted); font-size: 13px; margin-top: -8px; }
+    </style>
+</head>
+<body class="solarized">
+
+<h1>Use DeepSeek in Cursor <small style="font-weight:400;font-size:18px;color:var(--muted)">(with WSL + Cloudflare Tunnel)</small></h1>
+<p id="modify_time"></p>
+
+<p>
+    A practical guide to running DeepSeek's latest reasoning models
+    (<code>deepseek-v4-pro</code> / <code>deepseek-v4-flash</code>)
+    inside Cursor on Windows via WSL, using
+    <a href="https://github.com/guangzan/deepseek-lane" target="_blank" rel="noopener">deepseek-lane</a>
+    as a local proxy and Cloudflare Tunnel for public HTTPS exposure.
+</p>
+
+<!-- ──────────────────────────────────────────────────────────── -->
+<h2>Why You Need a Proxy</h2>
+<!-- ──────────────────────────────────────────────────────────── -->
+
+<p>
+    DeepSeek's reasoning models require that <b>every</b> turn in a
+    multi-turn conversation includes the full chain of
+    <code>reasoning_content</code>.  Cursor doesn't pass this field back
+    on tool‑call follow‑up requests, so the upstream API returns:
+</p>
+
+<div class="box warn">
+    <code>Provider returned error: reasoning_content must be passed back to the API.</code>
+</div>
+
+<p>
+    <a href="https://github.com/guangzan/deepseek-lane" target="_blank" rel="noopener"><code>deepseek-lane</code></a>
+    sits between Cursor and the DeepSeek API.  It caches reasoning
+    tokens in a local SQLite database and re‑injects them when Cursor
+    sends a follow‑up request — making DeepSeek work flawlessly inside
+    Cursor.
+</p>
+
+<p>It also:</p>
+<ul>
+    <li>Wraps the model's thinking in collapsible Markdown blocks so
+        you can read the reasoning inside Cursor.</li>
+    <li>Normalises old‑style <code>functions</code>/<code>function_call</code>
+        fields to the modern <code>tools</code>/<code>tool_choice</code> format.</li>
+    <li>Provides a public HTTPS tunnel (so Cursor's non‑localhost
+        restriction is satisfied).</li>
+</ul>
+
+<!-- ──────────────────────────────────────────────────────────── -->
+<h2>Architecture Overview</h2>
+<!-- ──────────────────────────────────────────────────────────── -->
+
+<pre style="text-align:center;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:16px">
+Cursor  ──▶  Cloudflare Tunnel (public HTTPS)  ──▶  deepseek-lane (127.0.0.1:19199)  ──▶  DeepSeek API
+                <span style="color:var(--muted)">https://xxx.trycloudflare.com/v1</span>              <span style="color:var(--muted)">reasoning cache + transform</span>
+</pre>
+
+<!-- ──────────────────────────────────────────────────────────── -->
+<h2>Prerequisites</h2>
+<!-- ──────────────────────────────────────────────────────────── -->
+
+<ul>
+    <li><strong>Windows 10/11</strong> with WSL 2 enabled.</li>
+    <li><strong>Node.js 20+</strong> installed inside WSL.</li>
+    <li>A <strong>DeepSeek API key</strong> (from
+        <a href="https://platform.deepseek.com/api_keys" target="_blank" rel="noopener">DeepSeek Platform</a>
+        or an <a href="https://opencode.ai" target="_blank" rel="noopener">opencode</a> subscription).</li>
+    <li><strong>Cursor</strong> installed on Windows.</li>
+</ul>
+
+<div class="box tip">
+    <strong>Tip:</strong> If you don't have Node.js yet, install it via
+    <a href="https://github.com/nvm-sh/nvm" target="_blank" rel="noopener">nvm</a>:
+    <pre>curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+nvm install 22</pre>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<h2>Step‑by‑Step Setup</h2>
+<!-- ════════════════════════════════════════════════════════════ -->
+
+<!-- ── Step 1 ── -->
+<h3><span class="step">1</span> Install <code>deepseek-lane</code></h3>
+
+<p>Inside your WSL terminal:</p>
+
+<pre>npm install -g deepseek-lane</pre>
+
+<p>Verify the installation:</p>
+
+<pre>dsl --version</pre>
+
+<!-- ── Step 2 ── -->
+<h3><span class="step">2</span> Install Cloudflare Tunnel (<code>cloudflared</code>)</h3>
+
+<p>
+    Cursor does not allow <code>localhost</code> or other
+    non‑public API addresses.  Cloudflare Tunnel gives us a free
+    public HTTPS URL without opening router ports.
+</p>
+
+<pre>wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
+sudo dpkg -i cloudflared-linux-amd64.deb</pre>
+
+<p>Check that it works:</p>
+
+<pre>cloudflared --version</pre>
+
+<div class="box">
+    <strong>No Cloudflare account needed.</strong>
+    <code>cloudflared tunnel --url</code> works with
+    <em>TryCloudflare</em> — a free, instant tunnel with no sign‑up.
+</div>
+
+<!-- ── Step 3 ── -->
+<h3><span class="step">3</span> Start the Proxy (Without Tunnel First)</h3>
+
+<p>
+    The first run launches an interactive wizard.  Answer the prompts:
+</p>
+
+<pre>dsl start --no-interactive \
+  --base-url https://api.deepseek.com/v1 \
+  --model deepseek-v4-pro \
+  --thinking enabled \
+  --reasoning-effort max \
+  --port 19199 \
+  --no-ngrok</pre>
+
+<table>
+    <tr><th>Flag</th><th>What it does</th></tr>
+    <tr><td><code>--base-url</code></td><td>Your DeepSeek API endpoint.  Use <code>https://api.deepseek.com/v1</code> for the official API, or your opencode endpoint.</td></tr>
+    <tr><td><code>--model</code></td><td><code>deepseek-v4-pro</code> (best reasoning) or <code>deepseek-v4-flash</code> (faster).</td></tr>
+    <tr><td><code>--thinking enabled</code></td><td>Enables DeepSeek's reasoning / thinking mode.</td></tr>
+    <tr><td><code>--reasoning-effort max</code></td><td>Maximum reasoning depth.  Options: <code>low</code>, <code>medium</code>, <code>high</code>, <code>max</code>, <code>xhigh</code>.</td></tr>
+    <tr><td><code>--port 19199</code></td><td>Local port the proxy listens on.</td></tr>
+    <tr><td><code>--no-ngrok</code></td><td>Skip ngrok — we use Cloudflare Tunnel instead.</td></tr>
+</table>
+
+<p>
+    After it starts you'll see the local address.  Keep this terminal
+    running.
+</p>
+
+<pre style="color:var(--accent)">
+✓ Model: deepseek-v4-pro (thinking, max)
+▸ Local:  http://127.0.0.1:19199/v1
+</pre>
+
+<!-- ── Step 4 ── -->
+<h3><span class="step">4</span> Start Cloudflare Tunnel</h3>
+
+<p>Open a <strong>second</strong> WSL terminal and run:</p>
+
+<pre>cloudflared tunnel --url http://127.0.0.1:19199</pre>
+
+<p>You'll see output like:</p>
+
+<pre style="color:var(--accent)">
+2026-05-18T22:30:00Z INF Requesting new quick Tunnel on trycloudflare.com...
+2026-05-18T22:30:02Z INF +---------------------------------------------+
+2026-05-18T22:30:02Z INF |  Your quick Tunnel has been created!        |
+2026-05-18T22:30:02Z INF |  <b>https://happy-foxes-trycloudflare.com</b>    |
+2026-05-18T22:30:02Z INF +---------------------------------------------+
+</pre>
+
+<p>
+    <strong>Copy the <code>https://*.trycloudflare.com</code> URL</strong> —
+    you'll paste it into Cursor in the next step.
+</p>
+
+<div class="box tip">
+    <strong>Tip:</strong> The tunnel URL changes every time you restart
+    <code>cloudflared</code>.  Keep the tunnel terminal open while
+    using Cursor.  If it disconnects, restart it and update the URL
+    in Cursor.
+</div>
+
+<!-- ── Step 5 ── -->
+<h3><span class="step">5</span> Configure Cursor</h3>
+
+<p>Now switch to <strong>Cursor on Windows</strong>:</p>
+
+<ol>
+    <li>
+        <strong>Open Settings</strong> —
+        <code>Ctrl+Shift+J</code> (or <code>Cmd+Shift+J</code> on Mac),
+        then <b>Models</b> tab.
+    </li>
+    <li>
+        Uncheck (disable) all built‑in models so Cursor only uses
+        your custom one.
+    </li>
+    <li>
+        Under <strong>OpenAI API Key</strong>, paste your
+        <strong>DeepSeek API key</strong>.
+        <p class="cmd-desc">
+            (Yes — you put the DeepSeek key into the OpenAI key field.
+            The proxy forwards requests to DeepSeek regardless.)
+        </p>
+    </li>
+    <li>
+        Click <strong>Add Model</strong> and fill in:
+        <table>
+            <tr><td><strong>Model name</strong></td><td><code>deepseek-v4-pro</code></td></tr>
+            <tr><td><strong>Base URL</strong></td><td><code>https://happy-foxes-trycloudflare.com/v1</code></td></tr>
+        </table>
+        <p class="cmd-desc">Replace the URL with the one from your tunnel.  Make sure it ends with <code>/v1</code>.</p>
+    </li>
+    <li>
+        Press <code>Ctrl+Shift+0</code> (or <code>Cmd+Shift+0</code>)
+        to toggle <strong>"Override OpenAI Base URL"</strong> —
+        make sure it's <b>enabled</b>.
+    </li>
+</ol>
+
+<div class="box">
+    <strong>Model name must match exactly.</strong>
+    Use the same model name in Cursor that you passed to
+    <code>dsl start --model &lt;name&gt;</code>.
+</div>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<h2>Complete Workflow (Cheat Sheet)</h2>
+<!-- ════════════════════════════════════════════════════════════ -->
+
+<p>Every time you want to use DeepSeek in Cursor:</p>
+
+<ol>
+    <li><strong>WSL terminal 1:</strong>
+        <pre>dsl start --port 19199 --no-ngrok --model deepseek-v4-pro</pre>
+    </li>
+    <li><strong>WSL terminal 2:</strong>
+        <pre>cloudflared tunnel --url http://127.0.0.1:19199</pre>
+    </li>
+    <li>Copy the <code>https://*.trycloudflare.com</code> URL.</li>
+    <li><strong>Cursor:</strong> update the model's Base URL to
+        <code>https://*.trycloudflare.com/v1</code> if it changed.</li>
+    <li>Select <code>deepseek-v4-pro</code> and start chatting.</li>
+</ol>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<h2>References</h2>
+<!-- ════════════════════════════════════════════════════════════ -->
+
+<ul>
+    <li><a href="https://github.com/guangzan/deepseek-lane" target="_blank" rel="noopener">deepseek-lane on GitHub</a></li>
+    <li><a href="https://api-docs.deepseek.com/guides/thinking_mode" target="_blank" rel="noopener">DeepSeek Thinking Mode docs</a></li>
+    <li><a href="https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/" target="_blank" rel="noopener">Cloudflare Tunnel docs</a></li>
+    <li><a href="https://cursor.com" target="_blank" rel="noopener">Cursor IDE</a></li>
+</ul>
+
+<a class="back" href="../index.html">← Back to index</a>
+
+<script type="module">
+    import { get_last_modify } from "/assets/js/common/last_modify.js";
+    get_last_modify(["article/deepseek-cursor-wsl.html"], "modify_time");
+</script>
+
+</body>
+</html>

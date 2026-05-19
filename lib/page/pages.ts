@@ -15,6 +15,7 @@ export const sections: Section[] = [
     title: "Website",
     pages: [
       { name: "Set up a website with your own domain name", url: "article/set_up_website.html" },
+      { name: "Use DeepSeek in Cursor (WSL + Cloudflare Tunnel)", url: "article/deepseek-cursor-wsl.html" },
       { name: "GitHub IO Deploy", url: "article/github_io_deploy.html" },
       { name: "Site Source Code", url: "https://github.com/Lst0621/Lst0621.github.io" },
       { name: "Test Cases for JS files", url: "article/test_cases.html" },
