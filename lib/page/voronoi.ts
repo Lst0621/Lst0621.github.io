@@ -241,6 +241,7 @@ function logVoronoiGeometryDebug(
     console.log(JSON.stringify(fullRows, null, 2));
     console.groupEnd();
     console.log(`voronoi ${mode} geometry loaded`);
+    console.groupEnd();
 }
 
 function normalizeVertices(vertices: { x: number; y: number }[]): { x: number; y: number }[] {
