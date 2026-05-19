@@ -9,7 +9,7 @@ import {
     voronoiSetChebyshevNoTie,
     voronoiNumSites,
     voronoiGetSite,
-    voronoiGetCellBoundaries,
+    voronoiGetCellBoundariesInternal,
     voronoiGetCellBoundariesExact,
     voronoiGetNeighbors,
     exactRationalToNumber,
@@ -18,7 +18,7 @@ import {
     VoronoiCellBoundaryExact,
 } from "../tsl/wasm/ts/wasm_api_voronoi";
 
-type DistanceMode = "euclidean" | "torus" | "cylinder" | "mobius" | "klein" | "chebyshev" | "chebyshev-tie" | "raw" | "manhattan";
+type DistanceMode = "euclidean" | "torus" | "cylinder" | "mobius" | "klein" | "chebyshev" | "chebyshev-tie" | "manhattan";
 type RgbColor = { r: number; g: number; b: number };
 
 // Canvas setup
@@ -29,8 +29,9 @@ const ctx = canvas.getContext("2d")!;
 const pointCountElem = document.getElementById("point-count");
 const randomBtn = document.getElementById("random-btn");
 const clearBtn = document.getElementById("clear-btn");
-const toggleBoundariesBtn = document.getElementById("toggle-boundaries-btn");
-const distanceRawBtn = document.getElementById("distance-raw-btn");
+const edgeDisplayRadios = document.querySelectorAll<HTMLInputElement>(
+    'input[name="edge-display"]',
+);
 const distanceEuclidBtn = document.getElementById("distance-euclidean-btn");
 const distanceTorusBtn = document.getElementById("distance-torus-btn");
 const distanceCylinderBtn = document.getElementById("distance-cylinder-btn");
@@ -41,8 +42,9 @@ const distanceChebyshevTieBtn = document.getElementById("distance-chebyshev-tie-
 const distanceManhattanBtn = document.getElementById("distance-manhattan-btn");
 const viewLayoutBtn = document.getElementById("view-layout-btn");
 
-// State
-let drawBoundaries = true;
+/** What to stroke on top of filled cells. */
+type EdgeDisplayMode = "none" | "outline" | "pieces";
+let edgeDisplay: EdgeDisplayMode = "outline";
 // DEBUG: start in Chebyshev mode for local testing
 let distanceMode: DistanceMode = "chebyshev";
 /** `1x1` = full fundamental domain; `3x3` = nine equal tiles (same diagram, shrunk). */
@@ -83,9 +85,11 @@ let nextSiteId = 1;
 let siteIds: number[] = [];
 let siteColors = new Map<number, number>();
 let latestBoundaries: VoronoiCellBoundary[] = [];
+let latestInternalBoundaries: VoronoiCellBoundary[] = [];
 
 type CachedGeometry = {
     boundaries: VoronoiCellBoundary[];
+    internalBoundaries: VoronoiCellBoundary[];
     exactBoundaries: VoronoiCellBoundaryExact[];
     siteColors: Map<number, number>;
 };
@@ -97,7 +101,12 @@ type CachedGeometry = {
 const geometryByMode: Partial<Record<DistanceMode, CachedGeometry>> = {};
 
 function emptyGeometry(): CachedGeometry {
-    return { boundaries: [], exactBoundaries: [], siteColors: new Map<number, number>() };
+    return {
+        boundaries: [],
+        internalBoundaries: [],
+        exactBoundaries: [],
+        siteColors: new Map<number, number>(),
+    };
 }
 
 function invalidateGeometryCache(): void {
@@ -108,7 +117,6 @@ function invalidateGeometryCache(): void {
     delete geometryByMode.klein;
     delete geometryByMode.chebyshev;
     delete geometryByMode["chebyshev-tie"];
-    delete geometryByMode.raw;
     delete geometryByMode.manhattan;
 }
 
@@ -166,11 +174,38 @@ function resetSiteState(): void {
     siteIds = [];
     siteColors = new Map<number, number>();
     latestBoundaries = [];
+    latestInternalBoundaries = [];
     invalidateGeometryCache();
 }
 
 function rgbToCss(color: RgbColor): string {
     return `rgb(${color.r} ${color.g} ${color.b})`;
+}
+
+function countBoundaryLoops(boundaries: VoronoiCellBoundary[]): number {
+    let n = 0;
+    for (const cell of boundaries) {
+        n += cell.polygons.length;
+    }
+    return n;
+}
+
+function applyEdgeDisplay(mode: EdgeDisplayMode): void {
+    edgeDisplay = mode;
+    for (const radio of edgeDisplayRadios) {
+        radio.checked = radio.value === mode;
+    }
+}
+
+function logEdgeDataSummary(mode: DistanceMode): void {
+    const outlineLoops = countBoundaryLoops(latestBoundaries);
+    const pieceLoops = countBoundaryLoops(latestInternalBoundaries);
+    console.debug(
+        `voronoi edges [${mode}]: outline loops=${outlineLoops}, clip-piece loops=${pieceLoops}` +
+            (pieceLoops <= outlineLoops
+                ? " (no extra internal edges for this metric/sites — try Chebyshev or Manhattan)"
+                : ""),
+    );
 }
 
 /** Compute approximate signed area (double) for a polygon loop. */
@@ -391,7 +426,7 @@ function findSiteIndexByRegion(
     if (n <= 0) {
         return -1;
     }
-    if (metric === "chebyshev" || metric === "raw") {
+    if (metric === "chebyshev") {
         return strictChebyshevUniqueSiteIndex(x, y);
     }
     if (metric === "chebyshev-tie") {
@@ -500,8 +535,7 @@ function buildGeometryForMode(mode: DistanceMode, previousColors: Map<number, nu
     // Map frontend modes to WASM distance modes.
     // "chebyshev"  → Chebyshev (mode 5), no_tie=true  (ties → white)
     // "chebyshev-tie" → Chebyshev (mode 5), no_tie=false (ties → smallest-index site)
-    // "raw"        → ChebyshevRaw (mode 6), no_tie=true  (unmerged)
-    // "manhattan"   → Manhattan (mode 7), no_tie flag     (L1 distance)
+    // "manhattan"   → Manhattan (mode 6), no_tie flag     (L1 distance)
     const wasmModeLookup: Record<DistanceMode, string> = {
         euclidean: "euclidean",
         torus: "torus",
@@ -510,11 +544,12 @@ function buildGeometryForMode(mode: DistanceMode, previousColors: Map<number, nu
         klein: "klein",
         chebyshev: "chebyshev",
         "chebyshev-tie": "chebyshev",
-        raw: "chebyshev-raw",
         manhattan: "manhattan",
     };
     const wasmMode = wasmModeLookup[mode] ?? "euclidean";
-    voronoiSetDistanceMode(wasmMode as "euclidean" | "torus" | "cylinder" | "mobius" | "klein" | "chebyshev" | "chebyshev-raw" | "manhattan");
+    voronoiSetDistanceMode(
+        wasmMode as "euclidean" | "torus" | "cylinder" | "mobius" | "klein" | "chebyshev" | "manhattan",
+    );
     voronoiSetChebyshevNoTie(mode !== "chebyshev-tie");
     const nSites = voronoiNumSites();
     const tCompute0 =
@@ -537,7 +572,7 @@ function buildGeometryForMode(mode: DistanceMode, previousColors: Map<number, nu
             `voronoi: ${mode} compute=${(tCompute1 - tCompute0).toFixed(1)} ms fetch=${(tFetch1 - tCompute1).toFixed(1)} ms`,
         );
     }
-    const boundaries: VoronoiCellBoundary[] = exactBoundaries.map((cell) => ({
+    const boundaries = exactBoundaries.map((cell) => ({
         site: cell.site,
         polygons: cell.polygons.map((polygon) =>
             polygon.map((p) => ({
@@ -546,6 +581,7 @@ function buildGeometryForMode(mode: DistanceMode, previousColors: Map<number, nu
             })),
         ),
     }));
+    const internalBoundaries = voronoiGetCellBoundariesInternal();
     const adjacency = voronoiGetNeighbors(siteIds);
 
     const savedColors = siteColors;
@@ -555,12 +591,13 @@ function buildGeometryForMode(mode: DistanceMode, previousColors: Map<number, nu
     siteColors = savedColors;
 
     logVoronoiGeometryDebug(mode, boundaries, exactBoundaries, recolored);
-    return { boundaries, exactBoundaries, siteColors: recolored };
+    return { boundaries, internalBoundaries, exactBoundaries, siteColors: recolored };
 }
 
 function syncActiveGeometry(): void {
     const active = geometryByMode[distanceMode] ?? emptyGeometry();
     latestBoundaries = active.boundaries;
+    latestInternalBoundaries = active.internalBoundaries;
     siteColors = new Map(active.siteColors);
 }
 
@@ -572,30 +609,29 @@ function syncActiveGeometry(): void {
 // invalidateGeometryCache() so the next refresh recomputes for the active
 // mode but still skips the inactive one.
 function refreshGeometry(): void {
-    if (geometryByMode[distanceMode]) {
-        syncActiveGeometry();
-        return;
-    }
-
-    const previousColors = new Map(
-        (geometryByMode[distanceMode] ??
-            geometryByMode.euclidean ??
-            geometryByMode.torus ??
-            geometryByMode.cylinder ??
-            emptyGeometry()).siteColors,
-    );
-    const t0 =
-        typeof performance !== "undefined" && typeof performance.now === "function"
-            ? performance.now()
-            : 0;
-    geometryByMode[distanceMode] = buildGeometryForMode(distanceMode, previousColors);
-    if (t0 !== 0) {
-        const elapsed = performance.now() - t0;
-        console.debug(
-            `voronoi: ${distanceMode} compute+fetch took ${elapsed.toFixed(1)} ms (sites=${voronoiNumSites()})`,
+    if (!geometryByMode[distanceMode]) {
+        const previousColors = new Map(
+            (geometryByMode.euclidean ??
+                geometryByMode.torus ??
+                geometryByMode.cylinder ??
+                emptyGeometry()).siteColors,
         );
+        const t0 =
+            typeof performance !== "undefined" && typeof performance.now === "function"
+                ? performance.now()
+                : 0;
+        geometryByMode[distanceMode] = buildGeometryForMode(distanceMode, previousColors);
+        if (t0 !== 0) {
+            const elapsed = performance.now() - t0;
+            console.debug(
+                `voronoi: ${distanceMode} compute+fetch took ${elapsed.toFixed(1)} ms (sites=${voronoiNumSites()})`,
+            );
+        }
     }
     syncActiveGeometry();
+    if (voronoiNumSites() > 0) {
+        logEdgeDataSummary(distanceMode);
+    }
 }
 
 function recomputeAndDraw(): void {
@@ -674,24 +710,28 @@ function drawOneTile(modelLineWidth: number, modelSeedR: number): void {
         }
     }
 
-    ctx.lineWidth = modelLineWidth;
-    ctx.strokeStyle = "rgba(0, 0, 0, 0.18)";
-    // C++ already returns merged polygons (merge_polygons_drop_contained) for
-    // all modes except raw. Raw mode keeps individual convex pieces.
-    if (drawBoundaries && latestBoundaries.length > 0) {
-        for (const cell of latestBoundaries) {
-            ctx.beginPath();
-            for (const loop of cell.polygons) {
-                const poly = normalizeVertices(loop);
-                if (poly.length < 2) continue;
-                ctx.moveTo(poly[0].x, poly[0].y);
-                for (let i = 1; i < poly.length; i++) {
-                    ctx.lineTo(poly[i].x, poly[i].y);
+    if (edgeDisplay !== "none") {
+        const usePieces = edgeDisplay === "pieces";
+        const strokeBoundaries = usePieces ? latestInternalBoundaries : latestBoundaries;
+        ctx.lineWidth = modelLineWidth;
+        ctx.strokeStyle = usePieces ? "rgba(0, 0, 0, 0.28)" : "rgba(0, 0, 0, 0.18)";
+        ctx.setLineDash(usePieces ? [5, 4] : []);
+        if (strokeBoundaries.length > 0) {
+            for (const cell of strokeBoundaries) {
+                ctx.beginPath();
+                for (const loop of cell.polygons) {
+                    const poly = normalizeVertices(loop);
+                    if (poly.length < 2) continue;
+                    ctx.moveTo(poly[0].x, poly[0].y);
+                    for (let i = 1; i < poly.length; i++) {
+                        ctx.lineTo(poly[i].x, poly[i].y);
+                    }
+                    ctx.closePath();
                 }
-                ctx.closePath();
+                ctx.stroke();
             }
-            ctx.stroke();
         }
+        ctx.setLineDash([]);
     }
 
     const n = voronoiNumSites();
@@ -849,7 +889,7 @@ function buildHoverText(px: number, py: number): string {
         return `pos: (${x.toFixed(1)}, ${y.toFixed(1)})\n\nno sites`;
     }
 
-    const isChebLike = distanceMode === "chebyshev" || distanceMode === "chebyshev-tie" || distanceMode === "raw";
+    const isChebLike = distanceMode === "chebyshev" || distanceMode === "chebyshev-tie";
     const isManhattan = distanceMode === "manhattan";
 
     const entries: { idx: number; sx: number; sy: number; d: number }[] = [];
@@ -939,8 +979,18 @@ if (clearBtn) {
     });
 }
 
-if (toggleBoundariesBtn) {
-    toggleBoundariesBtn.style.display = "none";
+for (const radio of edgeDisplayRadios) {
+    radio.addEventListener("change", () => {
+        if (!radio.checked) {
+            return;
+        }
+        const v = radio.value;
+        if (v === "none" || v === "outline" || v === "pieces") {
+            applyEdgeDisplay(v);
+            logEdgeDataSummary(distanceMode);
+            draw();
+        }
+    });
 }
 
 function updateDistanceModeButtons(): void {
@@ -1029,18 +1079,6 @@ function updateDistanceModeButtons(): void {
     }
 
     switch (distanceMode) {
-        case "raw":
-            if (distanceRawBtn) {
-                (distanceRawBtn as HTMLButtonElement).disabled = true;
-            }
-            break;
-        default:
-            if (distanceRawBtn) {
-                (distanceRawBtn as HTMLButtonElement).disabled = false;
-            }
-    }
-
-    switch (distanceMode) {
         case "manhattan":
             if (distanceManhattanBtn) {
                 (distanceManhattanBtn as HTMLButtonElement).disabled = true;
@@ -1109,14 +1147,6 @@ if (distanceChebyshevTieBtn) {
     });
 }
 
-if (distanceRawBtn) {
-    distanceRawBtn.addEventListener("click", () => {
-        distanceMode = "raw";
-        updateDistanceModeButtons();
-        recomputeAndDraw();
-    });
-}
-
 if (distanceManhattanBtn) {
     distanceManhattanBtn.addEventListener("click", () => {
         distanceMode = "manhattan";
@@ -1141,8 +1171,16 @@ export function restart(): void {
     generateRandomPoints(4);
 }
 
+/** @deprecated Use edge display select in the page UI. */
 export function toggleBoundaries(): void {
-    drawBoundaries = !drawBoundaries;
+    applyEdgeDisplay(edgeDisplay === "none" ? "outline" : "none");
+    draw();
+}
+
+/** @deprecated Use edge display select in the page UI. */
+export function toggleInternalBoundaries(): void {
+    applyEdgeDisplay(edgeDisplay === "pieces" ? "outline" : "pieces");
+    logEdgeDataSummary(distanceMode);
     draw();
 }
 

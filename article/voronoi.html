@@ -31,10 +31,11 @@
 
       .controls {
         display: flex;
+        flex-wrap: wrap;
         gap: 10px;
         margin-bottom: 20px;
-        flex-wrap: wrap;
         justify-content: center;
+        align-items: center;
       }
 
       button {
@@ -63,6 +64,39 @@
         background-color: #e8e8e8;
         border-radius: 4px;
         color: #333;
+      }
+
+      .controls-edges {
+        display: inline-flex;
+        flex-wrap: nowrap;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+        box-sizing: border-box;
+        padding: 10px 20px;
+        background-color: #e8e8e8;
+        border-radius: 4px;
+        font-size: 14px;
+        line-height: 1.25;
+        color: #333;
+      }
+
+      .controls-edges-label {
+        font-weight: 600;
+        flex-shrink: 0;
+      }
+
+      .controls-edges label {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+
+      .controls-edges input[type="radio"] {
+        margin: 0;
+        accent-color: #3ab8b0;
       }
 
       .canvas-container {
@@ -133,10 +167,14 @@
         <button id="distance-klein-btn">Distance: Klein</button>
         <button id="distance-chebyshev-btn">Distance: Chebyshev</button>
         <button id="distance-chebyshev-tie-btn">Distance: Chebyshev (tie→first)</button>
-        <button id="distance-raw-btn">Distance: Chebyshev Raw</button>
         <button id="distance-manhattan-btn">Distance: Manhattan (L₁)</button>
         <button id="view-layout-btn" type="button">View: 1×1</button>
-        <button id="toggle-boundaries-btn">Hide Boundaries</button>
+        <div class="controls-edges" role="radiogroup" aria-label="Edges">
+          <span class="controls-edges-label">Edges</span>
+          <label><input type="radio" name="edge-display" value="none" /> Hidden</label>
+          <label><input type="radio" name="edge-display" value="outline" checked /> Outlines</label>
+          <label title="Pre-merge convex clip pieces (dashed)"><input type="radio" name="edge-display" value="pieces" /> Clip pieces</label>
+        </div>
         <span id="point-count">Points: 0</span>
       </div>
 
@@ -169,7 +207,7 @@
             The diagram will recompute automatically.
           </li>
           <li>
-            Use <strong>Distance: Euclidean/Torus/Cylinder/Möbius/Klein/Chebyshev/Raw</strong> to switch the metric
+            Use <strong>Distance: Euclidean/Torus/Cylinder/Möbius/Klein/Chebyshev/Manhattan</strong> to switch the metric
             used when assigning cells to seed points:
             <ul>
               <li><strong>Euclidean:</strong> Standard distance metric where cells are
@@ -185,10 +223,15 @@
               <li><strong>Chebyshev:</strong> L∞ metric where distance is
               <code>max(|dx|, |dy|)</code> — cells are axis-aligned
               rectangles determined by coordinate-wise bisectors.</li>
-              <li><strong>Raw:</strong> The same Chebyshev construction before the
-              final merge step, useful for inspecting the clipped pieces directly.
-              This is the unmerged Chebyshev raw mode.</li>
+              <li><strong>Manhattan:</strong> L₁ metric where distance is
+              <code>|dx| + |dy|</code>.</li>
             </ul>
+          </li>
+          <li>
+            <strong>Edges</strong> radio row: <em>Hidden</em>,
+            <em>Outlines</em> (default merged cell borders),
+            <em>Clip pieces</em> (dashed pre-merge convex pieces — mainly
+            Chebyshev, Manhattan, and some periodic modes).
           </li>
           <li>
             This visualization uses exact rational arithmetic
@@ -207,8 +250,8 @@
     </div>
 
     <script type="module">
-      import { restart, toggleBoundaries, clearPoints } from "/assets/js/page/voronoi.js";
-      Object.assign(window, { restart, toggleBoundaries, clearPoints });
+      import { restart, toggleBoundaries, toggleInternalBoundaries, clearPoints } from "/assets/js/page/voronoi.js";
+      Object.assign(window, { restart, toggleBoundaries, toggleInternalBoundaries, clearPoints });
     </script>
   </body>
 </html>
