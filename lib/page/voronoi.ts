@@ -18,7 +18,7 @@ import {
     type VoronoiBoundaryPointExact,
 } from "../tsl/wasm/ts/wasm_api_voronoi";
 
-type DistanceMode = "euclidean" | "torus" | "cylinder" | "mobius" | "klein" | "chebyshev" | "chebyshev-tie" | "raw";
+type DistanceMode = "euclidean" | "torus" | "cylinder" | "mobius" | "klein" | "chebyshev" | "chebyshev-tie" | "raw" | "manhattan";
 type RgbColor = { r: number; g: number; b: number };
 
 // Canvas setup
@@ -38,6 +38,7 @@ const distanceMobiusBtn = document.getElementById("distance-mobius-btn");
 const distanceKleinBtn = document.getElementById("distance-klein-btn");
 const distanceChebyshevBtn = document.getElementById("distance-chebyshev-btn");
 const distanceChebyshevTieBtn = document.getElementById("distance-chebyshev-tie-btn");
+const distanceManhattanBtn = document.getElementById("distance-manhattan-btn");
 const viewLayoutBtn = document.getElementById("view-layout-btn");
 
 // State
@@ -108,6 +109,7 @@ function invalidateGeometryCache(): void {
     delete geometryByMode.chebyshev;
     delete geometryByMode["chebyshev-tie"];
     delete geometryByMode.raw;
+    delete geometryByMode.manhattan;
 }
 
 function hslToRgb(h: number, s: number, l: number): RgbColor {
@@ -407,6 +409,21 @@ function findSiteIndexByRegion(
         const sites = Array.from({ length: n }, (_, i) => voronoiGetSite(i));
         return strictChebyshevFirstTieOwner(gx, gy, sites);
     }
+    if (metric === "manhattan") {
+        // L1 distance: tie-break to smallest index (no strict pixel-center
+        // function yet — cell polygons handle rendering ownership).
+        let bestIdx = 0;
+        let bestD = Infinity;
+        for (let i = 0; i < n; i++) {
+            const s = voronoiGetSite(i);
+            const d = Math.abs(x - s.x) + Math.abs(y - s.y);
+            if (d < bestD) {
+                bestD = d;
+                bestIdx = i;
+            }
+        }
+        return bestIdx;
+    }
     let bestIdx = 0;
     let bestD = Infinity;
     for (let i = 0; i < n; i++) {
@@ -440,7 +457,7 @@ function buildAdjacencyFromCellsExact(
     cells: VoronoiCellBoundaryExact[],
     mode: DistanceMode = distanceMode,
 ): Map<number, Set<number>> {
-    if (mode === "chebyshev" || mode === "chebyshev-tie" || mode === "raw") {
+    if (mode === "chebyshev" || mode === "chebyshev-tie" || mode === "raw" || mode === "manhattan") {
         return buildChebyshevAdjacency(mode);
     }
 
@@ -656,6 +673,7 @@ function buildGeometryForMode(mode: DistanceMode, previousColors: Map<number, nu
     // "chebyshev"  → Chebyshev (mode 5), no_tie=true  (ties → white)
     // "chebyshev-tie" → Chebyshev (mode 5), no_tie=false (ties → smallest-index site)
     // "raw"        → ChebyshevRaw (mode 6), no_tie=true  (unmerged)
+    // "manhattan"   → Manhattan (mode 7), no_tie flag     (L1 distance)
     const wasmModeLookup: Record<DistanceMode, string> = {
         euclidean: "euclidean",
         torus: "torus",
@@ -665,9 +683,10 @@ function buildGeometryForMode(mode: DistanceMode, previousColors: Map<number, nu
         chebyshev: "chebyshev",
         "chebyshev-tie": "chebyshev",
         raw: "chebyshev-raw",
+        manhattan: "manhattan",
     };
     const wasmMode = wasmModeLookup[mode] ?? "euclidean";
-    voronoiSetDistanceMode(wasmMode as "euclidean" | "torus" | "cylinder" | "mobius" | "klein" | "chebyshev" | "chebyshev-raw");
+    voronoiSetDistanceMode(wasmMode as "euclidean" | "torus" | "cylinder" | "mobius" | "klein" | "chebyshev" | "chebyshev-raw" | "manhattan");
     voronoiSetChebyshevNoTie(mode !== "chebyshev-tie");
     const nSites = voronoiNumSites();
     const tCompute0 =
@@ -1003,6 +1022,7 @@ function buildHoverText(px: number, py: number): string {
     }
 
     const isChebLike = distanceMode === "chebyshev" || distanceMode === "chebyshev-tie" || distanceMode === "raw";
+    const isManhattan = distanceMode === "manhattan";
 
     const entries: { idx: number; sx: number; sy: number; d: number }[] = [];
     let bestD = Number.MAX_SAFE_INTEGER;
@@ -1018,6 +1038,8 @@ function buildHoverText(px: number, py: number): string {
             const ssx = s.x * 2 + 1;
             const ssy = s.y * 2 + 1;
             d = Math.max(Math.abs(pcx - ssx), Math.abs(pcy - ssy)) / 2;
+        } else if (isManhattan) {
+            d = Math.abs(x - s.x) + Math.abs(y - s.y);
         } else if (distanceMode === "torus") {
             d = Math.sqrt(torusDistSq(x, y, s.x, s.y, CANVAS_WIDTH, CANVAS_HEIGHT));
         } else {
@@ -1189,6 +1211,18 @@ function updateDistanceModeButtons(): void {
                 (distanceRawBtn as HTMLButtonElement).disabled = false;
             }
     }
+
+    switch (distanceMode) {
+        case "manhattan":
+            if (distanceManhattanBtn) {
+                (distanceManhattanBtn as HTMLButtonElement).disabled = true;
+            }
+            break;
+        default:
+            if (distanceManhattanBtn) {
+                (distanceManhattanBtn as HTMLButtonElement).disabled = false;
+            }
+    }
 }
 
 if (distanceEuclidBtn) {
@@ -1250,6 +1284,14 @@ if (distanceChebyshevTieBtn) {
 if (distanceRawBtn) {
     distanceRawBtn.addEventListener("click", () => {
         distanceMode = "raw";
+        updateDistanceModeButtons();
+        recomputeAndDraw();
+    });
+}
+
+if (distanceManhattanBtn) {
+    distanceManhattanBtn.addEventListener("click", () => {
+        distanceMode = "manhattan";
         updateDistanceModeButtons();
         recomputeAndDraw();
     });
