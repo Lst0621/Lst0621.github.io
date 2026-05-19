@@ -199,12 +199,13 @@ function logVoronoiGeometryDebug(
     }
     console.group(`voronoi ${mode} geometry`);
     const rows: Record<string, unknown>[] = [];
+    const fullRows: Record<string, unknown>[] = [];
     for (let i = 0; i < n; i++) {
         const { x, y } = voronoiGetSite(i);
         const sid = siteIds[i];
         const cidx = sid !== undefined ? (colorsByStableId.get(sid) ?? 0) : 0;
         const cellBoundary = boundaries.find((c) => c.site === i);
-        const polys = (cellBoundary?.polygons ?? []).map((loop) => loop.map((p) => p));
+        const polys = (cellBoundary?.polygons ?? []).map((loop) => loop.map((p) => ({ x: p.x, y: p.y })));
         const polyCount = polys.length;
         const areas = polys.map((loop) => Math.abs(polygonAreaDouble(loop)).toFixed(0));
         const polySummary = polys
@@ -226,9 +227,20 @@ function logVoronoiGeometryDebug(
             area: areas.join(" "),
             polys: polySummary,
         });
+        fullRows.push({
+            site: i,
+            pos: `${Math.round(x * 100) / 100},${Math.round(y * 100) / 100}`,
+            fill: rgbToCss(getColor(cidx)),
+            n: polyCount,
+            area: areas.join(" "),
+            polys,
+        });
     }
     console.table(rows);
+    console.groupCollapsed("Full JSON geometry");
+    console.log(JSON.stringify(fullRows, null, 2));
     console.groupEnd();
+    console.log(`voronoi ${mode} geometry loaded`);
 }
 
 function normalizeVertices(vertices: { x: number; y: number }[]): { x: number; y: number }[] {
@@ -446,18 +458,17 @@ function undirectedExactEdgeKey(a: VoronoiBoundaryPointExact, b: VoronoiBoundary
 }
 
 /**
- * Adjacency for graph coloring: two sites are neighbors if they share a cell
- * edge. Uses exact rational endpoints so torus pieces agree with neighbors
- * (float rounding was dropping links or pairing wrong edges).
+ * Adjacency for graph coloring.
  *
- * For Chebyshev, cells are unions of multiple convex pieces whose edge
- * decompositions may not align — use pixel-center sampling instead.
+ * Merged modes (Euclidean, Torus, Cylinder, Möbius, Klein, Chebyshev, Manhattan)
+ * use exact edge matching. Only ChebyshevRaw (which is intentionally unmerged)
+ * uses grid sampling because its fragments have split boundaries.
  */
 function buildAdjacencyFromCellsExact(
     cells: VoronoiCellBoundaryExact[],
     mode: DistanceMode = distanceMode,
 ): Map<number, Set<number>> {
-    if (mode === "chebyshev" || mode === "chebyshev-tie" || mode === "raw" || mode === "manhattan") {
+    if (mode === "raw") {
         return buildChebyshevAdjacency(mode);
     }
 
@@ -514,25 +525,25 @@ function buildAdjacencyFromCellsExact(
 }
 
 /**
- * Chebyshev-mode adjacency: sample pixel centers on a grid, detect
- * neighboring pixels that belong to different sites (strict, no ties).
- * Grid step of 8 gives 100×75 ≈ 7500 samples for 800×600 — fast enough.
+ * Sampled adjacency: sample pixel centers on a grid, detect neighboring
+ * pixels that belong to different sites. Grid step of 8 gives 100×75 ≈ 7500
+ * samples for 800×600 — fast enough.
  */
-function buildChebyshevAdjacency(mode: DistanceMode): Map<number, Set<number>> {
+function buildGridAdjacency(
+    mode: DistanceMode,
+    ownerFn: (x: number, y: number, sites: readonly { x: number; y: number }[]) => number,
+    gridStep = 8,
+): Map<number, Set<number>> {
     const n = voronoiNumSites();
     if (n <= 1) {
         return new Map();
     }
 
     const sites = Array.from({ length: n }, (_, i) => voronoiGetSite(i));
-    const gridStep = 8;
     const cols = Math.ceil(CANVAS_WIDTH / gridStep);
     const rows = Math.ceil(CANVAS_HEIGHT / gridStep);
-    const ownerFn = mode === "chebyshev-tie"
-        ? strictChebyshevFirstTieOwner
-        : strictChebyshevPixelCenterOwner;
 
-    // Compute ownership for each grid cell center
+    // Compute ownership for each grid cell center.
     const ownership: number[][] = [];
     for (let gy = 0; gy < rows; gy++) {
         const row: number[] = [];
@@ -544,7 +555,6 @@ function buildChebyshevAdjacency(mode: DistanceMode): Map<number, Set<number>> {
         ownership.push(row);
     }
 
-    // Detect adjacency from grid neighbors (4-connected)
     const adjacency = new Map<number, Set<number>>();
     const link = (a: number, b: number): void => {
         if (a === b || a < 0 || b < 0) {
@@ -577,15 +587,12 @@ function buildChebyshevAdjacency(mode: DistanceMode): Map<number, Set<number>> {
             if (owner < 0) {
                 continue;
             }
-            // Right neighbor
             if (gx + 1 < cols) {
                 link(owner, ownership[gy]![gx + 1]!);
             }
-            // Down neighbor
             if (gy + 1 < rows) {
                 link(owner, ownership[gy + 1]![gx]!);
             }
-            // Down-right diagonal (catch checkerboard corner touches)
             if (gx + 1 < cols && gy + 1 < rows) {
                 const diag = ownership[gy + 1]![gx + 1]!;
                 if (diag >= 0 && diag !== owner) {
@@ -600,6 +607,15 @@ function buildChebyshevAdjacency(mode: DistanceMode): Map<number, Set<number>> {
     }
 
     return adjacency;
+}
+
+function buildChebyshevAdjacency(mode: DistanceMode): Map<number, Set<number>> {
+    // ChebyshevRaw is unmerged and produces fragmented pieces with split boundaries,
+    // so grid sampling is used for adjacency detection.
+    const ownerFn = mode === "chebyshev-tie"
+        ? strictChebyshevFirstTieOwner
+        : strictChebyshevPixelCenterOwner;
+    return buildGridAdjacency(mode, ownerFn);
 }
 
 function recolorSites(adjacency: Map<number, Set<number>>): void {

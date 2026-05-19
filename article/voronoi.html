@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Voronoi Diagram</title>
+    <link rel="icon" href="../img/flame1.png" />
     <style>
       * {
         margin: 0;
@@ -132,7 +133,7 @@
         <button id="distance-klein-btn">Distance: Klein</button>
         <button id="distance-chebyshev-btn">Distance: Chebyshev</button>
         <button id="distance-chebyshev-tie-btn">Distance: Chebyshev (tie→first)</button>
-        <button id="distance-raw-btn">Distance: Raw</button>
+        <button id="distance-raw-btn">Distance: Chebyshev Raw</button>
         <button id="distance-manhattan-btn">Distance: Manhattan (L₁)</button>
         <button id="view-layout-btn" type="button">View: 1×1</button>
         <button id="toggle-boundaries-btn">Hide Boundaries</button>
@@ -185,7 +186,8 @@
               <code>max(|dx|, |dy|)</code> — cells are axis-aligned
               rectangles determined by coordinate-wise bisectors.</li>
               <li><strong>Raw:</strong> The same Chebyshev construction before the
-              final merge step, useful for inspecting the clipped pieces directly.</li>
+              final merge step, useful for inspecting the clipped pieces directly.
+              This is the unmerged Chebyshev raw mode.</li>
             </ul>
           </li>
           <li>
