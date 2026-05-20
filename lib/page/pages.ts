@@ -28,6 +28,7 @@ export const sections: Section[] = [
       { name: "Voronoi Diagram", url: "article/voronoi.html" },
       { name: "Bars game (C++/WASM)", url: "article/bars_game.html" },
       { name: "Partition Conjugate (C++/WASM)", url: "article/partition_conjugate.html" },
+      { name: "Graph Metric Dimension", url: "article/graph_demo.html" },
     ],
   },
   {
@@ -62,7 +63,6 @@ export const sections: Section[] = [
       { name: "Strictly Piecewise Languages", url: "article/sp_lang.html" },
       { name: "Continued Fractions", url: "article/continued_fractions.html" },
       { name: "Lamp Lighter", url: "article/lamp_lighter.html" },
-      { name: "Graph Demo", url: "article/graph_demo.html" },
       { name: "Layered DAG", url: "article/dag.html" },
     ],
   },
