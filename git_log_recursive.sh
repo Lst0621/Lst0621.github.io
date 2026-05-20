@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-N="${1:-5}"
+N="${1:-10}"
 
 echo "== top-level ($(pwd)) =="
 git log -"${N}" --oneline
