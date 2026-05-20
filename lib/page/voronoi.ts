@@ -1327,9 +1327,21 @@ export function clearPoints(): void {
     clearAllPoints();
 }
 
+function disposeVoronoi(): void {
+    voronoiDestroy();
+}
+
+function onPageHide(ev: PageTransitionEvent): void {
+    // Skip when entering bfcache; the page (and WASM handle) may be restored.
+    if (!ev.persisted) {
+        disposeVoronoi();
+    }
+}
+
 async function init(): Promise<void> {
     await modulePromise;
     voronoiCreate(CANVAS_WIDTH, CANVAS_HEIGHT);
+    window.addEventListener("pagehide", onPageHide);
     applyModeFromControls();
     generateRandomPoints(4);
 }
