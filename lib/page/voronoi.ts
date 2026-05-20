@@ -5,7 +5,7 @@ import {
     voronoiRemovePoint,
     voronoiClear,
     voronoiCompute,
-    voronoiSetDistanceMode,
+    voronoiSetMode,
     voronoiSetChebyshevNoTie,
     voronoiNumSites,
     voronoiGetSite,
@@ -16,9 +16,9 @@ import {
     modulePromise,
     VoronoiCellBoundary,
     VoronoiCellBoundaryExact,
+    type VoronoiMetric,
+    type VoronoiTopology,
 } from "../tsl/wasm/ts/wasm_api_voronoi";
-
-type DistanceMode = "euclidean" | "torus" | "cylinder" | "mobius" | "klein" | "chebyshev" | "chebyshev-tie" | "manhattan";
 type RgbColor = { r: number; g: number; b: number };
 
 // Canvas setup
@@ -32,21 +32,48 @@ const clearBtn = document.getElementById("clear-btn");
 const edgeDisplayRadios = document.querySelectorAll<HTMLInputElement>(
     'input[name="edge-display"]',
 );
-const distanceEuclidBtn = document.getElementById("distance-euclidean-btn");
-const distanceTorusBtn = document.getElementById("distance-torus-btn");
-const distanceCylinderBtn = document.getElementById("distance-cylinder-btn");
-const distanceMobiusBtn = document.getElementById("distance-mobius-btn");
-const distanceKleinBtn = document.getElementById("distance-klein-btn");
-const distanceChebyshevBtn = document.getElementById("distance-chebyshev-btn");
-const distanceChebyshevTieBtn = document.getElementById("distance-chebyshev-tie-btn");
-const distanceManhattanBtn = document.getElementById("distance-manhattan-btn");
+const metricRadios = document.querySelectorAll<HTMLInputElement>('input[name="voronoi-metric"]');
+const topologyRadios = document.querySelectorAll<HTMLInputElement>('input[name="voronoi-topology"]');
+const chebyshevTieCheckbox = document.getElementById("chebyshev-tie-break") as HTMLInputElement | null;
+const modeStatusElem = document.getElementById("voronoi-mode-status");
 const viewLayoutBtn = document.getElementById("view-layout-btn");
 
 /** What to stroke on top of filled cells. */
 type EdgeDisplayMode = "none" | "outline" | "pieces";
 let edgeDisplay: EdgeDisplayMode = "outline";
-// DEBUG: start in Chebyshev mode for local testing
-let distanceMode: DistanceMode = "chebyshev";
+let voronoiMetric: VoronoiMetric = "l2";
+let voronoiTopology: VoronoiTopology = "plane";
+let chebyshevTieBreak = false;
+
+const SUPPORTED = new Set<string>([
+    "l2:plane",
+    "l2:torus",
+    "l2:cylinder",
+    "l2:mobius",
+    "l2:klein",
+    "l1:plane",
+    "l1:torus",
+    "l1:cylinder",
+    "l1:mobius",
+    "l1:klein",
+    "linf:plane",
+    "linf:torus",
+    "linf:cylinder",
+    "linf:mobius",
+    "linf:klein",
+]);
+
+function pairKey(metric: VoronoiMetric, topology: VoronoiTopology): string {
+    return `${metric}:${topology}`;
+}
+
+function isPairSupported(metric: VoronoiMetric, topology: VoronoiTopology): boolean {
+    return SUPPORTED.has(pairKey(metric, topology));
+}
+
+function activeCacheKey(): string {
+    return `${pairKey(voronoiMetric, voronoiTopology)}:${chebyshevTieBreak ? "tie" : "notie"}`;
+}
 /** `1x1` = full fundamental domain; `3x3` = nine equal tiles (same diagram, shrunk). */
 let viewLayout: "1x1" | "3x3" = "1x1";
 
@@ -94,11 +121,8 @@ type CachedGeometry = {
     siteColors: Map<number, number>;
 };
 
-// Per-mode cache: kept across mode switches when sites haven't changed, so
-// flipping back-and-forth between Euclidean and Torus doesn't trigger a
-// recompute. Any seed-set mutation (add/remove/clear) invalidates BOTH
-// entries — only the active mode is recomputed at that point.
-const geometryByMode: Partial<Record<DistanceMode, CachedGeometry>> = {};
+// Per (metric, topology, tie) cache — invalidated when seeds change.
+const geometryByCacheKey: Record<string, CachedGeometry> = {};
 
 function emptyGeometry(): CachedGeometry {
     return {
@@ -110,14 +134,9 @@ function emptyGeometry(): CachedGeometry {
 }
 
 function invalidateGeometryCache(): void {
-    delete geometryByMode.euclidean;
-    delete geometryByMode.torus;
-    delete geometryByMode.cylinder;
-    delete geometryByMode.mobius;
-    delete geometryByMode.klein;
-    delete geometryByMode.chebyshev;
-    delete geometryByMode["chebyshev-tie"];
-    delete geometryByMode.manhattan;
+    for (const key of Object.keys(geometryByCacheKey)) {
+        delete geometryByCacheKey[key];
+    }
 }
 
 function hslToRgb(h: number, s: number, l: number): RgbColor {
@@ -197,11 +216,21 @@ function applyEdgeDisplay(mode: EdgeDisplayMode): void {
     }
 }
 
-function logEdgeDataSummary(mode: DistanceMode): void {
+function modeLabel(): string {
+    const m =
+        voronoiMetric === "l2" ? "L₂" : voronoiMetric === "l1" ? "L₁" : "L∞";
+    const t =
+        voronoiTopology === "plane"
+            ? "Plane"
+            : voronoiTopology.charAt(0).toUpperCase() + voronoiTopology.slice(1);
+    return `${m} · ${t}`;
+}
+
+function logEdgeDataSummary(label: string): void {
     const outlineLoops = countBoundaryLoops(latestBoundaries);
     const pieceLoops = countBoundaryLoops(latestInternalBoundaries);
     console.debug(
-        `voronoi edges [${mode}]: outline loops=${outlineLoops}, clip-piece loops=${pieceLoops}` +
+        `voronoi edges [${label}]: outline loops=${outlineLoops}, clip-piece loops=${pieceLoops}` +
             (pieceLoops <= outlineLoops
                 ? " (no extra internal edges for this metric/sites — try Chebyshev or Manhattan)"
                 : ""),
@@ -223,7 +252,7 @@ function polygonAreaDouble(loop: { x: number; y: number }[]): number {
 
 /** Debug log: one collapsible group per mode with site table + compact polygon strings. */
 function logVoronoiGeometryDebug(
-    mode: DistanceMode,
+    mode: string,
     boundaries: VoronoiCellBoundary[],
     exactBoundaries: VoronoiCellBoundaryExact[],
     colorsByStableId: Map<number, number>,
@@ -336,6 +365,87 @@ function torusDistSq(px: number, py: number, sx: number, sy: number, w: number, 
     return dx * dx + dy * dy;
 }
 
+/** Lift window for brute periodic/Klein/Möbius distance (matches gtests). */
+const LIFT_RADIUS = 4;
+
+function kleinDistSq(px: number, py: number, sx: number, sy: number, w: number, h: number): number {
+    let best = Infinity;
+    for (let k = -LIFT_RADIUS; k <= LIFT_RADIUS; k++) {
+        for (let l = -LIFT_RADIUS; l <= LIFT_RADIUS; l++) {
+            const flip = (l & 1) !== 0;
+            const sxl = flip ? w - sx : sx;
+            const dx = px - (sxl + k * w);
+            const dy = py - (sy + l * h);
+            best = Math.min(best, dx * dx + dy * dy);
+        }
+    }
+    return best;
+}
+
+function kleinChebDist(px: number, py: number, sx: number, sy: number, w: number, h: number): number {
+    let best = Infinity;
+    for (let k = -LIFT_RADIUS; k <= LIFT_RADIUS; k++) {
+        for (let l = -LIFT_RADIUS; l <= LIFT_RADIUS; l++) {
+            const flip = (l & 1) !== 0;
+            const sxl = flip ? w - sx : sx;
+            const dx = Math.abs(px - (sxl + k * w));
+            const dy = Math.abs(py - (sy + l * h));
+            best = Math.min(best, Math.max(dx, dy));
+        }
+    }
+    return best;
+}
+
+function kleinManhattanDist(px: number, py: number, sx: number, sy: number, w: number, h: number): number {
+    let best = Infinity;
+    for (let k = -LIFT_RADIUS; k <= LIFT_RADIUS; k++) {
+        for (let l = -LIFT_RADIUS; l <= LIFT_RADIUS; l++) {
+            const flip = (l & 1) !== 0;
+            const sxl = flip ? w - sx : sx;
+            const dx = Math.abs(px - (sxl + k * w));
+            const dy = Math.abs(py - (sy + l * h));
+            best = Math.min(best, dx + dy);
+        }
+    }
+    return best;
+}
+
+function mobiusDistSq(px: number, py: number, sx: number, sy: number, w: number, h: number): number {
+    let best = Infinity;
+    for (let k = -LIFT_RADIUS; k <= LIFT_RADIUS; k++) {
+        const flip = (k & 1) !== 0;
+        const syl = flip ? h - sy : sy;
+        const dx = px - (sx + k * w);
+        const dy = py - syl;
+        best = Math.min(best, dx * dx + dy * dy);
+    }
+    return best;
+}
+
+function mobiusChebDist(px: number, py: number, sx: number, sy: number, w: number, h: number): number {
+    let best = Infinity;
+    for (let k = -LIFT_RADIUS; k <= LIFT_RADIUS; k++) {
+        const flip = (k & 1) !== 0;
+        const syl = flip ? h - sy : sy;
+        const dx = Math.abs(px - (sx + k * w));
+        const dy = Math.abs(py - syl);
+        best = Math.min(best, Math.max(dx, dy));
+    }
+    return best;
+}
+
+function mobiusManhattanDist(px: number, py: number, sx: number, sy: number, w: number, h: number): number {
+    let best = Infinity;
+    for (let k = -LIFT_RADIUS; k <= LIFT_RADIUS; k++) {
+        const flip = (k & 1) !== 0;
+        const syl = flip ? h - sy : sy;
+        const dx = Math.abs(px - (sx + k * w));
+        const dy = Math.abs(py - syl);
+        best = Math.min(best, dx + dy);
+    }
+    return best;
+}
+
 /**
  * Closest seed by the active metric (brute force). Used for context-menu hit
  * testing; diagram ownership comes from exported cell polygons.
@@ -417,33 +527,89 @@ function strictChebyshevFirstTieOwner(
  * testing. Chebyshev uses strict pixel-center dominance (ties return -1).
  * Chebyshev-tie assigns ties to smallest-index closest site.
  */
+function cylinderDistSq(px: number, py: number, sx: number, sy: number, w: number): number {
+    const dx = torusComponentDelta(px, sx, w);
+    const dy = py - sy;
+    return dx * dx + dy * dy;
+}
+
+function torusChebDist(px: number, py: number, sx: number, sy: number, w: number, h: number): number {
+    const dx = Math.abs(torusComponentDelta(px, sx, w));
+    const dy = Math.abs(torusComponentDelta(py, sy, h));
+    return Math.max(dx, dy);
+}
+
+function torusManhattanDist(px: number, py: number, sx: number, sy: number, w: number, h: number): number {
+    return (
+        Math.abs(torusComponentDelta(px, sx, w)) + Math.abs(torusComponentDelta(py, sy, h))
+    );
+}
+
 function findSiteIndexByRegion(
     x: number,
     y: number,
-    metric: DistanceMode = distanceMode,
+    metric: VoronoiMetric = voronoiMetric,
+    topology: VoronoiTopology = voronoiTopology,
 ): number {
     const n = voronoiNumSites();
     if (n <= 0) {
         return -1;
     }
-    if (metric === "chebyshev") {
+    if (metric === "linf") {
+        if (chebyshevTieBreak) {
+            const gx = Math.floor(x);
+            const gy = Math.floor(y);
+            const sites = Array.from({ length: n }, (_, i) => voronoiGetSite(i));
+            return strictChebyshevFirstTieOwner(gx, gy, sites);
+        }
         return strictChebyshevUniqueSiteIndex(x, y);
     }
-    if (metric === "chebyshev-tie") {
-        const gx = Math.floor(x);
-        const gy = Math.floor(y);
-        const sites = Array.from({ length: n }, (_, i) => voronoiGetSite(i));
-        return strictChebyshevFirstTieOwner(gx, gy, sites);
-    }
-    if (metric === "manhattan") {
-        // L1 distance: tie-break to smallest index (no strict pixel-center
-        // function yet — cell polygons handle rendering ownership).
+    if (metric === "l1") {
         let bestIdx = 0;
         let bestD = Infinity;
         for (let i = 0; i < n; i++) {
             const s = voronoiGetSite(i);
-            const d = Math.abs(x - s.x) + Math.abs(y - s.y);
-            if (d < bestD) {
+            let d: number;
+            if (topology === "torus") {
+                d = torusManhattanDist(x, y, s.x, s.y, CANVAS_WIDTH, CANVAS_HEIGHT);
+            } else if (topology === "cylinder") {
+                d =
+                    Math.abs(torusComponentDelta(x, s.x, CANVAS_WIDTH)) + Math.abs(y - s.y);
+            } else if (topology === "klein") {
+                d = kleinManhattanDist(x, y, s.x, s.y, CANVAS_WIDTH, CANVAS_HEIGHT);
+            } else if (topology === "mobius") {
+                d = mobiusManhattanDist(x, y, s.x, s.y, CANVAS_WIDTH, CANVAS_HEIGHT);
+            } else {
+                d = Math.abs(x - s.x) + Math.abs(y - s.y);
+            }
+            if (d < bestD || (d === bestD && i < bestIdx)) {
+                bestD = d;
+                bestIdx = i;
+            }
+        }
+        return bestIdx;
+    }
+    if (metric === "linf" && topology !== "plane") {
+        let bestIdx = 0;
+        let bestD = Infinity;
+        for (let i = 0; i < n; i++) {
+            const s = voronoiGetSite(i);
+            let d: number;
+            if (topology === "torus") {
+                d = torusChebDist(x, y, s.x, s.y, CANVAS_WIDTH, CANVAS_HEIGHT);
+            } else if (topology === "cylinder") {
+                d = Math.max(
+                    Math.abs(torusComponentDelta(x, s.x, CANVAS_WIDTH)),
+                    Math.abs(y - s.y),
+                );
+            } else if (topology === "klein") {
+                d = kleinChebDist(x, y, s.x, s.y, CANVAS_WIDTH, CANVAS_HEIGHT);
+            } else if (topology === "mobius") {
+                d = mobiusChebDist(x, y, s.x, s.y, CANVAS_WIDTH, CANVAS_HEIGHT);
+            } else {
+                d = Math.max(Math.abs(x - s.x), Math.abs(y - s.y));
+            }
+            if (d < bestD || (d === bestD && i < bestIdx)) {
                 bestD = d;
                 bestIdx = i;
             }
@@ -454,9 +620,18 @@ function findSiteIndexByRegion(
     let bestD = Infinity;
     for (let i = 0; i < n; i++) {
         const s = voronoiGetSite(i);
-        const d = metric === "torus"
-            ? torusDistSq(x, y, s.x, s.y, CANVAS_WIDTH, CANVAS_HEIGHT)
-            : euclideanDistSq(x, y, s.x, s.y);
+        let d: number;
+        if (topology === "torus") {
+            d = torusDistSq(x, y, s.x, s.y, CANVAS_WIDTH, CANVAS_HEIGHT);
+        } else if (topology === "cylinder") {
+            d = cylinderDistSq(x, y, s.x, s.y, CANVAS_WIDTH);
+        } else if (topology === "klein") {
+            d = kleinDistSq(x, y, s.x, s.y, CANVAS_WIDTH, CANVAS_HEIGHT);
+        } else if (topology === "mobius") {
+            d = mobiusDistSq(x, y, s.x, s.y, CANVAS_WIDTH, CANVAS_HEIGHT);
+        } else {
+            d = euclideanDistSq(x, y, s.x, s.y);
+        }
         if (d < bestD || (d === bestD && i < bestIdx)) {
             bestD = d;
             bestIdx = i;
@@ -531,26 +706,13 @@ function recolorSites(adjacency: Map<number, Set<number>>): void {
     }
 }
 
-function buildGeometryForMode(mode: DistanceMode, previousColors: Map<number, number>): CachedGeometry {
-    // Map frontend modes to WASM distance modes.
-    // "chebyshev"  → Chebyshev (mode 5), no_tie=true  (ties → white)
-    // "chebyshev-tie" → Chebyshev (mode 5), no_tie=false (ties → smallest-index site)
-    // "manhattan"   → Manhattan (mode 6), no_tie flag     (L1 distance)
-    const wasmModeLookup: Record<DistanceMode, string> = {
-        euclidean: "euclidean",
-        torus: "torus",
-        cylinder: "cylinder",
-        mobius: "mobius",
-        klein: "klein",
-        chebyshev: "chebyshev",
-        "chebyshev-tie": "chebyshev",
-        manhattan: "manhattan",
-    };
-    const wasmMode = wasmModeLookup[mode] ?? "euclidean";
-    voronoiSetDistanceMode(
-        wasmMode as "euclidean" | "torus" | "cylinder" | "mobius" | "klein" | "chebyshev" | "manhattan",
-    );
-    voronoiSetChebyshevNoTie(mode !== "chebyshev-tie");
+function buildGeometry(
+    metric: VoronoiMetric,
+    topology: VoronoiTopology,
+    previousColors: Map<number, number>,
+): CachedGeometry {
+    voronoiSetMode(metric, topology);
+    voronoiSetChebyshevNoTie(!chebyshevTieBreak);
     const nSites = voronoiNumSites();
     const tCompute0 =
         typeof performance !== "undefined" && typeof performance.now === "function"
@@ -569,7 +731,7 @@ function buildGeometryForMode(mode: DistanceMode, previousColors: Map<number, nu
     const tFetch1 = tCompute1 !== 0 ? performance.now() : 0;
     if (tCompute0 !== 0) {
         console.debug(
-            `voronoi: ${mode} compute=${(tCompute1 - tCompute0).toFixed(1)} ms fetch=${(tFetch1 - tCompute1).toFixed(1)} ms`,
+            `voronoi: ${pairKey(metric, topology)} compute=${(tCompute1 - tCompute0).toFixed(1)} ms fetch=${(tFetch1 - tCompute1).toFixed(1)} ms`,
         );
     }
     const boundaries = exactBoundaries.map((cell) => ({
@@ -590,12 +752,12 @@ function buildGeometryForMode(mode: DistanceMode, previousColors: Map<number, nu
     const recolored = new Map(siteColors);
     siteColors = savedColors;
 
-    logVoronoiGeometryDebug(mode, boundaries, exactBoundaries, recolored);
+    logVoronoiGeometryDebug(pairKey(metric, topology), boundaries, exactBoundaries, recolored);
     return { boundaries, internalBoundaries, exactBoundaries, siteColors: recolored };
 }
 
 function syncActiveGeometry(): void {
-    const active = geometryByMode[distanceMode] ?? emptyGeometry();
+    const active = geometryByCacheKey[activeCacheKey()] ?? emptyGeometry();
     latestBoundaries = active.boundaries;
     latestInternalBoundaries = active.internalBoundaries;
     siteColors = new Map(active.siteColors);
@@ -609,28 +771,27 @@ function syncActiveGeometry(): void {
 // invalidateGeometryCache() so the next refresh recomputes for the active
 // mode but still skips the inactive one.
 function refreshGeometry(): void {
-    if (!geometryByMode[distanceMode]) {
+    const key = activeCacheKey();
+    if (!geometryByCacheKey[key]) {
+        const prevKey = Object.keys(geometryByCacheKey)[0];
         const previousColors = new Map(
-            (geometryByMode.euclidean ??
-                geometryByMode.torus ??
-                geometryByMode.cylinder ??
-                emptyGeometry()).siteColors,
+            (prevKey ? geometryByCacheKey[prevKey] : emptyGeometry()).siteColors,
         );
         const t0 =
             typeof performance !== "undefined" && typeof performance.now === "function"
                 ? performance.now()
                 : 0;
-        geometryByMode[distanceMode] = buildGeometryForMode(distanceMode, previousColors);
+        geometryByCacheKey[key] = buildGeometry(voronoiMetric, voronoiTopology, previousColors);
         if (t0 !== 0) {
             const elapsed = performance.now() - t0;
             console.debug(
-                `voronoi: ${distanceMode} compute+fetch took ${elapsed.toFixed(1)} ms (sites=${voronoiNumSites()})`,
+                `voronoi: ${key} compute+fetch took ${elapsed.toFixed(1)} ms (sites=${voronoiNumSites()})`,
             );
         }
     }
     syncActiveGeometry();
     if (voronoiNumSites() > 0) {
-        logEdgeDataSummary(distanceMode);
+        logEdgeDataSummary(modeLabel());
     }
 }
 
@@ -683,30 +844,68 @@ function fallbackCellBoundariesExact(nSites: number): VoronoiCellBoundaryExact[]
     return Array.from({ length: nSites }, (_, site) => ({ site, polygons: [] as VoronoiBoundaryPointExact[][] }));
 }
 
+/** Klein/Möbius cells from WASM can gap/overlap; fill by metric instead of polygons. */
+function useMetricRasterFill(): boolean {
+    return voronoiTopology === "klein" || voronoiTopology === "mobius";
+}
+
+/**
+ * Fill the fundamental domain by brute metric distance. Draws in model space
+ * (0…W × 0…H) so the caller's transform applies — required for 3×3 tiling.
+ */
+function fillByMetricOwnership(): void {
+    const w = CANVAS_WIDTH;
+    const h = CANVAS_HEIGHT;
+    const step = viewLayout === "3x3" ? 2 : 1;
+    const prevSmoothing = ctx.imageSmoothingEnabled;
+    ctx.imageSmoothingEnabled = false;
+    for (let my = 0; my < h; my += step) {
+        for (let mx = 0; mx < w; mx += step) {
+            const site = findSiteIndexByRegion(mx + 0.5, my + 0.5);
+            if (site < 0) {
+                continue;
+            }
+            const colorIdx = siteColors.get(siteIds[site]) ?? 0;
+            ctx.fillStyle = rgbToCss(getColor(colorIdx));
+            ctx.fillRect(mx, my, step, step);
+        }
+    }
+    ctx.imageSmoothingEnabled = prevSmoothing;
+}
+
+function fillCellsFromPolygons(): void {
+    for (const cell of latestBoundaries) {
+        const colorIdx = siteColors.get(siteIds[cell.site]) ?? 0;
+        ctx.fillStyle = rgbToCss(getColor(colorIdx));
+        ctx.beginPath();
+        for (const loop of cell.polygons) {
+            const polygon = normalizeVertices(loop);
+            if (polygon.length === 0) {
+                continue;
+            }
+            ctx.moveTo(polygon[0].x, polygon[0].y);
+            for (let i = 1; i < polygon.length; i++) {
+                ctx.lineTo(polygon[i].x, polygon[i].y);
+            }
+            ctx.closePath();
+        }
+        ctx.fill("nonzero");
+    }
+}
+
 /**
  * Draw one copy of the diagram in fundamental-domain coordinates
  * (0…W × 0…H). Caller sets `ctx` transform; `modelLineWidth` / `modelSeedR`
  * compensate when the tile is scaled down (3×3 view).
  */
 function drawOneTile(modelLineWidth: number, modelSeedR: number): void {
-    // Pass 1: fill every cell (nonzero = geometric union of overlapping loops).
+    // Pass 1: fill cells. Klein/Möbius use metric raster (polygon clips can gap);
+    // plane/torus/cylinder use exported polygons (works with 3×3 transforms).
     if (latestBoundaries.length > 0) {
-        for (const cell of latestBoundaries) {
-            const colorIdx = siteColors.get(siteIds[cell.site]) ?? 0;
-            ctx.fillStyle = rgbToCss(getColor(colorIdx));
-            ctx.beginPath();
-            for (const loop of cell.polygons) {
-                const polygon = normalizeVertices(loop);
-                if (polygon.length === 0) {
-                    continue;
-                }
-                ctx.moveTo(polygon[0].x, polygon[0].y);
-                for (let i = 1; i < polygon.length; i++) {
-                    ctx.lineTo(polygon[i].x, polygon[i].y);
-                }
-                ctx.closePath();
-            }
-            ctx.fill("nonzero");
+        if (useMetricRasterFill()) {
+            fillByMetricOwnership();
+        } else {
+            fillCellsFromPolygons();
         }
     }
 
@@ -773,7 +972,7 @@ function draw(): void {
                 const shiftX = ti - 1;
                 const shiftY = tj - 1;
                 
-                switch (distanceMode) {
+                switch (voronoiTopology) {
                     case "mobius":
                         if ((shiftX & 1) !== 0) {
                             ctx.translate(0, CANVAS_HEIGHT);
@@ -785,6 +984,8 @@ function draw(): void {
                             ctx.translate(CANVAS_WIDTH, 0);
                             ctx.scale(-1, 1);
                         }
+                        break;
+                    default:
                         break;
                 }
                 drawOneTile(1 / Math.min(sx, sy), SEED_POINT_RADIUS / Math.min(sx, sy));
@@ -831,7 +1032,7 @@ function canvasToModel(px: number, py: number): { x: number; y: number } {
     let yFrac = v;
     let xFrac = u;
     
-    switch (distanceMode) {
+    switch (voronoiTopology) {
         case "mobius":
             if ((shiftX & 1) !== 0) {
                 yFrac = 1 - v;
@@ -841,6 +1042,8 @@ function canvasToModel(px: number, py: number): { x: number; y: number } {
             if ((shiftY & 1) !== 0) {
                 xFrac = 1 - u;
             }
+            break;
+        default:
             break;
     }
     return {
@@ -889,29 +1092,40 @@ function buildHoverText(px: number, py: number): string {
         return `pos: (${x.toFixed(1)}, ${y.toFixed(1)})\n\nno sites`;
     }
 
-    const isChebLike = distanceMode === "chebyshev" || distanceMode === "chebyshev-tie";
-    const isManhattan = distanceMode === "manhattan";
-
     const entries: { idx: number; sx: number; sy: number; d: number }[] = [];
     let bestD = Number.MAX_SAFE_INTEGER;
     for (let i = 0; i < n; i++) {
         const s = voronoiGetSite(i);
         let d: number;
-        if (isChebLike) {
-            // Chebyshev: pixel-center distance (half-integer grid)
+        if (voronoiMetric === "linf") {
             const cx = Math.floor(x);
             const cy = Math.floor(y);
             const pcx = cx * 2 + 1;
             const pcy = cy * 2 + 1;
             const ssx = s.x * 2 + 1;
             const ssy = s.y * 2 + 1;
-            d = Math.max(Math.abs(pcx - ssx), Math.abs(pcy - ssy)) / 2;
-        } else if (isManhattan) {
-            d = Math.abs(x - s.x) + Math.abs(y - s.y);
-        } else if (distanceMode === "torus") {
+            if (voronoiTopology === "torus") {
+                d = torusChebDist(x, y, s.x, s.y, CANVAS_WIDTH, CANVAS_HEIGHT);
+            } else if (voronoiTopology === "cylinder") {
+                const dx = Math.abs(torusComponentDelta(x, s.x, CANVAS_WIDTH));
+                d = Math.max(dx, Math.abs(y - s.y));
+            } else {
+                d = Math.max(Math.abs(pcx - ssx), Math.abs(pcy - ssy)) / 2;
+            }
+        } else if (voronoiMetric === "l1") {
+            if (voronoiTopology === "torus") {
+                d = torusManhattanDist(x, y, s.x, s.y, CANVAS_WIDTH, CANVAS_HEIGHT);
+            } else if (voronoiTopology === "cylinder") {
+                d =
+                    Math.abs(torusComponentDelta(x, s.x, CANVAS_WIDTH)) + Math.abs(y - s.y);
+            } else {
+                d = Math.abs(x - s.x) + Math.abs(y - s.y);
+            }
+        } else if (voronoiTopology === "torus") {
             d = Math.sqrt(torusDistSq(x, y, s.x, s.y, CANVAS_WIDTH, CANVAS_HEIGHT));
+        } else if (voronoiTopology === "cylinder") {
+            d = Math.sqrt(cylinderDistSq(x, y, s.x, s.y, CANVAS_WIDTH));
         } else {
-            // euclidean, cylinder, mobius, klein — locally Euclidean in fundamental domain
             d = Math.sqrt(euclideanDistSq(x, y, s.x, s.y));
         }
         if (d < bestD) bestD = d;
@@ -926,13 +1140,12 @@ function buildHoverText(px: number, py: number): string {
         text += `site ${e.idx} (${e.sx},${e.sy}): d=${dDisplay}${marker}\n`;
     }
     if (entries.filter(e => Math.abs(e.d - bestD) < 1e-9).length > 1) {
-        if (distanceMode === "chebyshev-tie") {
+        if (voronoiMetric === "linf" && chebyshevTieBreak) {
             const firstTie = entries.filter(e => Math.abs(e.d - bestD) < 1e-9)[0]!;
             text += `\n(tie → site ${firstTie.idx})`;
-        } else if (isChebLike) {
+        } else if (voronoiMetric === "linf") {
             text += "\n(tie)";
         }
-        // Euclidean metrics: ties are naturally possible, don't annotate
     }
     return text;
 }
@@ -987,175 +1200,102 @@ for (const radio of edgeDisplayRadios) {
         const v = radio.value;
         if (v === "none" || v === "outline" || v === "pieces") {
             applyEdgeDisplay(v);
-            logEdgeDataSummary(distanceMode);
+            logEdgeDataSummary(modeLabel());
             draw();
         }
     });
 }
 
-function updateDistanceModeButtons(): void {
-    switch (distanceMode) {
-        case "euclidean":
-            if (distanceEuclidBtn) {
-                (distanceEuclidBtn as HTMLButtonElement).disabled = true;
-            }
-            break;
-        default:
-            if (distanceEuclidBtn) {
-                (distanceEuclidBtn as HTMLButtonElement).disabled = false;
-            }
+function readMetricFromRadios(): VoronoiMetric {
+    for (const radio of metricRadios) {
+        if (radio.checked) {
+            return radio.value as VoronoiMetric;
+        }
     }
-    
-    switch (distanceMode) {
-        case "torus":
-            if (distanceTorusBtn) {
-                (distanceTorusBtn as HTMLButtonElement).disabled = true;
-            }
-            break;
-        default:
-            if (distanceTorusBtn) {
-                (distanceTorusBtn as HTMLButtonElement).disabled = false;
-            }
-    }
-    
-    switch (distanceMode) {
-        case "cylinder":
-            if (distanceCylinderBtn) {
-                (distanceCylinderBtn as HTMLButtonElement).disabled = true;
-            }
-            break;
-        default:
-            if (distanceCylinderBtn) {
-                (distanceCylinderBtn as HTMLButtonElement).disabled = false;
-            }
-    }
-    
-    switch (distanceMode) {
-        case "mobius":
-            if (distanceMobiusBtn) {
-                (distanceMobiusBtn as HTMLButtonElement).disabled = true;
-            }
-            break;
-        default:
-            if (distanceMobiusBtn) {
-                (distanceMobiusBtn as HTMLButtonElement).disabled = false;
-            }
-    }
-    
-    switch (distanceMode) {
-        case "klein":
-            if (distanceKleinBtn) {
-                (distanceKleinBtn as HTMLButtonElement).disabled = true;
-            }
-            break;
-        default:
-            if (distanceKleinBtn) {
-                (distanceKleinBtn as HTMLButtonElement).disabled = false;
-            }
-    }
+    return "l2";
+}
 
-    switch (distanceMode) {
-        case "chebyshev":
-            if (distanceChebyshevBtn) {
-                (distanceChebyshevBtn as HTMLButtonElement).disabled = true;
-            }
-            break;
-        default:
-            if (distanceChebyshevBtn) {
-                (distanceChebyshevBtn as HTMLButtonElement).disabled = false;
-            }
+function readTopologyFromRadios(): VoronoiTopology {
+    for (const radio of topologyRadios) {
+        if (radio.checked) {
+            return radio.value as VoronoiTopology;
+        }
     }
+    return "plane";
+}
 
-    switch (distanceMode) {
-        case "chebyshev-tie":
-            if (distanceChebyshevTieBtn) {
-                (distanceChebyshevTieBtn as HTMLButtonElement).disabled = true;
-            }
-            break;
-        default:
-            if (distanceChebyshevTieBtn) {
-                (distanceChebyshevTieBtn as HTMLButtonElement).disabled = false;
-            }
-    }
-
-    switch (distanceMode) {
-        case "manhattan":
-            if (distanceManhattanBtn) {
-                (distanceManhattanBtn as HTMLButtonElement).disabled = true;
-            }
-            break;
-        default:
-            if (distanceManhattanBtn) {
-                (distanceManhattanBtn as HTMLButtonElement).disabled = false;
-            }
+function setMetricRadio(metric: VoronoiMetric): void {
+    for (const radio of metricRadios) {
+        radio.checked = radio.value === metric;
     }
 }
 
-if (distanceEuclidBtn) {
-    distanceEuclidBtn.addEventListener("click", () => {
-        distanceMode = "euclidean";
-        updateDistanceModeButtons();
-        recomputeAndDraw();
+function setTopologyRadio(topology: VoronoiTopology): void {
+    for (const radio of topologyRadios) {
+        radio.checked = radio.value === topology;
+    }
+}
+
+function refreshControlAvailability(): void {
+    for (const radio of metricRadios) {
+        const m = radio.value as VoronoiMetric;
+        radio.disabled = !isPairSupported(m, voronoiTopology);
+    }
+    for (const radio of topologyRadios) {
+        const t = radio.value as VoronoiTopology;
+        radio.disabled = !isPairSupported(voronoiMetric, t);
+    }
+    if (chebyshevTieCheckbox) {
+        chebyshevTieCheckbox.disabled =
+            voronoiMetric !== "linf" ||
+            !isPairSupported(voronoiMetric, voronoiTopology);
+    }
+    if (modeStatusElem) {
+        modeStatusElem.textContent = modeLabel();
+    }
+}
+
+function applyModeFromControls(): void {
+    let metric = readMetricFromRadios();
+    let topology = readTopologyFromRadios();
+    if (!isPairSupported(metric, topology)) {
+        metric = "l2";
+        setMetricRadio("l2");
+    }
+    voronoiMetric = metric;
+    voronoiTopology = topology;
+    chebyshevTieBreak = chebyshevTieCheckbox?.checked ?? false;
+    refreshControlAvailability();
+}
+
+function onModeControlChange(): void {
+    applyModeFromControls();
+    recomputeAndDraw();
+}
+
+for (const radio of metricRadios) {
+    radio.addEventListener("change", () => {
+        if (radio.checked) {
+            onModeControlChange();
+        }
     });
 }
 
-if (distanceTorusBtn) {
-    distanceTorusBtn.addEventListener("click", () => {
-        distanceMode = "torus";
-        updateDistanceModeButtons();
-        recomputeAndDraw();
+for (const radio of topologyRadios) {
+    radio.addEventListener("change", () => {
+        if (radio.checked) {
+            onModeControlChange();
+        }
     });
 }
 
-if (distanceCylinderBtn) {
-    distanceCylinderBtn.addEventListener("click", () => {
-        distanceMode = "cylinder";
-        updateDistanceModeButtons();
-        recomputeAndDraw();
+if (chebyshevTieCheckbox) {
+    chebyshevTieCheckbox.addEventListener("change", () => {
+        onModeControlChange();
     });
 }
 
-if (distanceMobiusBtn) {
-    distanceMobiusBtn.addEventListener("click", () => {
-        distanceMode = "mobius";
-        updateDistanceModeButtons();
-        recomputeAndDraw();
-    });
-}
-
-if (distanceKleinBtn) {
-    distanceKleinBtn.addEventListener("click", () => {
-        distanceMode = "klein";
-        updateDistanceModeButtons();
-        recomputeAndDraw();
-    });
-}
-
-if (distanceChebyshevBtn) {
-    distanceChebyshevBtn.addEventListener("click", () => {
-        distanceMode = "chebyshev";
-        updateDistanceModeButtons();
-        recomputeAndDraw();
-    });
-}
-
-if (distanceChebyshevTieBtn) {
-    distanceChebyshevTieBtn.addEventListener("click", () => {
-        distanceMode = "chebyshev-tie";
-        updateDistanceModeButtons();
-        recomputeAndDraw();
-    });
-}
-
-if (distanceManhattanBtn) {
-    distanceManhattanBtn.addEventListener("click", () => {
-        distanceMode = "manhattan";
-        updateDistanceModeButtons();
-        recomputeAndDraw();
-    });
-}
-
-updateDistanceModeButtons();
+refreshControlAvailability();
 
 if (viewLayoutBtn) {
     viewLayoutBtn.addEventListener("click", () => {
@@ -1167,7 +1307,6 @@ if (viewLayoutBtn) {
 updateViewLayoutButton();
 
 export function restart(): void {
-    // DEBUG: start with 4 points for local Chebyshev testing
     generateRandomPoints(4);
 }
 
@@ -1180,7 +1319,7 @@ export function toggleBoundaries(): void {
 /** @deprecated Use edge display select in the page UI. */
 export function toggleInternalBoundaries(): void {
     applyEdgeDisplay(edgeDisplay === "pieces" ? "outline" : "pieces");
-    logEdgeDataSummary(distanceMode);
+    logEdgeDataSummary(modeLabel());
     draw();
 }
 
@@ -1191,7 +1330,7 @@ export function clearPoints(): void {
 async function init(): Promise<void> {
     await modulePromise;
     voronoiCreate(CANVAS_WIDTH, CANVAS_HEIGHT);
-    // DEBUG: start with 4 points for local Chebyshev testing
+    applyModeFromControls();
     generateRandomPoints(4);
 }
 
