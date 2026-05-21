@@ -35,15 +35,23 @@ type NonResolveResult = {
     totalCount: number;
     pageCount: number;
 };
+type PdimModePair = {
+    withReplacement: string;
+    withoutReplacement: string;
+};
 type PdimResult = {
-    node: string;
-    edge: string;
-    mixed: string;
+    node: PdimModePair;
+    edge: PdimModePair;
+    mixed: PdimModePair;
+};
+const EMPTY_PDIM_MODE: PdimModePair = {
+    withReplacement: "",
+    withoutReplacement: "",
 };
 const DEFAULT_PDIM_RES: PdimResult = {
-    node: "",
-    edge: "",
-    mixed: "",
+    node: { ...EMPTY_PDIM_MODE },
+    edge: { ...EMPTY_PDIM_MODE },
+    mixed: { ...EMPTY_PDIM_MODE },
 };
 let graphVersion = 0;
 let nodePageIndex = 0;
@@ -259,9 +267,18 @@ function startMetricWorker(
                 }
                 
                 // Store pdim result for this mode
-                if (d.pdimStr) {
-                    if (!cachedPdimRes) cachedPdimRes = {};
-                    cachedPdimRes[modeName] = d.pdimStr;
+                if (d.pdimStrWithReplacement != null || d.pdimStrWithoutReplacement != null) {
+                    if (!cachedPdimRes) {
+                        cachedPdimRes = {
+                            node: { ...EMPTY_PDIM_MODE },
+                            edge: { ...EMPTY_PDIM_MODE },
+                            mixed: { ...EMPTY_PDIM_MODE },
+                        };
+                    }
+                    cachedPdimRes[modeName] = {
+                        withReplacement: String(d.pdimStrWithReplacement ?? ""),
+                        withoutReplacement: String(d.pdimStrWithoutReplacement ?? ""),
+                    };
                     cachedPdimKey = `${graphVersion}`;
                 }
                 
@@ -1652,6 +1669,33 @@ function formatPdimDisplay(raw: string | undefined | null): string {
     return `$\\frac{${num}}{${den}}$ (${(num / den).toFixed(2)})`;
 }
 
+function mergePdimResult(cached: Partial<PdimResult> | null): PdimResult {
+    return {
+        node: { ...DEFAULT_PDIM_RES.node, ...(cached?.node ?? {}) },
+        edge: { ...DEFAULT_PDIM_RES.edge, ...(cached?.edge ?? {}) },
+        mixed: { ...DEFAULT_PDIM_RES.mixed, ...(cached?.mixed ?? {}) },
+    };
+}
+
+function formatPdimModePairHtml(pair: PdimModePair, isLoading: boolean): string {
+    const wr = formatComputingPlaceholder(
+        pair.withReplacement === "",
+        formatPdimDisplay(pair.withReplacement),
+        "pdim",
+        isLoading,
+    );
+    const wo = formatComputingPlaceholder(
+        pair.withoutReplacement === "",
+        formatPdimDisplay(pair.withoutReplacement),
+        "pdim",
+        isLoading,
+    );
+    return (
+        `with replacement: <span style="display:inline-block;min-height:1.2em;">${wr}</span><br>` +
+        `without replacement: <span style="display:inline-block;min-height:1.2em;">${wo}</span>`
+    );
+}
+
 function subsetToString1Based(subset: readonly number[]): string {
     if (subset.length === 0) return '{}';
     return `{${subset.map((x) => (x + 1).toString()).join(", ")}}`;
@@ -1856,10 +1900,10 @@ function buildGraphSummaryHtml(args: {
     const isComputingPdim = args.isPdimLoading;
     void isComputingResolving;
     void isComputingPdim;
-    // PDim uses its own loading symbol cycle so the MathJax fraction area feels visually distinct.
-    const pdimNodeDisplay = formatComputingPlaceholder(args.pdimRes.node === "", formatPdimDisplay(args.pdimRes.node), 'pdim', loadingAnimationVisible);
-    const pdimEdgeDisplay = formatComputingPlaceholder(args.pdimRes.edge === "", formatPdimDisplay(args.pdimRes.edge), 'pdim', loadingAnimationVisible);
-    const pdimMixedDisplay = formatComputingPlaceholder(args.pdimRes.mixed === "", formatPdimDisplay(args.pdimRes.mixed), 'pdim', loadingAnimationVisible);
+    const pdimLoading = loadingAnimationVisible && isComputingPdim;
+    const pdimNodeHtml = formatPdimModePairHtml(args.pdimRes.node, pdimLoading);
+    const pdimEdgeHtml = formatPdimModePairHtml(args.pdimRes.edge, pdimLoading);
+    const pdimMixedHtml = formatPdimModePairHtml(args.pdimRes.mixed, pdimLoading);
     const isModeComputing = highlightMode === "node" ? args.nodeRes.minDimension === 0 : highlightMode === "edge" ? args.edgeRes.minDimension === 0 : args.mixedRes.minDimension === 0;
     const selectedBasisDisplay = formatSelectedBasisPlaceholder(isModeComputing, highlightBasisList, loadingAnimationVisible);
 
@@ -1872,9 +1916,9 @@ function buildGraphSummaryHtml(args: {
         `Metric dimension (node): ${formatComputingPlaceholder(args.nodeRes.minDimension === 0, args.nodeRes.minDimension, 'metrics', loadingAnimationVisible)}<br>` +
         `Metric dimension (edge): ${formatComputingPlaceholder(args.edgeRes.minDimension === 0, args.edgeRes.minDimension, 'metrics', loadingAnimationVisible)}<br>` +
         `Metric dimension (mixed): ${formatComputingPlaceholder(args.mixedRes.minDimension === 0, args.mixedRes.minDimension, 'metrics', loadingAnimationVisible)}<br>` +
-        `PDim (node): <span style="display:inline-block;min-height:1.2em;">${pdimNodeDisplay}</span><br>` +
-        `PDim (edge): <span style="display:inline-block;min-height:1.2em;">${pdimEdgeDisplay}</span><br>` +
-        `PDim (mixed): <span style="display:inline-block;min-height:1.2em;">${pdimMixedDisplay}</span><br>`;
+        `PDim (node):<br>${pdimNodeHtml}<br>` +
+        `PDim (edge):<br>${pdimEdgeHtml}<br>` +
+        `PDim (mixed):<br>${pdimMixedHtml}<br>`;
 
     const summaryVerbosePanels =
         renderResolvingSubsetsPanel("node", nodePageIndex, args.nodeRes) +
@@ -1921,7 +1965,7 @@ function renderSummaryOnly(): void {
     const edgeNonRes = cachedEdgeNonResolveRes || { subsets: [], truncated: false, totalCount: 0, pageCount: 1 };
     const mixedRes = cachedMixedRes || { minDimension: 0, smallestBasis: [], subsets: [], truncated: false, minSizeSubsets: [], minSizeTruncated: false, totalCount: 0, pageCount: 1 };
     const mixedNonRes = cachedMixedNonResolveRes || { subsets: [], truncated: false, totalCount: 0, pageCount: 1 };
-    const pdimRes: PdimResult = { ...DEFAULT_PDIM_RES, ...(cachedPdimRes ?? {}) };
+    const pdimRes = mergePdimResult(cachedPdimRes);
 
     normalizeNonResolvingSelections(nodeNonRes, edgeNonRes, mixedNonRes);
 
@@ -1998,7 +2042,7 @@ function renderAll(): void {
     const edgeNonRes = cachedEdgeNonResolveRes || { subsets: [], truncated: false, totalCount: 0, pageCount: 1 };
     const mixedRes = cachedMixedRes || { minDimension: 0, smallestBasis: [], subsets: [], truncated: false, minSizeSubsets: [], minSizeTruncated: false, totalCount: 0, pageCount: 1 };
     const mixedNonRes = cachedMixedNonResolveRes || { subsets: [], truncated: false, totalCount: 0, pageCount: 1 };
-    const pdimRes: PdimResult = { ...DEFAULT_PDIM_RES, ...(cachedPdimRes ?? {}) };
+    const pdimRes = mergePdimResult(cachedPdimRes);
 
     normalizeNonResolvingSelections(nodeNonRes, edgeNonRes, mixedNonRes);
 

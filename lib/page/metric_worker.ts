@@ -224,23 +224,55 @@ self.onmessage = async (ev: MessageEvent) => {
                 const nonModeRes = parseNonMode();
                 self.postMessage({ stage: 'non_resolved_parsed', progress: 95, mode, nonModeRes });
 
-                // Compute pdim for this mode
+                // Compute pdim for this mode (with and without replacement)
                 self.postMessage({ stage: 'computing_pdim', progress: 98, mode });
                 const stride = 128;
                 const outPtr = m._malloc(stride);
                 if (outPtr === 0) throw new Error('malloc failed for pdim output');
                 try {
-                    const ok = m._wasm_graph_pdim_mode(msg.n, adjPtr, mode | 0, outPtr, stride);
-                    if (!ok) throw new Error(`wasm_graph_pdim_mode failed for mode ${mode}`);
-                    const pdimStr = readCString(m.HEAPU8, outPtr, stride);
-                    self.postMessage({ 
-                        stage: 'done', 
-                        progress: 100, 
+                    const okWr = m._wasm_graph_pdim_mode(
+                        msg.n,
+                        adjPtr,
+                        mode | 0,
+                        1,
+                        outPtr,
+                        stride,
+                    );
+                    if (!okWr) {
+                        throw new Error(
+                            `wasm_graph_pdim_mode (with replacement) failed for mode ${mode}`,
+                        );
+                    }
+                    const pdimStrWithReplacement = readCString(m.HEAPU8, outPtr, stride);
+
+                    const okWo = m._wasm_graph_pdim_mode(
+                        msg.n,
+                        adjPtr,
+                        mode | 0,
+                        0,
+                        outPtr,
+                        stride,
+                    );
+                    if (!okWo) {
+                        throw new Error(
+                            `wasm_graph_pdim_mode (without replacement) failed for mode ${mode}`,
+                        );
+                    }
+                    const pdimStrWithoutReplacement = readCString(
+                        m.HEAPU8,
+                        outPtr,
+                        stride,
+                    );
+
+                    self.postMessage({
+                        stage: 'done',
+                        progress: 100,
                         mode,
                         modeRes,
                         modeNonRes: nonModeRes,
-                        distFlat: distFlatOut, 
-                        pdimStr
+                        distFlat: distFlatOut,
+                        pdimStrWithReplacement,
+                        pdimStrWithoutReplacement,
                     });
                 } finally {
                     m._free(outPtr);
