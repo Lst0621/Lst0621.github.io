@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Chess Board Puzzle</title>
+    <link rel="icon" href="../img/flame1.png">
+    <style>
+        :root {
+            color-scheme: light;
+            --bg-1: #f8fafc;
+            --bg-2: #eef2ff;
+            --panel: rgba(255, 255, 255, 0.82);
+            --text: #0f172a;
+            --muted: #475569;
+            --border: rgba(15, 23, 42, 0.12);
+        }
+        body {
+            margin: 0;
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at top left, rgba(96, 165, 250, 0.18), transparent 34%),
+                radial-gradient(circle at top right, rgba(248, 113, 113, 0.14), transparent 28%),
+                linear-gradient(180deg, var(--bg-1), var(--bg-2));
+            min-height: 100vh;
+        }
+        .page {
+            max-width: 1080px;
+            margin: 0 auto;
+            padding: 28px 20px 40px;
+        }
+        .hero {
+            text-align: center;
+            margin-bottom: 18px;
+        }
+        .hero h1 {
+            margin: 0;
+            font-size: clamp(2rem, 4vw, 3.5rem);
+            letter-spacing: -0.04em;
+        }
+        .hero p {
+            margin: 10px auto 0;
+            max-width: 760px;
+            color: var(--muted);
+            line-height: 1.5;
+        }
+        .shell {
+            display: grid;
+            gap: 18px;
+            grid-template-columns: minmax(0, 1.2fr) minmax(260px, 0.8fr);
+            align-items: start;
+        }
+        .board-card, .side-card {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            box-shadow: 0 18px 50px rgba(15, 23, 42, 0.08);
+            backdrop-filter: blur(10px);
+        }
+        .board-card {
+            padding: 18px;
+        }
+        .board-wrap {
+            display: grid;
+            place-items: center;
+        }
+        canvas {
+            width: min(100%, 680px);
+            height: auto;
+            aspect-ratio: 1;
+            border-radius: 18px;
+            border: 12px solid rgba(15, 23, 42, 0.85);
+            background: white;
+            box-sizing: border-box;
+        }
+        .controls {
+            display: grid;
+            gap: 12px;
+            margin-top: 16px;
+        }
+        .control-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+        .control-row label {
+            font-weight: 600;
+        }
+        .controls button, .controls input[type="checkbox"] {
+            accent-color: #2563eb;
+        }
+        input[type="range"] {
+            width: min(100%, 320px);
+        }
+        button {
+            border: 0;
+            border-radius: 999px;
+            padding: 10px 16px;
+            font: inherit;
+            font-weight: 700;
+            background: #e2e8f0;
+            color: #0f172a;
+            cursor: pointer;
+            transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+        }
+        button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
+        }
+        button.active {
+            background: #0f172a;
+            color: white;
+        }
+        .side-card {
+            padding: 18px;
+        }
+        .metric {
+            display: grid;
+            gap: 6px;
+            margin-bottom: 16px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid var(--border);
+        }
+        .metric:last-child {
+            border-bottom: 0;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+        .metric .label {
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            font-size: 0.72rem;
+            color: var(--muted);
+        }
+        .metric .value {
+            font-size: 1.02rem;
+            line-height: 1.5;
+        }
+        #chess-board-status {
+            color: #0f172a;
+        }
+        #chess-board-example {
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .back-link {
+            display: inline-block;
+            margin-top: 20px;
+            color: #0f172a;
+            text-decoration: none;
+            font-weight: 700;
+        }
+        @media (max-width: 900px) {
+            .shell {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+    <div class="hero">
+        <h1>Chess Board Puzzle</h1>
+        <p>Place bishops, queens, or knights on a square board. Changing size or mode resets the board. The engine blocks any move that would let one piece attack another and shows one optimal completion example.</p>
+    </div>
+    <div class="shell">
+        <section class="board-card">
+            <div class="board-wrap">
+                <canvas id="chess-board-canvas" width="640" height="640"></canvas>
+            </div>
+            <div class="controls">
+                <div class="control-row">
+                    <label for="chess-board-size">Board size</label>
+                    <input id="chess-board-size" type="range" min="4" max="14" value="8">
+                    <span id="chess-board-size-value">8</span>
+                </div>
+                <div class="control-row">
+                    <button id="chess-board-mode-bishop"></button>
+                    <button id="chess-board-mode-queen"></button>
+                    <button id="chess-board-mode-knight"></button>
+                    <button id="chess-board-undo">Undo</button>
+                    <button id="chess-board-redo">Redo</button>
+                    <button id="chess-board-reset">Reset</button>
+                </div>
+                <div class="control-row">
+                    <label>
+                        <input id="chess-board-example-toggle" type="checkbox">
+                        Show example overlay
+                    </label>
+                </div>
+            </div>
+        </section>
+        <aside class="side-card">
+            <div class="metric">
+                <div class="label">Status</div>
+                <div class="value" id="chess-board-status">Ready.</div>
+            </div>
+            <div class="metric">
+                <div class="label">Current pieces</div>
+                <div class="value" id="chess-board-piece-count">0 pieces on board</div>
+            </div>
+            <div class="metric">
+                <div class="label">Capacity</div>
+                <div class="value" id="chess-board-max-add">0 more pieces can be added</div>
+            </div>
+            <div class="metric">
+                <div class="label">Example</div>
+                <div class="value" id="chess-board-example">—</div>
+            </div>
+            <div class="metric">
+                <div class="label">Best solutions</div>
+                <div class="value" id="chess-board-best-count">—</div>
+            </div>
+            <a class="back-link" href="../index.html">Back</a>
+        </aside>
+    </div>
+</div>
+<script type="module" src="/assets/js/page/chess_board.js"></script>
+</body>
+</html>
