@@ -5,6 +5,7 @@ import {
     voronoiRemovePoint,
     voronoiClear,
     voronoiCompute,
+    voronoiComputeSiteDistances,
     voronoiSetMode,
     voronoiSetChebyshevNoTie,
     voronoiNumSites,
@@ -406,353 +407,6 @@ function removePoint(idx: number): void {
     invalidateGeometryCache();
 }
 
-function euclideanDistSq(ax: number, ay: number, bx: number, by: number): number {
-    const dx = ax - bx;
-    const dy = ay - by;
-    return dx * dx + dy * dy;
-}
-
-/** Shortest axial delta on a periodic domain of length `period` (flat torus). */
-function torusComponentDelta(p: number, s: number, period: number): number {
-    let d = p - s;
-    d -= Math.round(d / period) * period;
-    return d;
-}
-
-function torusDistSq(px: number, py: number, sx: number, sy: number, w: number, h: number): number {
-    const dx = torusComponentDelta(px, sx, w);
-    const dy = torusComponentDelta(py, sy, h);
-    return dx * dx + dy * dy;
-}
-
-/** Lift window for brute periodic/Klein/Möbius distance (matches gtests). */
-const LIFT_RADIUS = 4;
-
-function kleinDistSq(px: number, py: number, sx: number, sy: number, w: number, h: number): number {
-    let best = Infinity;
-    for (let k = -LIFT_RADIUS; k <= LIFT_RADIUS; k++) {
-        for (let l = -LIFT_RADIUS; l <= LIFT_RADIUS; l++) {
-            const flip = (l & 1) !== 0;
-            const sxl = flip ? w - sx : sx;
-            const dx = px - (sxl + k * w);
-            const dy = py - (sy + l * h);
-            best = Math.min(best, dx * dx + dy * dy);
-        }
-    }
-    return best;
-}
-
-function kleinChebDist(px: number, py: number, sx: number, sy: number, w: number, h: number): number {
-    let best = Infinity;
-    for (let k = -LIFT_RADIUS; k <= LIFT_RADIUS; k++) {
-        for (let l = -LIFT_RADIUS; l <= LIFT_RADIUS; l++) {
-            const flip = (l & 1) !== 0;
-            const sxl = flip ? w - sx : sx;
-            const dx = Math.abs(px - (sxl + k * w));
-            const dy = Math.abs(py - (sy + l * h));
-            best = Math.min(best, Math.max(dx, dy));
-        }
-    }
-    return best;
-}
-
-function kleinManhattanDist(px: number, py: number, sx: number, sy: number, w: number, h: number): number {
-    let best = Infinity;
-    for (let k = -LIFT_RADIUS; k <= LIFT_RADIUS; k++) {
-        for (let l = -LIFT_RADIUS; l <= LIFT_RADIUS; l++) {
-            const flip = (l & 1) !== 0;
-            const sxl = flip ? w - sx : sx;
-            const dx = Math.abs(px - (sxl + k * w));
-            const dy = Math.abs(py - (sy + l * h));
-            best = Math.min(best, dx + dy);
-        }
-    }
-    return best;
-}
-
-function mobiusDistSq(px: number, py: number, sx: number, sy: number, w: number, h: number): number {
-    let best = Infinity;
-    for (let k = -LIFT_RADIUS; k <= LIFT_RADIUS; k++) {
-        const flip = (k & 1) !== 0;
-        const syl = flip ? h - sy : sy;
-        const dx = px - (sx + k * w);
-        const dy = py - syl;
-        best = Math.min(best, dx * dx + dy * dy);
-    }
-    return best;
-}
-
-function mobiusChebDist(px: number, py: number, sx: number, sy: number, w: number, h: number): number {
-    let best = Infinity;
-    for (let k = -LIFT_RADIUS; k <= LIFT_RADIUS; k++) {
-        const flip = (k & 1) !== 0;
-        const syl = flip ? h - sy : sy;
-        const dx = Math.abs(px - (sx + k * w));
-        const dy = Math.abs(py - syl);
-        best = Math.min(best, Math.max(dx, dy));
-    }
-    return best;
-}
-
-function mobiusManhattanDist(px: number, py: number, sx: number, sy: number, w: number, h: number): number {
-    let best = Infinity;
-    for (let k = -LIFT_RADIUS; k <= LIFT_RADIUS; k++) {
-        const flip = (k & 1) !== 0;
-        const syl = flip ? h - sy : sy;
-        const dx = Math.abs(px - (sx + k * w));
-        const dy = Math.abs(py - syl);
-        best = Math.min(best, dx + dy);
-    }
-    return best;
-}
-
-/**
- * Closest seed by the active metric (brute force). Used for context-menu hit
- * testing; diagram ownership comes from exported cell polygons.
- */
-/** Chebyshev: unique strict minimizer of Chebyshev distance, or -1 if tie. */
-function strictChebyshevUniqueSiteIndex(x: number, y: number): number {
-    const n = voronoiNumSites();
-    if (n <= 0) {
-        return -1;
-    }
-    const gx = Math.floor(x);
-    const gy = Math.floor(y);
-    const sites = Array.from({ length: n }, (_, i) => voronoiGetSite(i));
-    return strictChebyshevPixelCenterOwner(gx, gy, sites);
-}
-
-function strictChebyshevPixelCenterOwner(
-    ix: number,
-    iy: number,
-    sites: readonly { x: number; y: number }[],
-): number {
-    const n = sites.length;
-    if (n === 0) {
-        return -1;
-    }
-    const px = ix * 2 + 1;
-    const py = iy * 2 + 1;
-    let best = Number.MAX_SAFE_INTEGER;
-    let second = Number.MAX_SAFE_INTEGER;
-    let bestIdx = -1;
-    for (let i = 0; i < n; i++) {
-        const s = sites[i]!;
-        const sx = s.x * 2 + 1;
-        const sy = s.y * 2 + 1;
-        const d = Math.max(Math.abs(px - sx), Math.abs(py - sy));
-        if (d < best) {
-            second = best;
-            best = d;
-            bestIdx = i;
-        } else if (d < second) {
-            second = d;
-        }
-    }
-    return best < second ? bestIdx : -1;
-}
-
-/**
- * Chebyshev-tie variant: returns the smallest-index site among those at
- * minimum Chebyshev distance. Never returns -1 (unless no sites).
- */
-function strictChebyshevFirstTieOwner(
-    ix: number,
-    iy: number,
-    sites: readonly { x: number; y: number }[],
-): number {
-    const n = sites.length;
-    if (n === 0) {
-        return -1;
-    }
-    const px = ix * 2 + 1;
-    const py = iy * 2 + 1;
-    let best = Number.MAX_SAFE_INTEGER;
-    let bestIdx = 0;
-    for (let i = 0; i < n; i++) {
-        const s = sites[i]!;
-        const sx = s.x * 2 + 1;
-        const sy = s.y * 2 + 1;
-        const d = Math.max(Math.abs(px - sx), Math.abs(py - sy));
-        if (d < best) {
-            best = d;
-            bestIdx = i;
-        }
-    }
-    return bestIdx;
-}
-
-/**
- * Closest seed by the active metric (brute force). Used for context-menu hit
- * testing. L∞/L1 default: strict (ties return -1, white gaps). With tie-break
- * checked, ties go to the smallest-index closest site.
- */
-function cylinderDistSq(px: number, py: number, sx: number, sy: number, w: number): number {
-    const dx = torusComponentDelta(px, sx, w);
-    const dy = py - sy;
-    return dx * dx + dy * dy;
-}
-
-function torusChebDist(px: number, py: number, sx: number, sy: number, w: number, h: number): number {
-    const dx = Math.abs(torusComponentDelta(px, sx, w));
-    const dy = Math.abs(torusComponentDelta(py, sy, h));
-    return Math.max(dx, dy);
-}
-
-function torusManhattanDist(px: number, py: number, sx: number, sy: number, w: number, h: number): number {
-    return (
-        Math.abs(torusComponentDelta(px, sx, w)) + Math.abs(torusComponentDelta(py, sy, h))
-    );
-}
-
-function manhattanDistAt(
-    x: number,
-    y: number,
-    sx: number,
-    sy: number,
-    topology: VoronoiTopology = voronoiTopology,
-): number {
-    if (topology === "torus") {
-        return torusManhattanDist(x, y, sx, sy, CANVAS_WIDTH, CANVAS_HEIGHT);
-    }
-    if (topology === "cylinder") {
-        return Math.abs(torusComponentDelta(x, sx, CANVAS_WIDTH)) + Math.abs(y - sy);
-    }
-    if (topology === "klein") {
-        return kleinManhattanDist(x, y, sx, sy, CANVAS_WIDTH, CANVAS_HEIGHT);
-    }
-    if (topology === "mobius") {
-        return mobiusManhattanDist(x, y, sx, sy, CANVAS_WIDTH, CANVAS_HEIGHT);
-    }
-    return Math.abs(x - sx) + Math.abs(y - sy);
-}
-
-/** L1: unique strict minimizer, or -1 on tie (white gap). */
-function strictManhattanUniqueSiteIndex(
-    x: number,
-    y: number,
-    topology: VoronoiTopology = voronoiTopology,
-): number {
-    const n = voronoiNumSites();
-    if (n <= 0) {
-        return -1;
-    }
-    let best = Number.MAX_SAFE_INTEGER;
-    let second = Number.MAX_SAFE_INTEGER;
-    let bestIdx = -1;
-    for (let i = 0; i < n; i++) {
-        const s = voronoiGetSite(i);
-        const d = manhattanDistAt(x, y, s.x, s.y, topology);
-        if (d < best) {
-            second = best;
-            best = d;
-            bestIdx = i;
-        } else if (d < second) {
-            second = d;
-        }
-    }
-    return best < second ? bestIdx : -1;
-}
-
-/** L1 tie-break: smallest-index site among those at minimum L1 distance. */
-function manhattanFirstTieOwner(
-    x: number,
-    y: number,
-    topology: VoronoiTopology = voronoiTopology,
-): number {
-    const n = voronoiNumSites();
-    if (n <= 0) {
-        return -1;
-    }
-    let best = Number.MAX_SAFE_INTEGER;
-    let bestIdx = 0;
-    for (let i = 0; i < n; i++) {
-        const s = voronoiGetSite(i);
-        const d = manhattanDistAt(x, y, s.x, s.y, topology);
-        if (d < best) {
-            best = d;
-            bestIdx = i;
-        }
-    }
-    return bestIdx;
-}
-
-function findSiteIndexByRegion(
-    x: number,
-    y: number,
-    metric: VoronoiMetric = voronoiMetric,
-    topology: VoronoiTopology = voronoiTopology,
-): number {
-    const n = voronoiNumSites();
-    if (n <= 0) {
-        return -1;
-    }
-    if (metric === "linf") {
-        if (chebyshevTieBreak) {
-            const gx = Math.floor(x);
-            const gy = Math.floor(y);
-            const sites = Array.from({ length: n }, (_, i) => voronoiGetSite(i));
-            return strictChebyshevFirstTieOwner(gx, gy, sites);
-        }
-        return strictChebyshevUniqueSiteIndex(x, y);
-    }
-    if (metric === "l1") {
-        if (chebyshevTieBreak) {
-            return manhattanFirstTieOwner(x, y, topology);
-        }
-        return strictManhattanUniqueSiteIndex(x, y, topology);
-    }
-    if (metric === "linf" && topology !== "plane") {
-        let bestIdx = 0;
-        let bestD = Infinity;
-        for (let i = 0; i < n; i++) {
-            const s = voronoiGetSite(i);
-            let d: number;
-            if (topology === "torus") {
-                d = torusChebDist(x, y, s.x, s.y, CANVAS_WIDTH, CANVAS_HEIGHT);
-            } else if (topology === "cylinder") {
-                d = Math.max(
-                    Math.abs(torusComponentDelta(x, s.x, CANVAS_WIDTH)),
-                    Math.abs(y - s.y),
-                );
-            } else if (topology === "klein") {
-                d = kleinChebDist(x, y, s.x, s.y, CANVAS_WIDTH, CANVAS_HEIGHT);
-            } else if (topology === "mobius") {
-                d = mobiusChebDist(x, y, s.x, s.y, CANVAS_WIDTH, CANVAS_HEIGHT);
-            } else {
-                d = Math.max(Math.abs(x - s.x), Math.abs(y - s.y));
-            }
-            if (d < bestD || (d === bestD && i < bestIdx)) {
-                bestD = d;
-                bestIdx = i;
-            }
-        }
-        return bestIdx;
-    }
-    let bestIdx = 0;
-    let bestD = Infinity;
-    for (let i = 0; i < n; i++) {
-        const s = voronoiGetSite(i);
-        let d: number;
-        if (topology === "torus") {
-            d = torusDistSq(x, y, s.x, s.y, CANVAS_WIDTH, CANVAS_HEIGHT);
-        } else if (topology === "cylinder") {
-            d = cylinderDistSq(x, y, s.x, s.y, CANVAS_WIDTH);
-        } else if (topology === "klein") {
-            d = kleinDistSq(x, y, s.x, s.y, CANVAS_WIDTH, CANVAS_HEIGHT);
-        } else if (topology === "mobius") {
-            d = mobiusDistSq(x, y, s.x, s.y, CANVAS_WIDTH, CANVAS_HEIGHT);
-        } else {
-            d = euclideanDistSq(x, y, s.x, s.y);
-        }
-        if (d < bestD || (d === bestD && i < bestIdx)) {
-            bestD = d;
-            bestIdx = i;
-        }
-    }
-    return bestIdx;
-}
-
 function recolorSites(adjacency: Map<number, Set<number>>): void {
     const previousColors = new Map(siteColors);
     siteColors = new Map<number, number>();
@@ -957,35 +611,6 @@ function fallbackCellBoundariesExact(nSites: number): VoronoiCellBoundaryExact[]
     return Array.from({ length: nSites }, (_, site) => ({ site, polygons: [] as VoronoiBoundaryPointExact[][] }));
 }
 
-/** Klein/Möbius cells from WASM can gap/overlap; fill by metric instead of polygons. */
-function useMetricRasterFill(): boolean {
-    return voronoiTopology === "klein" || voronoiTopology === "mobius";
-}
-
-/**
- * Fill the fundamental domain by brute metric distance. Draws in model space
- * (0…W × 0…H) so the caller's transform applies — required for 3×3 tiling.
- */
-function fillByMetricOwnership(): void {
-    const w = CANVAS_WIDTH;
-    const h = CANVAS_HEIGHT;
-    const step = viewLayout === "3x3" ? 2 : 1;
-    const prevSmoothing = ctx.imageSmoothingEnabled;
-    ctx.imageSmoothingEnabled = false;
-    for (let my = 0; my < h; my += step) {
-        for (let mx = 0; mx < w; mx += step) {
-            const site = findSiteIndexByRegion(mx + 0.5, my + 0.5);
-            if (site < 0) {
-                continue;
-            }
-            const colorIdx = siteColors.get(siteIds[site]) ?? 0;
-            ctx.fillStyle = rgbToCss(getColor(colorIdx));
-            ctx.fillRect(mx, my, step, step);
-        }
-    }
-    ctx.imageSmoothingEnabled = prevSmoothing;
-}
-
 function fillCellsFromPolygons(): void {
     for (const cell of latestBoundaries) {
         const colorIdx = siteColors.get(siteIds[cell.site]) ?? 0;
@@ -1012,14 +637,9 @@ function fillCellsFromPolygons(): void {
  * compensate when the tile is scaled down (3×3 view).
  */
 function drawOneTile(modelLineWidth: number, modelSeedR: number): void {
-    // Pass 1: fill cells. Klein/Möbius use metric raster (polygon clips can gap);
-    // plane/torus/cylinder use exported polygons (works with 3×3 transforms).
+    // Fill cells from exported polygons (exact rational, all topologies).
     if (latestBoundaries.length > 0) {
-        if (useMetricRasterFill()) {
-            fillByMetricOwnership();
-        } else {
-            fillCellsFromPolygons();
-        }
+        fillCellsFromPolygons();
     }
 
     if (edgeDisplay !== "none") {
@@ -1189,9 +809,43 @@ canvas.addEventListener("contextmenu", (e) => {
     const py = Math.round(e.clientY - rect.top);
     const { x, y } = canvasToModel(px, py);
 
-    const idx = findSiteIndexByRegion(x, y);
-    if (idx >= 0) {
-        removePoint(idx);
+    const dists = voronoiComputeSiteDistances(x, y);
+    let nearestIdx = -1;
+    let bestDist = Infinity;
+    let secondDist = Infinity;
+    const metric = voronoiMetric;
+    const tieBreak = chebyshevTieBreak;
+    for (let i = 0; i < dists.length; i++) {
+        const d = dists[i]!;
+        if (metric === "l2") {
+            // L2 tie-break: smallest index
+            if (d < bestDist || (d === bestDist && i < nearestIdx)) {
+                nearestIdx = i;
+                bestDist = d;
+            }
+        } else {
+            // L1 / Linf strict or tie-break
+            if (tieBreak) {
+                if (d < bestDist) {
+                    bestDist = d;
+                    nearestIdx = i;
+                }
+            } else {
+                if (d < bestDist) {
+                    secondDist = bestDist;
+                    bestDist = d;
+                    nearestIdx = i;
+                } else if (d < secondDist) {
+                    secondDist = d;
+                }
+            }
+        }
+    }
+    if (metric !== "l2" && !tieBreak && bestDist >= secondDist) {
+        nearestIdx = -1;  // strict: tie → no site
+    }
+    if (nearestIdx >= 0) {
+        removePoint(nearestIdx);
         refreshGeometry();
         updateUI();
         draw();
@@ -1205,41 +859,25 @@ function buildHoverText(px: number, py: number): string {
         return `pos: (${x.toFixed(1)}, ${y.toFixed(1)})\n\nno sites`;
     }
 
+    const dists = voronoiComputeSiteDistances(x, y);
+    if (dists.length === 0) {
+        return `pos: (${x.toFixed(1)}, ${y.toFixed(1)})\n\nno sites`;
+    }
+
     const entries: { idx: number; sx: number; sy: number; d: number }[] = [];
-    let bestD = Number.MAX_SAFE_INTEGER;
+    let bestD = Infinity;
     for (let i = 0; i < n; i++) {
         const s = voronoiGetSite(i);
+        let rawD = dists[i]!;
         let d: number;
         if (voronoiMetric === "linf") {
-            const cx = Math.floor(x);
-            const cy = Math.floor(y);
-            const pcx = cx * 2 + 1;
-            const pcy = cy * 2 + 1;
-            const ssx = s.x * 2 + 1;
-            const ssy = s.y * 2 + 1;
-            if (voronoiTopology === "torus") {
-                d = torusChebDist(x, y, s.x, s.y, CANVAS_WIDTH, CANVAS_HEIGHT);
-            } else if (voronoiTopology === "cylinder") {
-                const dx = Math.abs(torusComponentDelta(x, s.x, CANVAS_WIDTH));
-                d = Math.max(dx, Math.abs(y - s.y));
-            } else {
-                d = Math.max(Math.abs(pcx - ssx), Math.abs(pcy - ssy)) / 2;
-            }
+            // C++ returns Chebyshev in half-pixel units; convert to pixel distance
+            d = rawD / 2;
         } else if (voronoiMetric === "l1") {
-            if (voronoiTopology === "torus") {
-                d = torusManhattanDist(x, y, s.x, s.y, CANVAS_WIDTH, CANVAS_HEIGHT);
-            } else if (voronoiTopology === "cylinder") {
-                d =
-                    Math.abs(torusComponentDelta(x, s.x, CANVAS_WIDTH)) + Math.abs(y - s.y);
-            } else {
-                d = Math.abs(x - s.x) + Math.abs(y - s.y);
-            }
-        } else if (voronoiTopology === "torus") {
-            d = Math.sqrt(torusDistSq(x, y, s.x, s.y, CANVAS_WIDTH, CANVAS_HEIGHT));
-        } else if (voronoiTopology === "cylinder") {
-            d = Math.sqrt(cylinderDistSq(x, y, s.x, s.y, CANVAS_WIDTH));
+            d = rawD;
         } else {
-            d = Math.sqrt(euclideanDistSq(x, y, s.x, s.y));
+            // L2: C++ returns squared Euclidean; take sqrt for display
+            d = Math.sqrt(rawD);
         }
         if (d < bestD) bestD = d;
         entries.push({ idx: i, sx: s.x, sy: s.y, d });
