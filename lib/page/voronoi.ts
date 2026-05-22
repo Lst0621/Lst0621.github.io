@@ -37,6 +37,12 @@ const topologyRadios = document.querySelectorAll<HTMLInputElement>('input[name="
 const chebyshevTieCheckbox = document.getElementById("chebyshev-tie-break") as HTMLInputElement | null;
 const modeStatusElem = document.getElementById("voronoi-mode-status");
 const viewLayoutBtn = document.getElementById("view-layout-btn");
+const debugModeCheckbox = document.getElementById("voronoi-debug-mode") as HTMLInputElement | null;
+const controlsDebugElem = document.getElementById("controls-debug");
+const debugCoordXInput = document.getElementById("debug-coord-x") as HTMLInputElement | null;
+const debugCoordYInput = document.getElementById("debug-coord-y") as HTMLInputElement | null;
+const debugAddSiteBtn = document.getElementById("debug-add-site-btn");
+const debugCoordStatusElem = document.getElementById("debug-coord-status");
 
 /** What to stroke on top of filled cells. */
 type EdgeDisplayMode = "none" | "outline" | "pieces";
@@ -338,6 +344,60 @@ function addPoint(x: number, y: number): void {
     invalidateGeometryCache();
 }
 
+function setDebugCoordStatus(message: string): void {
+    if (debugCoordStatusElem) {
+        debugCoordStatusElem.textContent = message;
+    }
+}
+
+function applyDebugModeUi(enabled: boolean): void {
+    if (controlsDebugElem) {
+        controlsDebugElem.classList.toggle("is-on", enabled);
+    }
+    if (!enabled) {
+        setDebugCoordStatus("");
+    }
+}
+
+/** Parse integer site coordinates for the fundamental domain [0,W)×[0,H). */
+function parseSiteCoordInput(raw: string, maxInclusive: number): number | null {
+    const trimmed = raw.trim();
+    if (!/^-?\d+$/.test(trimmed)) {
+        return null;
+    }
+    const v = Number(trimmed);
+    if (!Number.isInteger(v) || v < 0 || v > maxInclusive) {
+        return null;
+    }
+    return v;
+}
+
+function addSiteFromCoordInputs(): void {
+    if (!debugCoordXInput || !debugCoordYInput) {
+        return;
+    }
+    const x = parseSiteCoordInput(
+        debugCoordXInput.value,
+        CANVAS_WIDTH - 1,
+    );
+    const y = parseSiteCoordInput(
+        debugCoordYInput.value,
+        CANVAS_HEIGHT - 1,
+    );
+    if (x === null || y === null) {
+        setDebugCoordStatus(
+            `invalid (use integers 0–${CANVAS_WIDTH - 1}, 0–${CANVAS_HEIGHT - 1})`,
+        );
+        return;
+    }
+    addPoint(x, y);
+    refreshGeometry();
+    updateUI();
+    draw();
+    setDebugCoordStatus(`added (${x}, ${y})`);
+    console.debug(`voronoi debug: added site (${x}, ${y})`);
+}
+
 function removePoint(idx: number): void {
     voronoiRemovePoint(idx);
     const removedId = siteIds[idx];
@@ -524,8 +584,8 @@ function strictChebyshevFirstTieOwner(
 
 /**
  * Closest seed by the active metric (brute force). Used for context-menu hit
- * testing. Chebyshev uses strict pixel-center dominance (ties return -1).
- * Chebyshev-tie assigns ties to smallest-index closest site.
+ * testing. L∞/L1 default: strict (ties return -1, white gaps). With tie-break
+ * checked, ties go to the smallest-index closest site.
  */
 function cylinderDistSq(px: number, py: number, sx: number, sy: number, w: number): number {
     const dx = torusComponentDelta(px, sx, w);
@@ -543,6 +603,78 @@ function torusManhattanDist(px: number, py: number, sx: number, sy: number, w: n
     return (
         Math.abs(torusComponentDelta(px, sx, w)) + Math.abs(torusComponentDelta(py, sy, h))
     );
+}
+
+function manhattanDistAt(
+    x: number,
+    y: number,
+    sx: number,
+    sy: number,
+    topology: VoronoiTopology = voronoiTopology,
+): number {
+    if (topology === "torus") {
+        return torusManhattanDist(x, y, sx, sy, CANVAS_WIDTH, CANVAS_HEIGHT);
+    }
+    if (topology === "cylinder") {
+        return Math.abs(torusComponentDelta(x, sx, CANVAS_WIDTH)) + Math.abs(y - sy);
+    }
+    if (topology === "klein") {
+        return kleinManhattanDist(x, y, sx, sy, CANVAS_WIDTH, CANVAS_HEIGHT);
+    }
+    if (topology === "mobius") {
+        return mobiusManhattanDist(x, y, sx, sy, CANVAS_WIDTH, CANVAS_HEIGHT);
+    }
+    return Math.abs(x - sx) + Math.abs(y - sy);
+}
+
+/** L1: unique strict minimizer, or -1 on tie (white gap). */
+function strictManhattanUniqueSiteIndex(
+    x: number,
+    y: number,
+    topology: VoronoiTopology = voronoiTopology,
+): number {
+    const n = voronoiNumSites();
+    if (n <= 0) {
+        return -1;
+    }
+    let best = Number.MAX_SAFE_INTEGER;
+    let second = Number.MAX_SAFE_INTEGER;
+    let bestIdx = -1;
+    for (let i = 0; i < n; i++) {
+        const s = voronoiGetSite(i);
+        const d = manhattanDistAt(x, y, s.x, s.y, topology);
+        if (d < best) {
+            second = best;
+            best = d;
+            bestIdx = i;
+        } else if (d < second) {
+            second = d;
+        }
+    }
+    return best < second ? bestIdx : -1;
+}
+
+/** L1 tie-break: smallest-index site among those at minimum L1 distance. */
+function manhattanFirstTieOwner(
+    x: number,
+    y: number,
+    topology: VoronoiTopology = voronoiTopology,
+): number {
+    const n = voronoiNumSites();
+    if (n <= 0) {
+        return -1;
+    }
+    let best = Number.MAX_SAFE_INTEGER;
+    let bestIdx = 0;
+    for (let i = 0; i < n; i++) {
+        const s = voronoiGetSite(i);
+        const d = manhattanDistAt(x, y, s.x, s.y, topology);
+        if (d < best) {
+            best = d;
+            bestIdx = i;
+        }
+    }
+    return bestIdx;
 }
 
 function findSiteIndexByRegion(
@@ -565,29 +697,10 @@ function findSiteIndexByRegion(
         return strictChebyshevUniqueSiteIndex(x, y);
     }
     if (metric === "l1") {
-        let bestIdx = 0;
-        let bestD = Infinity;
-        for (let i = 0; i < n; i++) {
-            const s = voronoiGetSite(i);
-            let d: number;
-            if (topology === "torus") {
-                d = torusManhattanDist(x, y, s.x, s.y, CANVAS_WIDTH, CANVAS_HEIGHT);
-            } else if (topology === "cylinder") {
-                d =
-                    Math.abs(torusComponentDelta(x, s.x, CANVAS_WIDTH)) + Math.abs(y - s.y);
-            } else if (topology === "klein") {
-                d = kleinManhattanDist(x, y, s.x, s.y, CANVAS_WIDTH, CANVAS_HEIGHT);
-            } else if (topology === "mobius") {
-                d = mobiusManhattanDist(x, y, s.x, s.y, CANVAS_WIDTH, CANVAS_HEIGHT);
-            } else {
-                d = Math.abs(x - s.x) + Math.abs(y - s.y);
-            }
-            if (d < bestD || (d === bestD && i < bestIdx)) {
-                bestD = d;
-                bestIdx = i;
-            }
+        if (chebyshevTieBreak) {
+            return manhattanFirstTieOwner(x, y, topology);
         }
-        return bestIdx;
+        return strictManhattanUniqueSiteIndex(x, y, topology);
     }
     if (metric === "linf" && topology !== "plane") {
         let bestIdx = 0;
@@ -1140,11 +1253,14 @@ function buildHoverText(px: number, py: number): string {
         text += `site ${e.idx} (${e.sx},${e.sy}): d=${dDisplay}${marker}\n`;
     }
     if (entries.filter(e => Math.abs(e.d - bestD) < 1e-9).length > 1) {
-        if (voronoiMetric === "linf" && chebyshevTieBreak) {
+        if (
+            (voronoiMetric === "linf" || voronoiMetric === "l1") &&
+            chebyshevTieBreak
+        ) {
             const firstTie = entries.filter(e => Math.abs(e.d - bestD) < 1e-9)[0]!;
             text += `\n(tie → site ${firstTie.idx})`;
-        } else if (voronoiMetric === "linf") {
-            text += "\n(tie)";
+        } else if (voronoiMetric === "linf" || voronoiMetric === "l1") {
+            text += "\n(tie → white)";
         }
     }
     return text;
@@ -1189,6 +1305,28 @@ if (randomBtn) {
 if (clearBtn) {
     clearBtn.addEventListener("click", () => {
         clearAllPoints();
+    });
+}
+
+if (debugModeCheckbox) {
+    applyDebugModeUi(debugModeCheckbox.checked);
+    debugModeCheckbox.addEventListener("change", () => {
+        applyDebugModeUi(debugModeCheckbox.checked);
+    });
+}
+
+if (debugAddSiteBtn) {
+    debugAddSiteBtn.addEventListener("click", () => {
+        addSiteFromCoordInputs();
+    });
+}
+
+for (const input of [debugCoordXInput, debugCoordYInput]) {
+    input?.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            addSiteFromCoordInputs();
+        }
     });
 }
 
@@ -1246,9 +1384,10 @@ function refreshControlAvailability(): void {
         radio.disabled = !isPairSupported(voronoiMetric, t);
     }
     if (chebyshevTieCheckbox) {
+        const tieMetric =
+            voronoiMetric === "linf" || voronoiMetric === "l1";
         chebyshevTieCheckbox.disabled =
-            voronoiMetric !== "linf" ||
-            !isPairSupported(voronoiMetric, voronoiTopology);
+            !tieMetric || !isPairSupported(voronoiMetric, voronoiTopology);
     }
     if (modeStatusElem) {
         modeStatusElem.textContent = modeLabel();

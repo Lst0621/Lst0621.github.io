@@ -191,7 +191,7 @@
         accent-color: #3ab8b0;
       }
 
-      .metric-option-linf-extra {
+      .metric-option-tie-extra {
         margin-left: 4px;
       }
 
@@ -203,6 +203,64 @@
         background-color: #dceeed;
         border-radius: 4px;
         color: #2a5f5c;
+      }
+
+      .controls-debug {
+        display: inline-flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px 14px;
+        padding: 10px 16px;
+        background-color: #f0e6d8;
+        border-radius: 4px;
+        font-size: 14px;
+        color: #333;
+        border: 1px dashed #c4a574;
+      }
+
+      .controls-debug label {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        font-weight: 600;
+      }
+
+      .debug-coord-panel {
+        display: none;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px 10px;
+      }
+
+      .controls-debug.is-on .debug-coord-panel {
+        display: inline-flex;
+      }
+
+      .debug-coord-panel label {
+        font-weight: normal;
+        gap: 4px;
+      }
+
+      .debug-coord-panel input[type="number"] {
+        width: 5.5em;
+        padding: 6px 8px;
+        font-size: 14px;
+        font-family: monospace;
+        border: 1px solid #bbb;
+        border-radius: 4px;
+      }
+
+      .debug-coord-panel button {
+        padding: 6px 14px;
+        font-size: 13px;
+      }
+
+      #debug-coord-status {
+        font-family: monospace;
+        font-size: 12px;
+        color: #8b4513;
+        min-width: 8em;
       }
     </style>
   </head>
@@ -218,9 +276,9 @@
           <label><input type="radio" name="voronoi-metric" value="l2" checked /> L₂ (Euclidean)</label>
           <label><input type="radio" name="voronoi-metric" value="l1" /> L₁ (Manhattan)</label>
           <label><input type="radio" name="voronoi-metric" value="linf" /> L∞ (Chebyshev)</label>
-          <label class="metric-option-linf-extra">
+          <label class="metric-option-tie-extra">
             <input type="checkbox" id="chebyshev-tie-break" />
-            L∞ ties → smallest site
+            L₁/L∞ ties → smallest site
           </label>
         </div>
         <div class="controls-topology" role="radiogroup" aria-label="Surface topology">
@@ -240,6 +298,18 @@
           <label title="Pre-merge convex clip pieces (dashed)"><input type="radio" name="edge-display" value="pieces" /> Clip pieces</label>
         </div>
         <span id="point-count">Points: 0</span>
+        <div id="controls-debug" class="controls-debug" role="group" aria-label="Debug">
+          <label title="Add sites by typing integer canvas coordinates">
+            <input type="checkbox" id="voronoi-debug-mode" />
+            Debug
+          </label>
+          <div id="debug-coord-panel" class="debug-coord-panel">
+            <label>x <input type="number" id="debug-coord-x" min="0" max="799" step="1" value="400" /></label>
+            <label>y <input type="number" id="debug-coord-y" min="0" max="599" step="1" value="300" /></label>
+            <button type="button" id="debug-add-site-btn">Add site</button>
+            <span id="debug-coord-status" aria-live="polite"></span>
+          </div>
+        </div>
       </div>
 
       <div class="canvas-container">
@@ -269,6 +339,12 @@
             <strong>Click on the canvas</strong> to add new seed points, and
             right-click anywhere inside a colored region to delete that seed.
             The diagram will recompute automatically.
+          </li>
+          <li>
+            Enable <strong>Debug</strong> to add sites by typing integer
+            <code>x</code>, <code>y</code> coordinates (0–799, 0–599) and
+            pressing <em>Add site</em> or Enter — useful for reproducing exact
+            layouts (e.g. <code>177, 186</code> and <code>277, 286</code>).
           </li>
           <li>
             Choose <strong>Metric</strong> (L₂ / L₁ / L∞) and <strong>Topology</strong>
