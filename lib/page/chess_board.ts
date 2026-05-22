@@ -123,7 +123,8 @@ function drawCell(row: number, col: number): void {
         ctx.font = `${Math.floor(cellSize * 0.46)}px sans-serif`;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        const glyph = chessBoardGetMode() === 0 ? "B" : chessBoardGetMode() === 1 ? "Q" : "N";
+        // Use Unicode chess-piece glyphs instead of single-letter labels
+        const glyph = chessBoardGetMode() === 0 ? "♗" : chessBoardGetMode() === 1 ? "♕" : "♘";
         ctx.fillText(glyph, x + cellSize / 2, y + cellSize / 2 + 1);
     }
 }
