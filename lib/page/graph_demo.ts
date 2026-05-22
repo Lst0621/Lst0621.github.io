@@ -1678,21 +1678,44 @@ function mergePdimResult(cached: Partial<PdimResult> | null): PdimResult {
 }
 
 function formatPdimModePairHtml(pair: PdimModePair, isLoading: boolean): string {
-    const wr = formatComputingPlaceholder(
-        pair.withReplacement === "",
-        formatPdimDisplay(pair.withReplacement),
-        "pdim",
-        isLoading,
-    );
     const wo = formatComputingPlaceholder(
         pair.withoutReplacement === "",
         formatPdimDisplay(pair.withoutReplacement),
         "pdim",
         isLoading,
     );
+    const wr = formatComputingPlaceholder(
+        pair.withReplacement === "",
+        formatPdimDisplay(pair.withReplacement),
+        "pdim",
+        isLoading,
+    );
     return (
-        `with replacement: <span style="display:inline-block;min-height:1.2em;">${wr}</span><br>` +
-        `without replacement: <span style="display:inline-block;min-height:1.2em;">${wo}</span>`
+        `pdim without: <span style="display:inline-block;min-height:1.2em;">${wo}</span><br>` +
+        `pdim with: <span style="display:inline-block;min-height:1.2em;">${wr}</span>`
+    );
+}
+
+function renderModeSummaryBlock(args: {
+    label: string;
+    metricDimension: number;
+    metricLoading: boolean;
+    pdim: PdimModePair;
+    pdimLoading: boolean;
+}): string {
+    const metricHtml = formatComputingPlaceholder(
+        args.metricLoading,
+        args.metricDimension,
+        "metrics",
+        loadingAnimationVisible,
+    );
+    const pdimHtml = formatPdimModePairHtml(args.pdim, args.pdimLoading);
+    return (
+        `<div style="border:1px solid var(--border); border-radius:10px; padding:10px 12px; background:rgba(255,255,255,0.45); margin-top:8px;">` +
+        `<div style="font-family:ui-monospace, Courier; font-weight:700; font-size:13px; margin-bottom:6px; text-transform:capitalize;">${args.label}</div>` +
+        `<div>Metric dimension: ${metricHtml}</div>` +
+        `<div style="margin-top:6px;">${pdimHtml}</div>` +
+        `</div>`
     );
 }
 
@@ -1901,11 +1924,30 @@ function buildGraphSummaryHtml(args: {
     void isComputingResolving;
     void isComputingPdim;
     const pdimLoading = loadingAnimationVisible && isComputingPdim;
-    const pdimNodeHtml = formatPdimModePairHtml(args.pdimRes.node, pdimLoading);
-    const pdimEdgeHtml = formatPdimModePairHtml(args.pdimRes.edge, pdimLoading);
-    const pdimMixedHtml = formatPdimModePairHtml(args.pdimRes.mixed, pdimLoading);
     const isModeComputing = highlightMode === "node" ? args.nodeRes.minDimension === 0 : highlightMode === "edge" ? args.edgeRes.minDimension === 0 : args.mixedRes.minDimension === 0;
     const selectedBasisDisplay = formatSelectedBasisPlaceholder(isModeComputing, highlightBasisList, loadingAnimationVisible);
+
+    const nodeBlock = renderModeSummaryBlock({
+        label: "Node",
+        metricDimension: args.nodeRes.minDimension,
+        metricLoading: args.nodeRes.minDimension === 0,
+        pdim: args.pdimRes.node,
+        pdimLoading,
+    });
+    const edgeBlock = renderModeSummaryBlock({
+        label: "Edge",
+        metricDimension: args.edgeRes.minDimension,
+        metricLoading: args.edgeRes.minDimension === 0,
+        pdim: args.pdimRes.edge,
+        pdimLoading,
+    });
+    const mixedBlock = renderModeSummaryBlock({
+        label: "Mixed",
+        metricDimension: args.mixedRes.minDimension,
+        metricLoading: args.mixedRes.minDimension === 0,
+        pdim: args.pdimRes.mixed,
+        pdimLoading,
+    });
 
     const summaryCompact =
         `Highlight mode: ${highlightMode}<br>` +
@@ -1913,12 +1955,9 @@ function buildGraphSummaryHtml(args: {
         `Selected basis (${highlightMode}): ${selectedBasisDisplay}<br>` +
         collisionLine +
         `Diameter: ${formatDiameter(diameter)}<br>` +
-        `Metric dimension (node): ${formatComputingPlaceholder(args.nodeRes.minDimension === 0, args.nodeRes.minDimension, 'metrics', loadingAnimationVisible)}<br>` +
-        `Metric dimension (edge): ${formatComputingPlaceholder(args.edgeRes.minDimension === 0, args.edgeRes.minDimension, 'metrics', loadingAnimationVisible)}<br>` +
-        `Metric dimension (mixed): ${formatComputingPlaceholder(args.mixedRes.minDimension === 0, args.mixedRes.minDimension, 'metrics', loadingAnimationVisible)}<br>` +
-        `PDim (node):<br>${pdimNodeHtml}<br>` +
-        `PDim (edge):<br>${pdimEdgeHtml}<br>` +
-        `PDim (mixed):<br>${pdimMixedHtml}<br>`;
+        nodeBlock +
+        edgeBlock +
+        mixedBlock;
 
     const summaryVerbosePanels =
         renderResolvingSubsetsPanel("node", nodePageIndex, args.nodeRes) +
