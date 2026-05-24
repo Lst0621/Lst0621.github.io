@@ -78,3 +78,24 @@ Sources live under `lib/tsl/core/gtest/`. Build output: `lib/tsl/core/native_bui
 cd lib/tsl/core && ./test_build.sh
 ```
 
+## Feature branch workflow helpers
+
+The repository includes shell helpers for the common site + `lib/tsl` branch
+workflow:
+
+```bash
+./cut_feature_branch.sh [site-branch] [tsl-branch] [remote]
+./cut_feature_branch.sh <site-branch> --site-only [remote]
+./sync_feature_branch.sh [site-branch] [tsl-branch] [remote]
+./push_feature_branch.sh [site-branch] [tsl-branch] [remote]
+./push_feature_branch.sh --site-only [site-branch] [remote]
+./fetch_bases.sh [remote]
+./check_local_branches_merged.sh [--repo <path>]
+```
+
+Use `--site-only` when you want to cut a site branch without touching the
+`lib/tsl` checkout.
+
+Use `push_feature_branch.sh --site-only` when `lib/tsl` already has newer
+commits and you only want to push the site repo.
+
