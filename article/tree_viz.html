@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<head>
+  <title>Tree Metric Dimension</title>
+  <link rel="icon" href="../img/flame1.png">
+  <link rel="stylesheet" href="../resource/solarized_light.css">
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-9BLVHLETMC"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+    gtag('config', 'G-9BLVHLETMC');
+  </script>
+  <style>
+    .wrap { max-width: 960px; margin: 0 auto; padding: 12px 14px; }
+    .subtitle { color: var(--muted); margin-top: 6px; line-height: 1.35; }
+    .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+                 justify-content: center; margin: 10px 0; }
+    .controls button { font-family: ui-monospace, Courier; }
+    .info { font-family: ui-monospace, Courier; color: var(--text);
+            background: var(--panel); border: 1px solid var(--border);
+            border-radius: 10px; padding: 12px; margin-top: 10px; line-height: 1.6; }
+    canvas { display: block; margin: 0 auto; cursor: pointer; }
+  </style>
+</head>
+<body class="solarized">
+<div class="wrap">
+  <h1 style="margin:0; font-size:18pt; font-weight:500; font-family:ui-monospace,Courier;">
+    Tree Metric Dimension
+  </h1>
+  <div class="subtitle">
+    Click a node to attach a new leaf. Random trees via Pr&uuml;fer sequences (C++/WASM).
+  </div>
+
+  <div class="controls">
+    <button id="btn-dec">-</button>
+    <span id="size-label" style="font-family:ui-monospace,Courier;">n=10</span>
+    <button id="btn-inc">+</button>
+    <span style="display:inline-block;width:12px;"></span>
+    <button id="btn-randomize">Randomize</button>
+    <span style="font-family:ui-monospace,Courier;font-size:13px;">seed=</span>
+    <input type="number" id="seed-input" value="0" min="0"
+           style="width:90px;font-family:ui-monospace,Courier;">
+    <button id="btn-apply-seed">Apply</button>
+  </div>
+
+  <canvas id="tree-canvas" width="800" height="520"></canvas>
+
+  <div class="info" id="info-area">
+    Metric dimension: <span id="dim-value">...</span><br>
+    <span id="formula-value" style="color:var(--muted);"></span><br>
+    Basis: <span id="basis-value">...</span>
+  </div>
+
+  <div style="margin-top:12px;"><a href="../index.html">Back</a></div>
+</div>
+<script type="module" src="/assets/js/page/tree_viz.js"></script>
+</body>

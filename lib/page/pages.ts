@@ -29,6 +29,7 @@ export const sections: Section[] = [
       { name: "Bars game (C++/WASM)", url: "article/bars_game.html" },
       { name: "Partition Conjugate (C++/WASM)", url: "article/partition_conjugate.html" },
       { name: "Graph Metric Dimension", url: "article/graph_demo.html" },
+      { name: "Tree Metric Dimension", url: "article/tree_viz.html" },
       { name: "Chess Board Puzzle (C++/WASM)", url: "article/chess_board.html" },
     ],
   },
