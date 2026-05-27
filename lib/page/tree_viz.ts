@@ -3,13 +3,14 @@ import {
     wasmGraphRandomTree,
     wasmGraphAddLeafWithLayout,
     wasmGraphRemoveLeafWithLayout,
-    wasmGraphForceLayout,
     wasmGraphTreeLayoutRadial,
     wasmGraphTreeMetricDimension,
 } from "../tsl/wasm/ts/wasm_api_graph_demo";
 // Animation helper (moved from visual_radial.ts into page scope)
 
-export function animatePositions(oldPos: { x: number[]; y: number[] } | null, newPos: { x: number[]; y: number[] }, duration = 400, onFrame?: (pos: { x: number[]; y: number[] }) => void) {
+type Position = { x: number[]; y: number[] };
+
+export function animatePositions(oldPos: Position | null, newPos: Position, duration = 400, onFrame?: (pos: Position) => void) {
     const n = newPos.x.length;
     const fromX = (oldPos && oldPos.x.length === n) ? oldPos.x : new Array(n).fill(newPos.x[0] || 0);
     const fromY = (oldPos && oldPos.y.length === n) ? oldPos.y : new Array(n).fill(newPos.y[0] || 0);
@@ -32,18 +33,27 @@ export function animatePositions(oldPos: { x: number[]; y: number[] } | null, ne
     });
 }
 
+// playFrames removed — we use TS animation to interpolate start -> finish
+
 const CANVAS_W = 800;
 const CANVAS_H = 520;
 const NODE_R = 18;
 const MAX_N = 200;
 const MIN_N = 2;
-const EDGE_SCALE = 2.0;
+const SIM_ANIM_MS = 700;
+const EDGE_SCALE = 1.5;
+
+/** Full relayout: radial, every node position recomputed from the tree shape. */
+function runTreeLayout(adj01_in: number[], nv: number): Position {
+    return wasmGraphTreeLayoutRadial(adj01_in, nv, CANVAS_W, CANVAS_H);
+}
 
 let n = 10;
 let seed = (Math.random() * 0xffffffff) >>> 0;
 let adj01: number[] = [];
-let positions: { x: number[]; y: number[] } | null = null;
+let positions: Position | null = null;
 let nodeTypes: { isExteriorMajor: boolean[]; isLeaf: boolean[]; basis: number[]; dimension: number } | null = null;
+let simToken = 0;
 
 // ── Pure helpers (no graph logic) ──────────────────────────────────
 
@@ -60,35 +70,15 @@ function adj01ToAdjList(flat: number[], nv: number): number[][] {
     return adj;
 }
 
-// Fast local adjacency-only helpers (no WASM) used for immediate UI feedback.
-function adjAddLeaf(adj01_in: number[], n_in: number, parent: number): { adj01: number[]; n: number } {
-    const nn = n_in + 1;
-    const out = new Array(nn * nn).fill(0);
-    for (let i = 0; i < n_in; i++) {
-        for (let j = 0; j < n_in; j++) out[i * nn + j] = adj01_in[i * n_in + j];
-    }
-    for (let i = 0; i < nn; i++) { out[i * nn + n_in] = 0; out[n_in * nn + i] = 0; }
-    out[parent * nn + n_in] = 1; out[n_in * nn + parent] = 1;
-    return { adj01: out, n: nn };
+/** Same rule as right-click remove: degree 1, and not the center vertex when n > 2. */
+function isRemovableLeaf(v: number, adj: number[][], nv: number): boolean {
+    return adj[v].length <= 1 && !(v === 0 && nv > 2);
 }
 
-function adjRemoveLeaf(adj01_in: number[], n_in: number, leaf: number): { adj01: number[]; n: number } | null {
-    if (n_in <= 1) return null;
-    // only allow if leaf exists
-    let deg = 0; for (let j = 0; j < n_in; j++) if (adj01_in[leaf * n_in + j] !== 0) deg++;
-    if (deg === 0) return null;
-    const nn = n_in - 1;
-    const out = new Array(nn * nn).fill(0);
-    for (let i = 0, oi = 0; i < n_in; i++) {
-        if (i === leaf) continue;
-        for (let j = 0, oj = 0; j < n_in; j++) {
-            if (j === leaf) continue;
-            out[oi * nn + oj] = adj01_in[i * n_in + j];
-            oj++;
-        }
-        oi++;
-    }
-    return { adj01: out, n: nn };
+function findRemovableLeaf(adj: number[][]): number {
+    for (let v = adj.length - 1; v >= 0; v--)
+        if (isRemovableLeaf(v, adj, adj.length)) return v;
+    return -1;
 }
 
 function logState(pos: { x: number[]; y: number[] }) {
@@ -168,7 +158,7 @@ function render() {
     const canvas = document.getElementById("tree-canvas") as HTMLCanvasElement;
     setupCanvas(canvas);
     draw(canvas.getContext("2d")!, positions, adj01ToAdjList(adj01, n), nodeTypes);
-    updateInfo(); updateSizeLabel();
+    updateInfo(); updateSizeLabel(); updateRemoveHalfButton();
     (document.getElementById("seed-input") as HTMLInputElement).value = String(seed);
     updateBannerVisibility();
 }
@@ -180,75 +170,113 @@ async function regenerate() {
     await modulePromise;
     const r = wasmGraphRandomTree(n, seed);
     adj01 = r.adj01;
-    // Use radial layout computed in WASM; animate from previous positions.
-    const newPos = wasmGraphTreeLayoutRadial(adj01, n, CANVAS_W, CANVAS_H);
-    if (positions) {
-        await animatePositions(positions, newPos, 400, (pos) => { positions = pos; render(); });
-        positions = newPos;
-    } else {
-        // do not animate on initial load
-        positions = newPos;
-    }
     nodeTypes = wasmGraphTreeMetricDimension(adj01, n);
+    const simId = ++simToken;
+    const newPos = runTreeLayout(adj01, n);
+    const from = positions;
+    positions = newPos;
+    render();
+    await animatePositions(from, newPos, SIM_ANIM_MS, (pos) => { positions = pos; render(); });
+    if (simId !== simToken) return;
+    positions = newPos;
     logState(positions); render();
 }
 
 async function addLeafTo(parent: number) {
     if (!positions) return;
-    // 1) Save pre-state
-    const preAdj = Array.from(adj01);
-    const preN = n;
-    const preX = positions.x.slice();
-    const preY = positions.y.slice();
-
-    // 2) Compute adjacency-only result quickly so we can show the new node instantly
-    const adjOnly = adjAddLeaf(preAdj, preN, parent);
-    const tempX = preX.slice();
-    const tempY = preY.slice();
-    tempX.push(preX[parent]);
-    tempY.push(preY[parent]);
-    adj01 = adjOnly.adj01; n = adjOnly.n; positions = { x: tempX, y: tempY };
-    render(); // immediate visual feedback: new node at parent
-
-    // 3) Ask WASM to compute the final positions (uses old positions as init) and animate to them
-    const r = wasmGraphAddLeafWithLayout(preAdj, preN, parent, preX, preY, CANVAS_W, CANVAS_H, seed, EDGE_SCALE);
-    adj01 = r.adj01; n = r.n;
-    const newPos = { x: r.x, y: r.y };
-    await animatePositions(positions, newPos, 350, (pos) => { positions = pos; render(); });
-    positions = newPos;
+    const simId = ++simToken;
+    const angle = Math.random() * Math.PI * 2.0;
+    const dist = 55.0 * (0.8 + Math.random() * 0.4);
+    const animFrom: Position = {
+        x: [...positions.x, positions.x[parent] + Math.cos(angle) * dist],
+        y: [...positions.y, positions.y[parent] + Math.sin(angle) * dist],
+    };
+    const r = wasmGraphAddLeafWithLayout(
+        adj01, n, parent, positions.x, positions.y,
+        CANVAS_W, CANVAS_H, seed, EDGE_SCALE,
+    );
+    adj01 = r.adj01;
+    n = r.n;
     nodeTypes = wasmGraphTreeMetricDimension(adj01, n);
+    const newPos: Position = { x: r.x, y: r.y };
+    positions = animFrom;
+    render();
+    await animatePositions(animFrom, newPos, SIM_ANIM_MS, (pos) => { positions = pos; render(); });
+    if (simId !== simToken) return;
+    positions = newPos;
+    updateSizeLabel();
+    updateRemoveHalfButton();
     logState(positions); render();
 }
 
 async function removeLeaf(leaf: number) {
     if (n <= MIN_N || !positions) return;
-    // 1) Save pre-state
-    const preAdj = Array.from(adj01);
-    const preN = n;
-    const preX = positions.x.slice();
-    const preY = positions.y.slice();
-
-    // 2) Compute adjacency-only (fast) and remove the leaf visually immediately
-    const adjOnly = adjRemoveLeaf(preAdj, preN, leaf);
-    if (!adjOnly) return;
-    const tempX: number[] = [];
-    const tempY: number[] = [];
-    for (let i = 0; i < preN; i++) {
-        if (i === leaf) continue;
-        tempX.push(preX[i]);
-        tempY.push(preY[i]);
-    }
-    adj01 = adjOnly.adj01; n = adjOnly.n; positions = { x: tempX, y: tempY };
-    render(); // immediate visual feedback: node removed
-
-    // 3) Ask WASM for refined layout and animate to it
-    const r = wasmGraphRemoveLeafWithLayout(preAdj, preN, leaf, preX, preY, CANVAS_W, CANVAS_H, seed, EDGE_SCALE);
+    const simId = ++simToken;
+    const animFrom: Position = { x: positions.x.slice(), y: positions.y.slice() };
+    const r = wasmGraphRemoveLeafWithLayout(
+        adj01, n, leaf, positions.x, positions.y,
+        CANVAS_W, CANVAS_H, seed, EDGE_SCALE,
+    );
     if (!r) return;
-    const newPos = { x: r.x, y: r.y };
-    await animatePositions(positions, newPos, 350, (pos) => { positions = pos; render(); });
-    adj01 = r.adj01; n = r.n; positions = newPos;
+    adj01 = r.adj01;
+    n = r.n;
     nodeTypes = wasmGraphTreeMetricDimension(adj01, n);
+    const newPos: Position = { x: r.x, y: r.y };
+    // animatePositions needs equal length: drop removed leaf from start frame
+    const fromReduced: Position = { x: [], y: [] };
+    for (let i = 0; i < animFrom.x.length; i++) {
+        if (i === leaf) continue;
+        fromReduced.x.push(animFrom.x[i]);
+        fromReduced.y.push(animFrom.y[i]);
+    }
+    positions = fromReduced;
+    render();
+    await animatePositions(fromReduced, newPos, SIM_ANIM_MS, (pos) => { positions = pos; render(); });
+    if (simId !== simToken) return;
+    positions = newPos;
+    updateSizeLabel();
+    updateRemoveHalfButton();
     logState(positions); render();
+}
+
+async function removeHalfLeaves() {
+    if (!positions || n <= MIN_N) return;
+    let k = Math.floor(n / 2);
+    if (n - k < MIN_N) k = n - MIN_N;
+    if (k <= 0) return;
+
+    const simId = ++simToken;
+    await modulePromise;
+
+    for (let i = 0; i < k; i++) {
+        if (simId !== simToken) return;
+        const adj = adj01ToAdjList(adj01, n);
+        const leaf = findRemovableLeaf(adj);
+        if (leaf < 0) break;
+        const r = wasmGraphRemoveLeafWithLayout(
+            adj01, n, leaf, positions.x, positions.y,
+            CANVAS_W, CANVAS_H, seed, EDGE_SCALE,
+        );
+        if (!r) break;
+        adj01 = r.adj01;
+        n = r.n;
+        positions = { x: r.x, y: r.y };
+    }
+
+    if (simId !== simToken) return;
+    nodeTypes = wasmGraphTreeMetricDimension(adj01, n);
+    updateSizeLabel();
+    updateInfo();
+    updateBannerVisibility();
+    render();
+    logState(positions);
+}
+
+function updateRemoveHalfButton() {
+    const btn = document.getElementById("btn-remove-half") as HTMLButtonElement | null;
+    if (!btn) return;
+    const k = Math.floor(n / 2);
+    btn.disabled = n <= MIN_N || k <= 0 || n - k < MIN_N;
 }
 
 // ── Events ─────────────────────────────────────────────────────────
@@ -270,7 +298,7 @@ async function onContext(e: MouseEvent) {
     const v = canvasHit(e);
     if (v < 0) return;
     const adj = adj01ToAdjList(adj01, n);
-    if (adj[v].length > 1 || (v === 0 && n > 2)) return;
+    if (!isRemovableLeaf(v, adj, n)) return;
     await removeLeaf(v);
 }
 
@@ -289,10 +317,12 @@ async function init() {
         const v = parseInt((b("seed-input") as HTMLInputElement).value, 10);
         if (!isNaN(v) && v >= 0) { seed = v >>> 0; await regenerate(); }
     });
+    b("btn-remove-half").addEventListener("click", async () => { await removeHalfLeaves(); updateRemoveHalfButton(); });
 
     setupCanvas(c);
     (b("seed-input") as HTMLInputElement).value = String(seed);
     updateSizeLabel();
+    updateRemoveHalfButton();
     await regenerate();
 }
 
