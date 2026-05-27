@@ -35,7 +35,7 @@ export function animatePositions(oldPos: { x: number[]; y: number[] } | null, ne
 const CANVAS_W = 800;
 const CANVAS_H = 520;
 const NODE_R = 18;
-const MAX_N = 30;
+const MAX_N = 200;
 const MIN_N = 2;
 const EDGE_SCALE = 2.0;
 
@@ -46,6 +46,11 @@ let positions: { x: number[]; y: number[] } | null = null;
 let nodeTypes: { isExteriorMajor: boolean[]; isLeaf: boolean[]; basis: number[]; dimension: number } | null = null;
 
 // ── Pure helpers (no graph logic) ──────────────────────────────────
+
+function updateBannerVisibility() {
+    const banner = document.getElementById("limit-banner")!;
+    banner.style.display = n >= MAX_N ? "block" : "none";
+}
 
 function adj01ToAdjList(flat: number[], nv: number): number[][] {
     const adj: number[][] = Array.from({ length: nv }, () => []);
@@ -165,6 +170,7 @@ function render() {
     draw(canvas.getContext("2d")!, positions, adj01ToAdjList(adj01, n), nodeTypes);
     updateInfo(); updateSizeLabel();
     (document.getElementById("seed-input") as HTMLInputElement).value = String(seed);
+    updateBannerVisibility();
 }
 
 // ── Operations (all graph logic in C++/WASM) ───────────────────────
