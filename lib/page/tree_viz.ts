@@ -5,7 +5,16 @@ import {
     wasmGraphRemoveLeafWithLayout,
     wasmGraphTreeLayoutRadial,
     wasmGraphTreeMetricDimension,
+    wasmGraphTreePruferEncode,
+    wasmGraphTreePruferDecode,
 } from "../tsl/wasm/ts/wasm_api_graph_demo";
+import {
+    edgeListFromAdj01Based,
+    isFiniteInt,
+    parseEdgeListJson,
+    writeClipboardText,
+    type EdgeList,
+} from "../common/graph_io";
 // Animation helper (moved from visual_radial.ts into page scope)
 
 type Position = { x: number[]; y: number[] };
@@ -54,6 +63,12 @@ let adj01: number[] = [];
 let positions: Position | null = null;
 let nodeTypes: { isExteriorMajor: boolean[]; isLeaf: boolean[]; basis: number[]; dimension: number } | null = null;
 let simToken = 0;
+let pruferIoText = "";
+let pruferIoStatus = "";
+let pruferIoStatusIsError = false;
+let edgeIoText = "";
+let edgeIoStatus = "";
+let edgeIoStatusIsError = false;
 
 // ── Pure helpers (no graph logic) ──────────────────────────────────
 
@@ -68,6 +83,88 @@ function adj01ToAdjList(flat: number[], nv: number): number[][] {
         for (let j = i + 1; j < nv; j++)
             if (flat[i * nv + j] !== 0) { adj[i].push(j); adj[j].push(i); }
     return adj;
+}
+
+function parsePruferJson(raw: string): { code0: number[]; base: 0 | 1; n: number } {
+    const trimmed = raw.trim();
+    if (trimmed.length === 0) {
+        return { code0: [], base: 1, n: 2 };
+    }
+
+    let parsed: unknown;
+    try {
+        parsed = JSON.parse(trimmed);
+    } catch (e) {
+        throw new Error(`Invalid JSON: ${(e as Error).message}`);
+    }
+    if (!Array.isArray(parsed)) {
+        throw new Error("Expected a JSON array, e.g. [2,2,4].");
+    }
+
+    const codeRaw: number[] = [];
+    let sawZero = false;
+    let minVal = Number.POSITIVE_INFINITY;
+    for (let i = 0; i < parsed.length; i++) {
+        const v = (parsed as unknown[])[i];
+        if (!isFiniteInt(v)) {
+            throw new Error(`Entry #${i + 1} must be an integer, got ${JSON.stringify(v)}.`);
+        }
+        if (v === 0) sawZero = true;
+        minVal = Math.min(minVal, v);
+        codeRaw.push(v);
+    }
+
+    const nFromCode = codeRaw.length + 2;
+    const base: 0 | 1 = sawZero ? 0 : (minVal >= 1 ? 1 : 0);
+    const code0 = codeRaw.map((v) => (base === 1 ? v - 1 : v));
+    for (let i = 0; i < code0.length; i++) {
+        const v = code0[i];
+        if (v < 0 || v >= nFromCode) {
+            throw new Error(`Entry #${i + 1} is out of range after base=${base} conversion: ${codeRaw[i]}.`);
+        }
+    }
+    return { code0, base, n: nFromCode };
+}
+
+function updatePruferStatusUI(): void {
+    const statusEl = document.getElementById("prufer-status") as HTMLSpanElement | null;
+    if (!statusEl) return;
+    statusEl.textContent = pruferIoStatus;
+    statusEl.style.color = pruferIoStatusIsError ? "#dc322f" : "#586e75";
+}
+
+function updateEdgeStatusUI(): void {
+    const statusEl = document.getElementById("edge-status") as HTMLSpanElement | null;
+    if (!statusEl) return;
+    statusEl.textContent = edgeIoStatus;
+    statusEl.style.color = edgeIoStatusIsError ? "#dc322f" : "#586e75";
+}
+
+function syncPruferIoFromGraph(): void {
+    try {
+        const code0 = wasmGraphTreePruferEncode(adj01, n);
+        const code1 = code0.map((v) => v + 1);
+        pruferIoText = JSON.stringify(code1);
+    } catch {
+        pruferIoText = "";
+    }
+    const ta = document.getElementById("prufer-input") as HTMLTextAreaElement | null;
+    if (ta) {
+        ta.value = pruferIoText;
+    }
+}
+
+function syncEdgeIoFromGraph(): void {
+    edgeIoText = JSON.stringify(edgeListFromAdj01Based(adj01, n));
+    const ta = document.getElementById("edge-input") as HTMLTextAreaElement | null;
+    if (ta) {
+        ta.value = edgeIoText;
+    }
+}
+
+function syncIoFromGraph(): void {
+    syncPruferIoFromGraph();
+    syncEdgeIoFromGraph();
 }
 
 /** Same rule as right-click remove: degree 1, and not the center vertex when n > 2. */
@@ -161,6 +258,8 @@ function render() {
     updateInfo(); updateSizeLabel(); updateRemoveHalfButton();
     (document.getElementById("seed-input") as HTMLInputElement).value = String(seed);
     updateBannerVisibility();
+    updatePruferStatusUI();
+    updateEdgeStatusUI();
 }
 
 // ── Operations (all graph logic in C++/WASM) ───────────────────────
@@ -179,6 +278,7 @@ async function regenerate() {
     await animatePositions(from, newPos, SIM_ANIM_MS, (pos) => { positions = pos; render(); });
     if (simId !== simToken) return;
     positions = newPos;
+    syncIoFromGraph();
     logState(positions); render();
 }
 
@@ -206,6 +306,7 @@ async function addLeafTo(parent: number) {
     positions = newPos;
     updateSizeLabel();
     updateRemoveHalfButton();
+    syncIoFromGraph();
     logState(positions); render();
 }
 
@@ -236,6 +337,7 @@ async function removeLeaf(leaf: number) {
     positions = newPos;
     updateSizeLabel();
     updateRemoveHalfButton();
+    syncIoFromGraph();
     logState(positions); render();
 }
 
@@ -268,8 +370,87 @@ async function removeHalfLeaves() {
     updateSizeLabel();
     updateInfo();
     updateBannerVisibility();
+    syncIoFromGraph();
     render();
     logState(positions);
+}
+
+async function importPruferText(raw: string): Promise<void> {
+    const parsed = parsePruferJson(raw);
+    if (parsed.n < MIN_N || parsed.n > MAX_N) {
+        throw new Error(`Decoded tree size n=${parsed.n} is outside [${MIN_N}, ${MAX_N}].`);
+    }
+
+    const decoded = wasmGraphTreePruferDecode(parsed.code0);
+    const simId = ++simToken;
+    const from = positions;
+    adj01 = decoded.adj01;
+    n = decoded.n;
+    nodeTypes = wasmGraphTreeMetricDimension(adj01, n);
+    const newPos = runTreeLayout(adj01, n);
+    positions = newPos;
+    render();
+    await animatePositions(from, newPos, SIM_ANIM_MS, (pos) => { positions = pos; render(); });
+    if (simId !== simToken) return;
+    positions = newPos;
+    syncIoFromGraph();
+    updateSizeLabel();
+    updateRemoveHalfButton();
+    updateInfo();
+    updateBannerVisibility();
+    render();
+}
+
+async function importEdgeListText(raw: string): Promise<{ base: 0 | 1; n: number }> {
+    const parsed = parseEdgeListJson(raw);
+    if (parsed.edges.length === 0) {
+        throw new Error("Edge list must not be empty.");
+    }
+
+    let maxVertex = parsed.base === 1 ? 1 : 0;
+    for (const [aRaw, bRaw] of parsed.edges) {
+        maxVertex = Math.max(maxVertex, aRaw, bRaw);
+    }
+    const nextN = parsed.base === 1 ? maxVertex : (maxVertex + 1);
+    if (nextN < MIN_N || nextN > MAX_N) {
+        throw new Error(`Decoded tree size n=${nextN} is outside [${MIN_N}, ${MAX_N}].`);
+    }
+
+    const nextAdj = new Array(nextN * nextN).fill(0);
+    for (const [aRaw, bRaw] of parsed.edges) {
+        const a = parsed.base === 1 ? (aRaw - 1) : aRaw;
+        const b = parsed.base === 1 ? (bRaw - 1) : bRaw;
+        if (a < 0 || b < 0 || a >= nextN || b >= nextN) {
+            throw new Error(`Vertex index out of range after base=${parsed.base} conversion: [${aRaw}, ${bRaw}]`);
+        }
+        if (a === b) {
+            throw new Error(`Self-loop is not allowed in trees: [${aRaw}, ${bRaw}]`);
+        }
+        nextAdj[a * nextN + b] = 1;
+        nextAdj[b * nextN + a] = 1;
+    }
+
+    // Validate imported graph is a tree.
+    wasmGraphTreePruferEncode(nextAdj, nextN);
+
+    const simId = ++simToken;
+    const from = positions;
+    adj01 = nextAdj;
+    n = nextN;
+    nodeTypes = wasmGraphTreeMetricDimension(adj01, n);
+    const newPos = runTreeLayout(adj01, n);
+    positions = newPos;
+    render();
+    await animatePositions(from, newPos, SIM_ANIM_MS, (pos) => { positions = pos; render(); });
+    if (simId !== simToken) return { base: parsed.base, n: nextN };
+    positions = newPos;
+    syncIoFromGraph();
+    updateSizeLabel();
+    updateRemoveHalfButton();
+    updateInfo();
+    updateBannerVisibility();
+    render();
+    return { base: parsed.base, n: nextN };
 }
 
 function updateRemoveHalfButton() {
@@ -318,6 +499,93 @@ async function init() {
         if (!isNaN(v) && v >= 0) { seed = v >>> 0; await regenerate(); }
     });
     b("btn-remove-half").addEventListener("click", async () => { await removeHalfLeaves(); updateRemoveHalfButton(); });
+
+    const pruferInput = b("prufer-input") as HTMLTextAreaElement;
+    pruferInput.placeholder = "[2,2,4]";
+    pruferInput.value = pruferIoText;
+    pruferInput.addEventListener("focus", () => {
+        pruferInput.style.background = "#fff";
+    });
+    pruferInput.addEventListener("blur", () => {
+        pruferInput.style.background = "#f7f0dc";
+        syncIoFromGraph();
+    });
+    pruferInput.addEventListener("input", () => {
+        pruferIoText = pruferInput.value;
+        pruferIoStatus = "";
+        pruferIoStatusIsError = false;
+        updatePruferStatusUI();
+    });
+
+    b("btn-prufer-copy").addEventListener("click", async () => {
+        try {
+            pruferIoText = pruferInput.value;
+            await writeClipboardText(pruferIoText);
+            pruferIoStatus = "Copied.";
+            pruferIoStatusIsError = false;
+        } catch (e) {
+            pruferIoStatus = (e as Error).message;
+            pruferIoStatusIsError = true;
+        }
+        updatePruferStatusUI();
+    });
+
+    b("btn-prufer-import").addEventListener("click", async () => {
+        try {
+            pruferIoText = pruferInput.value;
+            const parsed = parsePruferJson(pruferIoText);
+            await importPruferText(pruferIoText);
+            pruferIoStatus = `Imported (base=${parsed.base}, n=${parsed.n}).`;
+            pruferIoStatusIsError = false;
+        } catch (e) {
+            pruferIoStatus = (e as Error).message;
+            pruferIoStatusIsError = true;
+        }
+        updatePruferStatusUI();
+    });
+
+    const edgeInput = b("edge-input") as HTMLTextAreaElement;
+    edgeInput.placeholder = "[[1,2],[2,3]]";
+    edgeInput.value = edgeIoText;
+    edgeInput.addEventListener("focus", () => {
+        edgeInput.style.background = "#fff";
+    });
+    edgeInput.addEventListener("blur", () => {
+        edgeInput.style.background = "#f7f0dc";
+        syncIoFromGraph();
+    });
+    edgeInput.addEventListener("input", () => {
+        edgeIoText = edgeInput.value;
+        edgeIoStatus = "";
+        edgeIoStatusIsError = false;
+        updateEdgeStatusUI();
+    });
+
+    b("btn-edge-copy").addEventListener("click", async () => {
+        try {
+            edgeIoText = edgeInput.value;
+            await writeClipboardText(edgeIoText);
+            edgeIoStatus = "Copied.";
+            edgeIoStatusIsError = false;
+        } catch (e) {
+            edgeIoStatus = (e as Error).message;
+            edgeIoStatusIsError = true;
+        }
+        updateEdgeStatusUI();
+    });
+
+    b("btn-edge-import").addEventListener("click", async () => {
+        try {
+            edgeIoText = edgeInput.value;
+            const result = await importEdgeListText(edgeIoText);
+            edgeIoStatus = `Imported (base=${result.base}, n=${result.n}).`;
+            edgeIoStatusIsError = false;
+        } catch (e) {
+            edgeIoStatus = (e as Error).message;
+            edgeIoStatusIsError = true;
+        }
+        updateEdgeStatusUI();
+    });
 
     setupCanvas(c);
     (b("seed-input") as HTMLInputElement).value = String(seed);
