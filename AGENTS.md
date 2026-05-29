@@ -6,7 +6,7 @@ description: Build, test, and workflow instructions for this site repo
 # AGENTS.md
 ## Requirements
 
-- Do not commit unless explicitly asked.
+- Do not commit unless explicitly asked. Commit permission is single-use: one explicit request permits only the specific commit(s) needed for that request, and does not grant commit permission for the rest of the session.
 - `lib/tsl` is a submodule, so if a submodule change must be recorded, commit it in `lib/tsl` first.
 - On site branches (including `master` and feature branches), a `lib/tsl` bump should be committed together with its related site changes in one commit.
 - Do not mention code agent(s) in commit messages.
@@ -90,6 +90,12 @@ cd lib && npm run jest
 ## C++ Change Checklist
 
 When changing files in `lib/tsl/core/src/`, `lib/tsl/core/gtest/`, or `lib/tsl/wasm/src/`:
+
+0. Run formatting:
+
+```bash
+cd lib/tsl && ./format.sh
+```
 
 1. Run native tests:
 
