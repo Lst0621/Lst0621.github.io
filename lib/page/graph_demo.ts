@@ -646,23 +646,44 @@ function renderControls(
     presetLabel.style.fontFamily = "ui-monospace, Courier";
 
     const btnPath = document.createElement("button");
-    btnPath.innerText = "P_n";
+    btnPath.innerText = "Path";
     btnPath.onclick = () => {
         setPathGraph();
         renderAll();
     };
 
     const btnCycle = document.createElement("button");
-    btnCycle.innerText = "C_n";
+    btnCycle.innerText = "Cycle";
     btnCycle.onclick = () => {
         setCycleGraph();
         renderAll();
     };
 
     const btnComplete = document.createElement("button");
-    btnComplete.innerText = "K_n";
+    btnComplete.innerText = "K-connected";
     btnComplete.onclick = () => {
         setCompleteGraph();
+        renderAll();
+    };
+
+    const btnWheel = document.createElement("button");
+    btnWheel.innerText = "Wheel";
+    btnWheel.onclick = () => {
+        setWheelGraph();
+        renderAll();
+    };
+
+    const btnFan = document.createElement("button");
+    btnFan.innerText = "Fan";
+    btnFan.onclick = () => {
+        setFanGraph();
+        renderAll();
+    };
+
+    const btnSpider = document.createElement("button");
+    btnSpider.innerText = "Spider";
+    btnSpider.onclick = () => {
+        setSpiderGraph();
         renderAll();
     };
 
@@ -694,6 +715,9 @@ function renderControls(
     container.appendChild(btnPath);
     container.appendChild(btnCycle);
     container.appendChild(btnComplete);
+    container.appendChild(btnWheel);
+    container.appendChild(btnFan);
+    container.appendChild(btnSpider);
     container.appendChild(btnRandom);
     container.appendChild(randomInfo);
 
@@ -1169,6 +1193,93 @@ function setCompleteGraph(): void {
             if (j > i) {
                 setUndirectedEdge(i, j, true);
             }
+        }
+    }
+}
+
+function setWheelGraph(): void {
+    clearEdges();
+    if (n <= 1) {
+        return;
+    }
+    if (n === 2) {
+        setUndirectedEdge(0, 1, true);
+        return;
+    }
+    if (n === 3) {
+        setUndirectedEdge(0, 1, true);
+        setUndirectedEdge(1, 2, true);
+        setUndirectedEdge(2, 0, true);
+        return;
+    }
+    const hub = n - 1;
+    const outer = n - 1;
+    for (let i = 0; i < outer; i++) {
+        const j = (i + 1) % outer;
+        setUndirectedEdge(i, j, true);
+    }
+    for (let i = 0; i < outer; i++) {
+        setUndirectedEdge(hub, i, true);
+    }
+}
+
+function setFanGraph(): void {
+    clearEdges();
+    if (n <= 1) {
+        return;
+    }
+    if (n === 2) {
+        setUndirectedEdge(0, 1, true);
+        return;
+    }
+    const hub = n - 1;
+    const pathVerts = n - 1;
+    for (let i = 0; i + 1 < pathVerts; i++) {
+        setUndirectedEdge(i, i + 1, true);
+    }
+    for (let i = 0; i < pathVerts; i++) {
+        setUndirectedEdge(hub, i, true);
+    }
+}
+
+function buildBalancedSpiderLegLengths(totalNodes: number, legCount = 3): number[] {
+    if (totalNodes <= 1 || legCount <= 0) {
+        return [];
+    }
+    const remaining = totalNodes - 1;
+    const base = Math.floor(remaining / legCount);
+    let extra = remaining % legCount;
+    const legs: number[] = [];
+    for (let i = 0; i < legCount; i++) {
+        const len = base + (extra > 0 ? 1 : 0);
+        if (extra > 0) {
+            extra--;
+        }
+        legs.push(len);
+    }
+    return legs;
+}
+
+function setSpiderGraph(): void {
+    clearEdges();
+    if (n <= 1) {
+        return;
+    }
+    const center = 0;
+    const legLengths = buildBalancedSpiderLegLengths(n, 3);
+    let nextVertex = 1;
+    for (const len of legLengths) {
+        if (len <= 0) {
+            continue;
+        }
+        let prev = center;
+        for (let step = 0; step < len; step++) {
+            if (nextVertex >= n) {
+                return;
+            }
+            const curr = nextVertex++;
+            setUndirectedEdge(prev, curr, true);
+            prev = curr;
         }
     }
 }

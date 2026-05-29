@@ -14,6 +14,7 @@ description: Build, test, and workflow instructions for this site repo
 - When running C++ tests, do not run heavy/long tests unless explicitly asked.
 - Prefer repository scripts/helpers we created over manual direct command sequences when they are equivalent (for example `./build.sh`, `./build_assets_local.sh`, and branch helper scripts instead of hand-running multi-step `cmake`/`npm` flows).
 - Exception: for targeted/partial test runs (not full test suites), prefer direct command-line test invocations so only the needed tests run.
+- If expected tools are missing in a non-interactive shell (for example `node`, `npm`, `nvm`, or other user-installed tools), source your shell rc first and retry (for example `source ~/.bashrc`; if needed, `source ~/.nvm/nvm.sh`).
 
 ## Canonical Commands
 
