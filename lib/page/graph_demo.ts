@@ -45,6 +45,15 @@ type PdimModePair = {
     withReplacement: string;
     withoutReplacement: string;
 };
+type ModePolynomialResult = {
+    coeffs: number[];
+    html: string;
+};
+type PolynomialResult = {
+    node: ModePolynomialResult;
+    edge: ModePolynomialResult;
+    mixed: ModePolynomialResult;
+};
 type PdimResult = {
     node: PdimModePair;
     edge: PdimModePair;
@@ -59,6 +68,12 @@ const DEFAULT_PDIM_RES: PdimResult = {
     edge: { ...EMPTY_PDIM_MODE },
     mixed: { ...EMPTY_PDIM_MODE },
 };
+const EMPTY_POLY_MODE: ModePolynomialResult = { coeffs: [], html: "" };
+const DEFAULT_POLY_RES: PolynomialResult = {
+    node: { ...EMPTY_POLY_MODE },
+    edge: { ...EMPTY_POLY_MODE },
+    mixed: { ...EMPTY_POLY_MODE },
+};
 let graphVersion = 0;
 let nodePageIndex = 0;
 let edgePageIndex = 0;
@@ -70,6 +85,7 @@ let cachedMetricKey = ""; // Only depends on graphVersion, used to avoid recompu
 let cachedResolveKey = ""; // Includes page indices, used to determine which subsets to display
 let cachedNonResolveKey = "";
 let cachedPdimKey = "";
+let cachedPolyKey = "";
 let cachedNodeRes: ResolveResult | null = null;
 let cachedEdgeRes: ResolveResult | null = null;
 let cachedMixedRes: ResolveResult | null = null;
@@ -77,6 +93,7 @@ let cachedNodeNonResolveRes: NonResolveResult | null = null;
 let cachedEdgeNonResolveRes: NonResolveResult | null = null;
 let cachedMixedNonResolveRes: NonResolveResult | null = null;
 let cachedPdimRes: Partial<PdimResult> | null = null;
+let cachedPolyRes: Partial<PolynomialResult> | null = null;
 let cachedDistKey = "";
 let cachedDistFlat: number[] | null = null;
 let cachedGraphSnapshotVersion = -1;
@@ -94,6 +111,8 @@ void wasmResolveCacheGraphVersion;
 const LOADING_FRAMES_METRICS = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
 const LOADING_FRAMES_BASIS = ['⠁', '⠂', '⠄', '⡀', '⢀', '⠠', '⠐', '⠈'];
 const LOADING_FRAMES_PDIM = ['⣾', '⣽', '⣻', '⢿', '⡿', '⣟', '⣯', '⣷'];
+const POLYNOMIAL_FOLD_TERM_COUNT = 9;
+const POLYNOMIAL_TERMS_PER_LINE = 4;
 
 function getLoadingAnimation(type: 'metrics' | 'basis' | 'pdim' = 'metrics'): string {
     const frames = type === 'pdim' ? LOADING_FRAMES_PDIM : type === 'basis' ? LOADING_FRAMES_BASIS : LOADING_FRAMES_METRICS;
@@ -286,6 +305,22 @@ function startMetricWorker(
                         withoutReplacement: String(d.pdimStrWithoutReplacement ?? ""),
                     };
                     cachedPdimKey = `${graphVersion}`;
+                }
+
+                if (Array.isArray(d.resolvingPolynomialCoeffs)) {
+                    const coeffs = d.resolvingPolynomialCoeffs.map((v: unknown) => Number(v));
+                    if (!cachedPolyRes) {
+                        cachedPolyRes = {
+                            node: { ...EMPTY_POLY_MODE },
+                            edge: { ...EMPTY_POLY_MODE },
+                            mixed: { ...EMPTY_POLY_MODE },
+                        };
+                    }
+                    cachedPolyRes[modeName] = {
+                        coeffs,
+                        html: formatResolvingPolynomial(coeffs),
+                    };
+                    cachedPolyKey = `${graphVersion}`;
                 }
                 
                 metricWorkersCompleted++;
@@ -528,6 +563,7 @@ function invalidateResolveCache(): void {
     cachedResolveKey = "";
     cachedNonResolveKey = "";
     cachedPdimKey = "";
+    cachedPolyKey = "";
     cachedNodeRes = null;
     cachedEdgeRes = null;
     cachedMixedRes = null;
@@ -535,6 +571,7 @@ function invalidateResolveCache(): void {
     cachedEdgeNonResolveRes = null;
     cachedMixedNonResolveRes = null;
     cachedPdimRes = null;
+    cachedPolyRes = null;
     wasmResolveCacheGraphVersion = -1;
     // Keep highlightMode, activeKind, pager indices, and subset selection across graph edits;
     // renderAll clamps page indices when the new graph has fewer pages.
@@ -1702,6 +1739,69 @@ function mergePdimResult(cached: Partial<PdimResult> | null): PdimResult {
     };
 }
 
+function mergePolynomialResult(cached: Partial<PolynomialResult> | null): PolynomialResult {
+    return {
+        node: { ...DEFAULT_POLY_RES.node, ...(cached?.node ?? {}) },
+        edge: { ...DEFAULT_POLY_RES.edge, ...(cached?.edge ?? {}) },
+        mixed: { ...DEFAULT_POLY_RES.mixed, ...(cached?.mixed ?? {}) },
+    };
+}
+
+function resolvingPolynomialTerms(coeffs: readonly number[]): string[] {
+    const terms: string[] = [];
+    for (let k = 0; k < coeffs.length; k++) {
+        const c = coeffs[k] ?? 0;
+        if (c === 0) {
+            continue;
+        }
+        if (k === 0) {
+            terms.push(String(c));
+        } else if (k === 1) {
+            terms.push(c === 1 ? "x" : `${c}x`);
+        } else {
+            terms.push(c === 1 ? `x^{${k}}` : `${c}x^{${k}}`);
+        }
+    }
+    return terms.length > 0 ? terms : ["0"];
+}
+
+function formatResolvingPolynomial(coeffs: readonly number[]): string {
+    const terms = resolvingPolynomialTerms(coeffs);
+    if (terms.length <= POLYNOMIAL_FOLD_TERM_COUNT) {
+        return `$${terms.join(" + ")}$`;
+    }
+    const previewTerms = [
+        ...terms.slice(0, 4),
+        "\\cdots",
+        ...terms.slice(-3),
+    ];
+    const preview = `$${previewTerms.join(" + ")}$`;
+    const lines: string[] = [];
+    for (let i = 0; i < terms.length; i += POLYNOMIAL_TERMS_PER_LINE) {
+        const chunk = terms.slice(i, i + POLYNOMIAL_TERMS_PER_LINE).join(" + ");
+        const suffix = i + POLYNOMIAL_TERMS_PER_LINE < terms.length ? " +" : "";
+        lines.push(
+            `<div style="max-width:100%; overflow-wrap:anywhere;">$${chunk}${suffix}$</div>`,
+        );
+    }
+    return (
+        `<details style="display:inline-block; vertical-align:top; max-width:100%;">` +
+        `<summary style="cursor:pointer;">${preview}</summary>` +
+        `<div style="margin-top:4px; max-width:100%;">${lines.join("")}</div>` +
+        `</details>`
+    );
+}
+
+function formatPolynomialHtml(polynomial: ModePolynomialResult, isLoading: boolean): string {
+    const raw = polynomial.coeffs.length > 0 ? polynomial.html : "";
+    return formatComputingPlaceholder(
+        polynomial.coeffs.length === 0,
+        raw,
+        "pdim",
+        isLoading,
+    );
+}
+
 function formatPdimModePairHtml(pair: PdimModePair, isLoading: boolean): string {
     const wo = formatComputingPlaceholder(
         pair.withoutReplacement === "",
@@ -1727,6 +1827,8 @@ function renderModeSummaryBlock(args: {
     metricLoading: boolean;
     pdim: PdimModePair;
     pdimLoading: boolean;
+    polynomial: ModePolynomialResult;
+    polynomialLoading: boolean;
 }): string {
     const metricHtml = formatComputingPlaceholder(
         args.metricLoading,
@@ -1735,11 +1837,13 @@ function renderModeSummaryBlock(args: {
         loadingAnimationVisible,
     );
     const pdimHtml = formatPdimModePairHtml(args.pdim, args.pdimLoading);
+    const polyHtml = formatPolynomialHtml(args.polynomial, args.polynomialLoading);
     return (
         `<div style="border:1px solid var(--border); border-radius:10px; padding:10px 12px; background:rgba(255,255,255,0.45); margin-top:8px;">` +
         `<div style="font-family:ui-monospace, Courier; font-weight:700; font-size:13px; margin-bottom:6px; text-transform:capitalize;">${args.label}</div>` +
         `<div>Metric dimension: ${metricHtml}</div>` +
         `<div style="margin-top:6px;">${pdimHtml}</div>` +
+        `<div style="margin-top:6px; font-family:ui-monospace, Courier; font-size:12px; overflow-wrap:anywhere;">Resolving polynomial: ${polyHtml}</div>` +
         `</div>`
     );
 }
@@ -1927,6 +2031,7 @@ function buildGraphSummaryHtml(args: {
     mixedRes: ResolveResult;
     mixedNonRes: NonResolveResult;
     pdimRes: PdimResult;
+    polynomialRes: PolynomialResult;
 }): string {
     const diameter = args.distFlat.reduce((max, d) => Math.max(max, d), -1);
     const selectedByMode = {
@@ -1949,6 +2054,11 @@ function buildGraphSummaryHtml(args: {
     void isComputingResolving;
     void isComputingPdim;
     const pdimLoading = loadingAnimationVisible && isComputingPdim;
+    const polynomialLoading = loadingAnimationVisible && (
+        args.polynomialRes.node.coeffs.length === 0 ||
+        args.polynomialRes.edge.coeffs.length === 0 ||
+        args.polynomialRes.mixed.coeffs.length === 0
+    );
     const isModeComputing = highlightMode === "node" ? args.nodeRes.minDimension === 0 : highlightMode === "edge" ? args.edgeRes.minDimension === 0 : args.mixedRes.minDimension === 0;
     const selectedBasisDisplay = formatSelectedBasisPlaceholder(isModeComputing, highlightBasisList, loadingAnimationVisible);
 
@@ -1958,6 +2068,8 @@ function buildGraphSummaryHtml(args: {
         metricLoading: args.nodeRes.minDimension === 0,
         pdim: args.pdimRes.node,
         pdimLoading,
+        polynomial: args.polynomialRes.node,
+        polynomialLoading,
     });
     const edgeBlock = renderModeSummaryBlock({
         label: "Edge",
@@ -1965,6 +2077,8 @@ function buildGraphSummaryHtml(args: {
         metricLoading: args.edgeRes.minDimension === 0,
         pdim: args.pdimRes.edge,
         pdimLoading,
+        polynomial: args.polynomialRes.edge,
+        polynomialLoading,
     });
     const mixedBlock = renderModeSummaryBlock({
         label: "Mixed",
@@ -1972,6 +2086,8 @@ function buildGraphSummaryHtml(args: {
         metricLoading: args.mixedRes.minDimension === 0,
         pdim: args.pdimRes.mixed,
         pdimLoading,
+        polynomial: args.polynomialRes.mixed,
+        polynomialLoading,
     });
 
     const summaryCompact =
@@ -2019,7 +2135,7 @@ function renderSummaryOnly(): void {
     void resolveKey;
     // Only start worker if graph changed, not if pages changed
     const hasActiveWorkers = hasRunningMetricWorkers();
-    if ((cachedMetricKey !== metricKey || !cachedNodeRes || cachedNonResolveKey !== nonResolveKey || !cachedPdimRes) && !hasActiveWorkers) {
+    if ((cachedMetricKey !== metricKey || !cachedNodeRes || cachedNonResolveKey !== nonResolveKey || !cachedPdimRes || !cachedPolyRes) && !hasActiveWorkers) {
         startMetricWorker(adj01, n, PAGE_SIZE, [nodePageIndex, edgePageIndex, mixedPageIndex], [nodeNonResolvingPageIndex, edgeNonResolvingPageIndex, mixedNonResolvingPageIndex]);
     }
 
@@ -2030,6 +2146,7 @@ function renderSummaryOnly(): void {
     const mixedRes = cachedMixedRes || { minDimension: 0, smallestBasis: [], subsets: [], truncated: false, minSizeSubsets: [], minSizeTruncated: false, totalCount: 0, pageCount: 1 };
     const mixedNonRes = cachedMixedNonResolveRes || { subsets: [], truncated: false, totalCount: 0, pageCount: 1 };
     const pdimRes = mergePdimResult(cachedPdimRes);
+    const polynomialRes = mergePolynomialResult(cachedPolyRes);
 
     normalizeNonResolvingSelections(nodeNonRes, edgeNonRes, mixedNonRes);
 
@@ -2039,7 +2156,7 @@ function renderSummaryOnly(): void {
         distFlat: snapshot.distFlat,
         edges: snapshot.edges,
         isResolvingLoading: loadingAnimationVisible && (cachedMetricKey !== metricKey || !cachedNodeRes || cachedNonResolveKey !== nonResolveKey),
-        isPdimLoading: loadingAnimationVisible && (hasRunningMetricWorkers() || cachedPdimRes === null || cachedPdimKey !== `${graphVersion}`),
+        isPdimLoading: loadingAnimationVisible && (hasRunningMetricWorkers() || cachedPdimRes === null || cachedPdimKey !== `${graphVersion}` || cachedPolyRes === null || cachedPolyKey !== `${graphVersion}`),
         nodeRes,
         nodeNonRes,
         edgeRes,
@@ -2047,6 +2164,7 @@ function renderSummaryOnly(): void {
         mixedRes,
         mixedNonRes,
         pdimRes,
+        polynomialRes,
     }));
     restoreDetailsState(graphSummary);
     graphSummary.onclick = graphTextPageClick;
@@ -2101,7 +2219,7 @@ function renderAll(): void {
     const nonResolveKey = `${graphVersion}:${nodeNonResolvingPageIndex}:${edgeNonResolvingPageIndex}:${mixedNonResolvingPageIndex}`;
     void resolveKey;
     const hasActiveWorkers = hasRunningMetricWorkers();
-    if ((cachedMetricKey !== metricKey || !cachedNodeRes || cachedNonResolveKey !== nonResolveKey || !cachedPdimRes) && !hasActiveWorkers) {
+    if ((cachedMetricKey !== metricKey || !cachedNodeRes || cachedNonResolveKey !== nonResolveKey || !cachedPdimRes || !cachedPolyRes) && !hasActiveWorkers) {
         startMetricWorker(adj01, n, PAGE_SIZE, [nodePageIndex, edgePageIndex, mixedPageIndex], [nodeNonResolvingPageIndex, edgeNonResolvingPageIndex, mixedNonResolvingPageIndex]);
     }
         // show loading but keep tables
@@ -2113,6 +2231,7 @@ function renderAll(): void {
     const mixedRes = cachedMixedRes || { minDimension: 0, smallestBasis: [], subsets: [], truncated: false, minSizeSubsets: [], minSizeTruncated: false, totalCount: 0, pageCount: 1 };
     const mixedNonRes = cachedMixedNonResolveRes || { subsets: [], truncated: false, totalCount: 0, pageCount: 1 };
     const pdimRes = mergePdimResult(cachedPdimRes);
+    const polynomialRes = mergePolynomialResult(cachedPolyRes);
 
     normalizeNonResolvingSelections(nodeNonRes, edgeNonRes, mixedNonRes);
 
@@ -2160,7 +2279,7 @@ function renderAll(): void {
         distFlat,
         edges,
         isResolvingLoading: loadingAnimationVisible && (cachedMetricKey !== metricKey || !cachedNodeRes || cachedNonResolveKey !== nonResolveKey),
-        isPdimLoading: loadingAnimationVisible && (hasRunningMetricWorkers() || cachedPdimRes === null || cachedPdimKey !== `${graphVersion}`),
+        isPdimLoading: loadingAnimationVisible && (hasRunningMetricWorkers() || cachedPdimRes === null || cachedPdimKey !== `${graphVersion}` || cachedPolyRes === null || cachedPolyKey !== `${graphVersion}`),
         nodeRes,
         nodeNonRes,
         edgeRes,
@@ -2168,6 +2287,7 @@ function renderAll(): void {
         mixedRes,
         mixedNonRes,
         pdimRes,
+        polynomialRes,
     }));
     restoreDetailsState(graphSummary);
     graphSummary.onclick = graphTextPageClick;

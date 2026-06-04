@@ -258,23 +258,52 @@ self.onmessage = async (ev: MessageEvent) => {
                             `wasm_graph_pdim_mode (without replacement) failed for mode ${mode}`,
                         );
                     }
-                    const pdimStrWithoutReplacement = readCString(
-                        m.HEAPU8,
-                        outPtr,
-                        stride,
-                    );
+	                    const pdimStrWithoutReplacement = readCString(
+	                        m.HEAPU8,
+	                        outPtr,
+	                        stride,
+	                    );
 
-                    self.postMessage({
-                        stage: 'done',
-                        progress: 100,
-                        mode,
+	                    const coeffLen = msg.n + 1;
+	                    const coeffPtr = m._malloc(coeffLen * 4);
+	                    if (coeffPtr === 0) {
+	                        throw new Error('malloc failed for resolving polynomial coefficients');
+	                    }
+	                    let resolvingPolynomialCoeffs: number[] = [];
+	                    try {
+	                        const written = m._wasm_graph_resolving_polynomial_coeffs(
+	                            msg.n,
+	                            adjPtr,
+	                            mode | 0,
+	                            coeffPtr,
+	                            coeffLen,
+	                        );
+	                        if (written !== coeffLen) {
+	                            throw new Error(
+	                                `wasm_graph_resolving_polynomial_coeffs failed for mode ${mode}`,
+	                            );
+	                        }
+	                        const coeffBase = coeffPtr / 4;
+	                        resolvingPolynomialCoeffs = new Array(coeffLen);
+	                        for (let i = 0; i < coeffLen; i++) {
+	                            resolvingPolynomialCoeffs[i] = m.HEAP32[coeffBase + i];
+	                        }
+	                    } finally {
+	                        m._free(coeffPtr);
+	                    }
+
+	                    self.postMessage({
+	                        stage: 'done',
+	                        progress: 100,
+	                        mode,
                         modeRes,
                         modeNonRes: nonModeRes,
-                        distFlat: distFlatOut,
-                        pdimStrWithReplacement,
-                        pdimStrWithoutReplacement,
-                    });
-                } finally {
+	                        distFlat: distFlatOut,
+	                        pdimStrWithReplacement,
+	                        pdimStrWithoutReplacement,
+	                        resolvingPolynomialCoeffs,
+	                    });
+	                } finally {
                     m._free(outPtr);
                 }
             } finally {

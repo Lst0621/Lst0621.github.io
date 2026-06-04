@@ -51,6 +51,8 @@ const MAX_N = 200;
 const MIN_N = 2;
 const SIM_ANIM_MS = 700;
 const EDGE_SCALE = 1.5;
+const POLYNOMIAL_FOLD_TERM_COUNT = 9;
+const POLYNOMIAL_TERMS_PER_LINE = 4;
 
 /** Full relayout: radial, every node position recomputed from the tree shape. */
 function runTreeLayout(adj01_in: number[], nv: number): Position {
@@ -62,6 +64,19 @@ let seed = (Math.random() * 0xffffffff) >>> 0;
 let adj01: number[] = [];
 let positions: Position | null = null;
 let nodeTypes: { isExteriorMajor: boolean[]; isLeaf: boolean[]; basis: number[]; dimension: number } | null = null;
+type ModeStats = {
+    pdim: { node: string; edge: string; mixed: string } | null;
+    polynomial: { node: ModePolynomialResult; edge: ModePolynomialResult; mixed: ModePolynomialResult } | null;
+    loading: boolean;
+    error: string;
+};
+type ModePolynomialResult = {
+    coeffs: number[];
+    html: string;
+};
+let modeStats: ModeStats = { pdim: null, polynomial: null, loading: false, error: "" };
+let statsWorker: Worker | null = null;
+let statsToken = 0;
 let simToken = 0;
 let pruferIoText = "";
 let pruferIoStatus = "";
@@ -138,6 +153,133 @@ function updateEdgeStatusUI(): void {
     if (!statusEl) return;
     statusEl.textContent = edgeIoStatus;
     statusEl.style.color = edgeIoStatusIsError ? "#dc322f" : "#586e75";
+}
+
+function formatRationalDisplay(raw: string | undefined | null): string {
+    const s = String(raw ?? "").trim();
+    if (!s.includes("/")) return s;
+    const parts = s.split("/");
+    if (parts.length !== 2) return s;
+    const num = Number(parts[0]);
+    const den = Number(parts[1]);
+    if (den === 0 || Number.isNaN(num) || Number.isNaN(den)) return s;
+    if (num % den === 0) return String(num / den);
+    return `$\\frac{${num}}{${den}}$ (${(num / den).toFixed(2)})`;
+}
+
+function resolvingPolynomialTerms(coeffs: readonly number[]): string[] {
+    const terms: string[] = [];
+    for (let k = 0; k < coeffs.length; k++) {
+        const c = coeffs[k] ?? 0;
+        if (c === 0) continue;
+        if (k === 0) {
+            terms.push(String(c));
+        } else if (k === 1) {
+            terms.push(c === 1 ? "x" : `${c}x`);
+        } else {
+            terms.push(c === 1 ? `x^{${k}}` : `${c}x^{${k}}`);
+        }
+    }
+    return terms.length > 0 ? terms : ["0"];
+}
+
+function formatResolvingPolynomial(coeffs: readonly number[]): string {
+    const terms = resolvingPolynomialTerms(coeffs);
+    if (terms.length <= POLYNOMIAL_FOLD_TERM_COUNT) {
+        return `$${terms.join(" + ")}$`;
+    }
+    const previewTerms = [
+        ...terms.slice(0, 4),
+        "\\cdots",
+        ...terms.slice(-3),
+    ];
+    const preview = `$${previewTerms.join(" + ")}$`;
+    const lines: string[] = [];
+    for (let i = 0; i < terms.length; i += POLYNOMIAL_TERMS_PER_LINE) {
+        const chunk = terms.slice(i, i + POLYNOMIAL_TERMS_PER_LINE).join(" + ");
+        const suffix = i + POLYNOMIAL_TERMS_PER_LINE < terms.length ? " +" : "";
+        lines.push(
+            `<div style="max-width:100%; overflow-wrap:anywhere;">$${chunk}${suffix}$</div>`,
+        );
+    }
+    return (
+        `<details style="display:inline-block; vertical-align:top; max-width:100%;">` +
+        `<summary style="cursor:pointer;">${preview}</summary>` +
+        `<div style="margin-top:4px; max-width:100%;">${lines.join("")}</div>` +
+        `</details>`
+    );
+}
+
+function makeModePolynomialResult(coeffs: readonly number[]): ModePolynomialResult {
+    const coeffList = Array.from(coeffs, (v) => Number(v));
+    return {
+        coeffs: coeffList,
+        html: formatResolvingPolynomial(coeffList),
+    };
+}
+
+function resetModeStats(): void {
+    modeStats = { pdim: null, polynomial: null, loading: false, error: "" };
+    if (statsWorker) {
+        try { statsWorker.terminate(); } catch {}
+        statsWorker = null;
+    }
+    statsToken++;
+}
+
+function startModeStatsWorker(): void {
+    const token = ++statsToken;
+    if (statsWorker) {
+        try { statsWorker.terminate(); } catch {}
+        statsWorker = null;
+    }
+    modeStats = { pdim: null, polynomial: null, loading: true, error: "" };
+    updateInfo();
+
+    const worker = new Worker("/assets/js/page/tree_stats_worker.js", { type: "module" });
+    statsWorker = worker;
+    worker.onmessage = (ev) => {
+        const d = ev.data as any;
+        if (d.token !== token) {
+            return;
+        }
+        if (d.error) {
+            modeStats = { pdim: null, polynomial: null, loading: false, error: String(d.error) };
+        } else {
+            modeStats = {
+                pdim: d.pdim,
+                polynomial: {
+                    node: makeModePolynomialResult(d.polynomial.node ?? []),
+                    edge: makeModePolynomialResult(d.polynomial.edge ?? []),
+                    mixed: makeModePolynomialResult(d.polynomial.mixed ?? []),
+                },
+                loading: false,
+                error: "",
+            };
+        }
+        if (statsWorker === worker) {
+            statsWorker = null;
+        }
+        try { worker.terminate(); } catch {}
+        updateInfo();
+    };
+    worker.onerror = (ev) => {
+        if (statsToken !== token) {
+            return;
+        }
+        modeStats = {
+            pdim: null,
+            polynomial: null,
+            loading: false,
+            error: ev.message || "tree stats worker failed",
+        };
+        if (statsWorker === worker) {
+            statsWorker = null;
+        }
+        try { worker.terminate(); } catch {}
+        updateInfo();
+    };
+    worker.postMessage({ cmd: "start", token, adj01, n });
 }
 
 function syncPruferIoFromGraph(): void {
@@ -232,15 +374,38 @@ function hitNode(mx: number, my: number, pos: { x: number[]; y: number[] }): num
 }
 
 function updateInfo() {
-    const dimEl = document.getElementById("dim-value")!;
-    const basisEl = document.getElementById("basis-value")!;
-    const formulaEl = document.getElementById("formula-value")!;
-    if (!nodeTypes) { dimEl.textContent = "..."; basisEl.textContent = "..."; formulaEl.textContent = ""; return; }
-    dimEl.textContent = String(nodeTypes.dimension);
-    basisEl.textContent = nodeTypes.basis.length > 0 ? "{" + nodeTypes.basis.join(", ") + "}" : "{}";
+    const infoEl = document.getElementById("info-area")!;
+    if (!nodeTypes) {
+        infoEl.innerHTML = "Metric dimension: ...<br>Basis: ...";
+        return;
+    }
     const lc = nodeTypes.isLeaf.filter(Boolean).length;
     const mc = nodeTypes.isExteriorMajor.filter(Boolean).length;
-    formulaEl.textContent = `(${lc} leaves − ${mc} ext-major = ${nodeTypes.dimension})`;
+    const basis = nodeTypes.basis.length > 0 ? "{" + nodeTypes.basis.join(", ") + "}" : "{}";
+    let statsHtml = "";
+    if (modeStats.loading) {
+        statsHtml = `<br><br><span style="color:var(--muted);">pdim / resolving polynomial: computing...</span>`;
+    } else if (modeStats.error) {
+        statsHtml = `<br><span style="color:#dc322f;">pdim / resolving polynomial: ${modeStats.error}</span>`;
+    } else if (modeStats.pdim && modeStats.polynomial) {
+        statsHtml =
+            `<br><br>` +
+            `pdim node: ${formatRationalDisplay(modeStats.pdim.node)}<br>` +
+            `pdim edge: ${formatRationalDisplay(modeStats.pdim.edge)}<br>` +
+            `pdim mixed: ${formatRationalDisplay(modeStats.pdim.mixed)}<br>` +
+            `<br>` +
+            `<div style="overflow-wrap:anywhere;">Resolving polynomial node: ${modeStats.polynomial.node.html}</div>` +
+            `<div style="overflow-wrap:anywhere;">Resolving polynomial edge: ${modeStats.polynomial.edge.html}</div>` +
+            `<div style="overflow-wrap:anywhere;">Resolving polynomial mixed: ${modeStats.polynomial.mixed.html}</div>`;
+    }
+    infoEl.innerHTML =
+        `Metric dimension: ${nodeTypes.dimension}<br>` +
+        `<span style="color:var(--muted);">(${lc} leaves - ${mc} ext-major = ${nodeTypes.dimension})</span><br>` +
+        `Basis: ${basis}` +
+        statsHtml;
+    if ((window as any).MathJax?.typesetPromise) {
+        (window as any).MathJax.typesetPromise([infoEl]).catch(() => {});
+    }
 }
 function updateSizeLabel() { document.getElementById("size-label")!.textContent = "n=" + n; }
 function setupCanvas(c: HTMLCanvasElement) {
@@ -265,11 +430,12 @@ function render() {
 // ── Operations (all graph logic in C++/WASM) ───────────────────────
 
 async function regenerate() {
-    nodeTypes = null; positions = null; updateInfo();
+    nodeTypes = null; positions = null; resetModeStats(); updateInfo();
     await modulePromise;
     const r = wasmGraphRandomTree(n, seed);
     adj01 = r.adj01;
     nodeTypes = wasmGraphTreeMetricDimension(adj01, n);
+    startModeStatsWorker();
     const simId = ++simToken;
     const newPos = runTreeLayout(adj01, n);
     const from = positions;
@@ -298,6 +464,7 @@ async function addLeafTo(parent: number) {
     adj01 = r.adj01;
     n = r.n;
     nodeTypes = wasmGraphTreeMetricDimension(adj01, n);
+    startModeStatsWorker();
     const newPos: Position = { x: r.x, y: r.y };
     positions = animFrom;
     render();
@@ -322,6 +489,7 @@ async function removeLeaf(leaf: number) {
     adj01 = r.adj01;
     n = r.n;
     nodeTypes = wasmGraphTreeMetricDimension(adj01, n);
+    startModeStatsWorker();
     const newPos: Position = { x: r.x, y: r.y };
     // animatePositions needs equal length: drop removed leaf from start frame
     const fromReduced: Position = { x: [], y: [] };
@@ -367,6 +535,7 @@ async function removeHalfLeaves() {
 
     if (simId !== simToken) return;
     nodeTypes = wasmGraphTreeMetricDimension(adj01, n);
+    startModeStatsWorker();
     updateSizeLabel();
     updateInfo();
     updateBannerVisibility();
@@ -387,6 +556,7 @@ async function importPruferText(raw: string): Promise<void> {
     adj01 = decoded.adj01;
     n = decoded.n;
     nodeTypes = wasmGraphTreeMetricDimension(adj01, n);
+    startModeStatsWorker();
     const newPos = runTreeLayout(adj01, n);
     positions = newPos;
     render();
@@ -438,6 +608,7 @@ async function importEdgeListText(raw: string): Promise<{ base: 0 | 1; n: number
     adj01 = nextAdj;
     n = nextN;
     nodeTypes = wasmGraphTreeMetricDimension(adj01, n);
+    startModeStatsWorker();
     const newPos = runTreeLayout(adj01, n);
     positions = newPos;
     render();
