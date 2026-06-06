@@ -10,7 +10,7 @@ echo "==> Build WASM (Emscripten) into: ${WASM_BUILD_DIR}"
 "${WASM_DIR}/build.sh"
 
 echo "==> Generate history CSV"
-bash "${REPO_ROOT}/get_last_commit_time.sh"
+bash "${REPO_ROOT}/scripts/site-history/get_last_commit_time.sh"
 
 echo "==> Copy WASM outputs to: ${ASSETS_WASM_DIR}"
 mkdir -p "${ASSETS_WASM_DIR}"

@@ -2,7 +2,9 @@
 
 set -euo pipefail
 
-OUTPUT_FILE="assets/history.csv"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+OUTPUT_FILE="${REPO_ROOT}/assets/history.csv"
 TMP_FILE="${OUTPUT_FILE}.tmp"
 
 echo "Getting last commit time of files tracked by git..."
@@ -16,7 +18,7 @@ append_history_entries() {
     local file
 
     while IFS= read -r file; do
-        if [[ "$repo_dir" == "." && "$file" == "assets/history.csv" ]]; then
+        if [[ "$repo_dir" == "$REPO_ROOT" && "$file" == "assets/history.csv" ]]; then
             continue
         fi
 
@@ -48,7 +50,7 @@ append_history_entries() {
     fi
 }
 
-append_history_entries "."
+append_history_entries "$REPO_ROOT"
 
 mv "$TMP_FILE" "$OUTPUT_FILE"
 

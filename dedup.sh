@@ -1,1 +1,0 @@
-cut -f3 -d\| resource/lib_of_hj.psv  | sort | uniq -c

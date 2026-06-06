@@ -1,1 +1,0 @@
-sort resource/lib_of_hj.psv  -r -n -k4 -k5  -s -t\| -o resource/lib_of_hj.sorted.psv
