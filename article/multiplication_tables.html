@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<head>
+    <title>Multiplication Tables</title>
+    <link rel="icon" href="../img/flame1.png">
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-9BLVHLETMC"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+
+        function gtag() {
+            dataLayer.push(arguments);
+        }
+
+        gtag('js', new Date());
+        gtag('config', 'G-9BLVHLETMC');
+    </script>
+</head>
+<body>
+<h1 style="margin-top: 10;font-size: 18pt;font-weight:normal;font-family: Courier;" align="center">
+    Multiplication Tables
+</h1>
+<p align="center">
+    The perfect model of truth is the multiplication table, which is precise and certain and free from all temporal
+    dross -- Bertrand Russell.
+</p>
+<p align="center">
+    <span id="mul_text">Multiplication table</span>
+    <br>
+    <button id="mode_zn"></button>
+    <button id="mode_sn"></button>
+    <button id="mode_an"></button>
+    <button id="mode_dn"></button>
+    <button id="mode_gl2"></button>
+    <br>
+    n=<span id="n_value">7</span>
+    <button onclick="increment()">+</button>
+    <button onclick="decrement()">-</button>
+    <span id="n_range"></span>
+    <br>
+    <span id="mul_status"></span>
+</p>
+<table id="multiplication_table" align="center"></table>
+<br>
+<table id="multiplication_table_secondary" align="center"></table>
+
+<script type="module">
+    import {increment, decrement, set_mode, update_table} from "/assets/js/page/multiplication_tables.js"
+
+    Object.assign(window, {increment, decrement, set_mode, update_table})
+</script>
+
+<a href="../index.html">
+    Back
+</a>
+
+</body>

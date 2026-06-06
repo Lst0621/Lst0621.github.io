@@ -31,6 +31,7 @@ export const sections: Section[] = [
       { name: "Graph Metric Dimension", url: "article/graph_demo.html" },
       { name: "Tree Metric Dimension", url: "article/tree_viz.html" },
       { name: "Chess Board Puzzle (C++/WASM)", url: "article/chess_board.html" },
+      { name: "Multiplication Tables", url: "article/multiplication_tables.html" },
     ],
   },
   {
@@ -53,10 +54,6 @@ export const sections: Section[] = [
       { name: "Cartesian Product", url: "article/cartesian_product.html" },
       { name: "Hex Distance", url: "article/hex_dist.html" },
       { name: "Hex Game of Life", url: "article/hex_gol.html" },
-      { name: "Multiplication Table for Modular Arithmetic", url: "article/multiply.html" },
-      { name: "Multiplication Table for Permutation", url: "article/multiply_permutation.html" },
-      { name: "Multiplication Table for Dihedral", url: "article/multiply_dihedral.html" },
-      { name: "Multiplication Table for General Linear Group", url: "article/multiply_gl.html" },
       { name: "Square Patterns", url: "article/square_patterns.html" },
       { name: "Permutation Product Calculator", url: "article/permutation_product_calculator.html" },
       { name: "Set Relations", url: "article/set_relation.html" },
@@ -99,6 +96,15 @@ export const sections: Section[] = [
     ],
   },
   {
+    title: "Earlier Versions",
+    pages: [
+      { name: "Modular Multiplication Table", url: "article/multiply.html" },
+      { name: "Permutation Multiplication Tables", url: "article/multiply_permutation.html" },
+      { name: "Dihedral Multiplication Tables", url: "article/multiply_dihedral.html" },
+      { name: "GL Multiplication Table", url: "article/multiply_gl.html" },
+    ],
+  },
+  {
     title: "Unlisted",
     showOnIndex: false,
     pages: [
@@ -125,6 +131,7 @@ function renderSitePages(): void {
     const h1 = document.createElement("h1");
     h1.textContent = section.title;
     container.appendChild(h1);
+
     for (const page of section.pages) {
       const a = document.createElement("a");
       a.href = page.url;
