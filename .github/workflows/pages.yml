@@ -26,7 +26,7 @@ jobs:
           token: ${{ secrets.MY_PAT }}
 
       - name: Generate history CSV
-        run: bash ./get_last_commit_time.sh
+        run: bash ./scripts/site-history/get_last_commit_time.sh
 
       - name: Setup Node
         uses: actions/setup-node@v6
