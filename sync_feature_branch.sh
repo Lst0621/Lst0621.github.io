@@ -4,15 +4,17 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/git_workflow_common.sh"
 
+SUBMODULE_PATH="lib/tsl"
+
 usage() {
   cat <<'EOF'
 Usage:
   ./sync_feature_branch.sh [site-branch] [tsl-branch] [remote]
 
 Description:
-  Rebase the site repo and lib/tsl submodule directly onto origin/master and
-  origin/main, record the updated lib/tsl gitlink in the site repo, then push
-  the updated feature tips back to the matching remote branches.
+  Rebase lib/tsl onto origin/main, align the lib/tsl gitlink in the site
+  repo, then rebase the site repo onto origin/master. Does not push; use
+  ./push_feature_branch.sh when ready to publish.
 
 Defaults:
   feature branch = current checkout in site repo
@@ -23,11 +25,70 @@ Defaults:
 EOF
 }
 
+submodule_pointer_dirty() {
+  [[ -n "$(git -C "$SITE_ROOT" status --porcelain -- "$SUBMODULE_PATH")" ]]
+}
+
+show_submodule_pointer_diff() {
+  local recorded checked_out
+  recorded="$(git -C "$SITE_ROOT" ls-tree HEAD "$SUBMODULE_PATH" | awk '{print $3}')"
+  checked_out="$(git -C "$TSL_ROOT" rev-parse HEAD)"
+  echo "==> Recorded in site tip: ${recorded:-<none>}"
+  echo "==> Checked out in lib/tsl: ${checked_out}"
+}
+
+prompt_yes() {
+  local prompt="$1"
+  local answer
+  read -r -p "${prompt} [y/N] " answer
+  [[ "$answer" == "y" || "$answer" == "Y" ]]
+}
+
+maybe_amend_submodule_pointer() {
+  local prompt="$1"
+
+  if ! submodule_pointer_dirty; then
+    echo "==> lib/tsl pointer already matches site tip; skipping."
+    return 0
+  fi
+
+  ensure_clean_except_submodule "$SITE_ROOT" "site repo" "$SUBMODULE_PATH"
+  show_submodule_pointer_diff
+
+  if ! prompt_yes "$prompt"; then
+    die "aborted; site rebase requires a clean tree with an aligned lib/tsl pointer"
+  fi
+
+  git -C "$SITE_ROOT" add "$SUBMODULE_PATH"
+  git -C "$SITE_ROOT" commit --amend --no-edit
+  echo "==> Amended site tip with lib/tsl pointer."
+}
+
+maybe_commit_submodule_pointer() {
+  local prompt="$1"
+
+  if ! submodule_pointer_dirty; then
+    echo "==> lib/tsl pointer already matches site tip; nothing to fix."
+    return 0
+  fi
+
+  ensure_clean_except_submodule "$SITE_ROOT" "site repo" "$SUBMODULE_PATH"
+  show_submodule_pointer_diff
+
+  if ! prompt_yes "$prompt"; then
+    echo "==> Skipped lib/tsl pointer fix; run ./push_feature_branch.sh or commit manually."
+    return 0
+  fi
+
+  commit_submodule_pointer_if_needed "$SITE_ROOT" "$SITE_FEATURE_BRANCH"
+  echo "==> Recorded lib/tsl pointer in site repo."
+}
+
 SITE_BASE_BRANCH="master"
 TSL_BASE_BRANCH="main"
 
 SITE_ROOT="$SCRIPT_DIR"
-TSL_ROOT="${SITE_ROOT}/lib/tsl"
+TSL_ROOT="${SITE_ROOT}/${SUBMODULE_PATH}"
 
 [[ -d "$TSL_ROOT" ]] || die "missing submodule path: ${TSL_ROOT}"
 
@@ -66,13 +127,16 @@ checkout_feature_branch "$SITE_ROOT" "$SITE_FEATURE_BRANCH" "$REMOTE_NAME" "$REM
 echo "==> Checking out feature branch in lib/tsl..."
 checkout_feature_branch "$TSL_ROOT" "$TSL_FEATURE_BRANCH" "$REMOTE_NAME" "$REMOTE_NAME/$TSL_BASE_BRANCH"
 
-echo "==> Rebasing site repo onto ${REMOTE_NAME}/${SITE_BASE_BRANCH}..."
-git -C "$SITE_ROOT" rebase "${REMOTE_NAME}/${SITE_BASE_BRANCH}"
-
 echo "==> Rebasing lib/tsl onto ${REMOTE_NAME}/${TSL_BASE_BRANCH}..."
 git -C "$TSL_ROOT" rebase "${REMOTE_NAME}/${TSL_BASE_BRANCH}"
 
-echo "==> Pushing lib/tsl to ${REMOTE_NAME}/${TSL_BASE_BRANCH}..."
-"${SCRIPT_DIR}/push_feature_branch.sh" "$SITE_FEATURE_BRANCH" "$TSL_FEATURE_BRANCH" "$REMOTE_NAME"
+maybe_amend_submodule_pointer \
+  "Amend site tip with lib/tsl pointer so site rebase can run?"
 
-echo "Done."
+echo "==> Rebasing site repo onto ${REMOTE_NAME}/${SITE_BASE_BRANCH}..."
+git -C "$SITE_ROOT" rebase "${REMOTE_NAME}/${SITE_BASE_BRANCH}"
+
+maybe_commit_submodule_pointer \
+  "Fix lib/tsl pointer at site tip?"
+
+echo "Done. Use ./push_feature_branch.sh when ready to publish."
