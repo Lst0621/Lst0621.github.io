@@ -31,6 +31,7 @@ export const sections: Section[] = [
       { name: "Graph Metric Dimension", url: "article/graph_demo.html" },
       { name: "Tree Metric Dimension", url: "article/tree_viz.html" },
       { name: "Chess Board Puzzle (C++/WASM)", url: "article/chess_board.html" },
+      { name: "Inverse Kinematics", url: "article/inverse_kinematics.html" },
       { name: "Multiplication Tables", url: "article/multiplication_tables.html" },
     ],
   },
