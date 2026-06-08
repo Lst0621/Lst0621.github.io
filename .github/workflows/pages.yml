@@ -47,9 +47,14 @@ jobs:
           actions-cache-folder: emsdk-cache
 
 
-      - name: C++ unit tests (Google Test)
+      - name: C++ unit tests (Google Test — core)
         run: |
           cd lib/tsl/core
+          ./test_build.sh
+
+      - name: C++ unit tests (Google Test — apps_geometry)
+        run: |
+          cd lib/tsl/apps_geometry
           ./test_build.sh
 
       - name: Build WASM (CI folder)

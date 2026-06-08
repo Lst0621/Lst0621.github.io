@@ -10,9 +10,11 @@ import {
     voronoiSetChebyshevNoTie,
     voronoiNumSites,
     voronoiGetSite,
+    voronoiGetCellBoundaries,
     voronoiGetCellBoundariesInternal,
     voronoiGetCellBoundariesExact,
     voronoiGetNeighbors,
+    voronoiFindSiteIndex,
     exactRationalToNumber,
     modulePromise,
     VoronoiCellBoundary,
@@ -124,7 +126,8 @@ let latestInternalBoundaries: VoronoiCellBoundary[] = [];
 type CachedGeometry = {
     boundaries: VoronoiCellBoundary[];
     internalBoundaries: VoronoiCellBoundary[];
-    exactBoundaries: VoronoiCellBoundaryExact[];
+    /** Populated only when debug mode is active. */
+    exactBoundaries?: VoronoiCellBoundaryExact[];
     siteColors: Map<number, number>;
 };
 
@@ -135,9 +138,12 @@ function emptyGeometry(): CachedGeometry {
     return {
         boundaries: [],
         internalBoundaries: [],
-        exactBoundaries: [],
         siteColors: new Map<number, number>(),
     };
+}
+
+function isVoronoiDebugMode(): boolean {
+    return debugModeCheckbox?.checked ?? false;
 }
 
 function invalidateGeometryCache(): void {
@@ -488,29 +494,34 @@ function buildGeometry(
     voronoiCompute();
     const tCompute1 =
         tCompute0 !== 0 ? performance.now() : 0;
-    let exactBoundaries = voronoiGetCellBoundariesExact();
-    if (nSites > 0 && exactBoundaries.length !== nSites) {
+
+    let boundaries = voronoiGetCellBoundaries();
+    if (nSites > 0 && boundaries.length !== nSites) {
         console.warn(
-            `voronoi: expected ${nSites} cells from WASM, got ${exactBoundaries.length} — using canvas fallback`,
+            `voronoi: expected ${nSites} cells from WASM, got ${boundaries.length} — using canvas fallback`,
         );
-        exactBoundaries = fallbackCellBoundariesExact(nSites);
+        const exactFallback = fallbackCellBoundariesExact(nSites);
+        boundaries = exactFallback.map((cell) => ({
+            site: cell.site,
+            polygons: cell.polygons.map((polygon) =>
+                polygon.map((p) => ({
+                    x: exactRationalToNumber(p.x),
+                    y: exactRationalToNumber(p.y),
+                })),
+            ),
+        }));
     }
+
+    const internalBoundaries =
+        edgeDisplay === "pieces" ? voronoiGetCellBoundariesInternal() : [];
+
     const tFetch1 = tCompute1 !== 0 ? performance.now() : 0;
     if (tCompute0 !== 0) {
         console.debug(
             `voronoi: ${pairKey(metric, topology)} compute=${(tCompute1 - tCompute0).toFixed(1)} ms fetch=${(tFetch1 - tCompute1).toFixed(1)} ms`,
         );
     }
-    const boundaries = exactBoundaries.map((cell) => ({
-        site: cell.site,
-        polygons: cell.polygons.map((polygon) =>
-            polygon.map((p) => ({
-                x: exactRationalToNumber(p.x),
-                y: exactRationalToNumber(p.y),
-            })),
-        ),
-    }));
-    const internalBoundaries = voronoiGetCellBoundariesInternal();
+
     const adjacency = voronoiGetNeighbors(siteIds);
 
     const savedColors = siteColors;
@@ -519,7 +530,21 @@ function buildGeometry(
     const recolored = new Map(siteColors);
     siteColors = savedColors;
 
-    logVoronoiGeometryDebug(pairKey(metric, topology), boundaries, exactBoundaries, recolored);
+    let exactBoundaries: VoronoiCellBoundaryExact[] | undefined;
+    if (isVoronoiDebugMode()) {
+        exactBoundaries = voronoiGetCellBoundariesExact();
+        if (nSites > 0 && exactBoundaries.length !== nSites) {
+            exactBoundaries = fallbackCellBoundariesExact(nSites);
+        }
+    }
+
+    logVoronoiGeometryDebug(
+        pairKey(metric, topology),
+        boundaries,
+        exactBoundaries ?? [],
+        recolored,
+    );
+
     return { boundaries, internalBoundaries, exactBoundaries, siteColors: recolored };
 }
 
@@ -809,41 +834,7 @@ canvas.addEventListener("contextmenu", (e) => {
     const py = Math.round(e.clientY - rect.top);
     const { x, y } = canvasToModel(px, py);
 
-    const dists = voronoiComputeSiteDistances(x, y);
-    let nearestIdx = -1;
-    let bestDist = Infinity;
-    let secondDist = Infinity;
-    const metric = voronoiMetric;
-    const tieBreak = chebyshevTieBreak;
-    for (let i = 0; i < dists.length; i++) {
-        const d = dists[i]!;
-        if (metric === "l2") {
-            // L2 tie-break: smallest index
-            if (d < bestDist || (d === bestDist && i < nearestIdx)) {
-                nearestIdx = i;
-                bestDist = d;
-            }
-        } else {
-            // L1 / Linf strict or tie-break
-            if (tieBreak) {
-                if (d < bestDist) {
-                    bestDist = d;
-                    nearestIdx = i;
-                }
-            } else {
-                if (d < bestDist) {
-                    secondDist = bestDist;
-                    bestDist = d;
-                    nearestIdx = i;
-                } else if (d < secondDist) {
-                    secondDist = d;
-                }
-            }
-        }
-    }
-    if (metric !== "l2" && !tieBreak && bestDist >= secondDist) {
-        nearestIdx = -1;  // strict: tie → no site
-    }
+    const nearestIdx = voronoiFindSiteIndex(x, y);
     if (nearestIdx >= 0) {
         removePoint(nearestIdx);
         refreshGeometry();

@@ -18,8 +18,11 @@ run_step() {
   "$@"
 }
 
-run_step "C++ Google Test (configure, build, run) — lib/tsl/core/test_build.sh" \
+run_step "C++ Google Test (core) — lib/tsl/core/test_build.sh" \
   bash -c "cd \"${REPO_ROOT}/lib/tsl/core\" && ./test_build.sh"
+
+run_step "C++ Google Test (apps_geometry) — lib/tsl/apps_geometry/test_build.sh" \
+  bash -c "cd \"${REPO_ROOT}/lib/tsl/apps_geometry\" && ./test_build.sh"
 
 run_step "Website assets (WASM + JS) — ./build_assets_local.sh" \
   bash -c "cd \"${REPO_ROOT}\" && ./build_assets_local.sh"

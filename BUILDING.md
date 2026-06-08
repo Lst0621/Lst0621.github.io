@@ -72,10 +72,16 @@ cd lib && npm run jest
 
 ### C++ unit tests (Google Test)
 
-Sources live under `lib/tsl/core/gtest/`. Build output: `lib/tsl/core/native_build/`.
+Core sources: `lib/tsl/core/gtest/` → `lib/tsl/core/native_build/`
 
 ```bash
 cd lib/tsl/core && ./test_build.sh
+```
+
+Apps geometry (Voronoi): `lib/tsl/apps_geometry/gtest/` → `lib/tsl/apps_geometry/native_build/`
+
+```bash
+cd lib/tsl/apps_geometry && ./test_build.sh
 ```
 
 ## Feature branch workflow helpers
