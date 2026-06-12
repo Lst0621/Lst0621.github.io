@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta charset="UTF-8">
+    <title>Run Codex and Claude Code in Cursor with WSL</title>
+    <link rel="icon" href="../img/flame1.png">
+    <link rel="stylesheet" href="../resource/solarized_light.css">
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-9BLVHLETMC"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-9BLVHLETMC');
+    </script>
+    <style>
+        body {
+            max-width: 820px;
+            margin: 0 auto;
+            padding: 24px 20px 60px;
+        }
+
+        h1 { font-size: 28px; margin-top: 32px; }
+        h2 { font-size: 20px; margin-top: 28px; border-bottom: 1px solid var(--border); padding-bottom: 4px; }
+        h3 { font-size: 16px; margin-top: 22px; }
+
+        p, li { line-height: 1.7; }
+        ul, ol { padding-left: 22px; }
+
+        pre {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 14px 18px;
+            overflow-x: auto;
+            font-size: 13px;
+            line-height: 1.55;
+        }
+
+        code {
+            font-family: "Fira Code", "Cascadia Code", "JetBrains Mono", Consolas, "Courier New", monospace;
+            font-size: 13px;
+        }
+
+        :not(pre) > code {
+            background: var(--panel);
+            padding: 1px 5px;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+        }
+
+        .box {
+            border-left: 4px solid var(--accent);
+            background: var(--panel);
+            border-radius: 0 8px 8px 0;
+            padding: 10px 16px;
+            margin: 16px 0;
+        }
+
+        .box.tip {
+            border-left-color: #859900;
+        }
+
+        .step {
+            display: inline-block;
+            background: var(--accent);
+            color: #fff;
+            width: 26px;
+            height: 26px;
+            line-height: 26px;
+            text-align: center;
+            border-radius: 50%;
+            font-weight: 600;
+            font-size: 14px;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        .back {
+            display: inline-block;
+            margin-top: 40px;
+        }
+
+        .cmd-desc {
+            color: var(--muted);
+            font-size: 13px;
+            margin-top: -8px;
+        }
+    </style>
+</head>
+<body class="solarized">
+
+<h1>Run Codex and Claude Code in Cursor <small style="font-weight:400;font-size:18px;color:var(--muted)">(with WSL)</small></h1>
+<p id="modify_time"></p>
+
+<p>
+    Cursor is a VS Code compatible editor, so it can host both the Codex IDE
+    extension and the Claude Code extension. If your repo and build tools live
+    in WSL, open Cursor from the WSL side and let the agents run against the
+    Linux filesystem. Then you can keep separate Codex and Claude Code chats,
+    tabs, and sidebars while they work on the same project.
+</p>
+
+<div class="box tip">
+    <strong>Vocabulary note:</strong> Cursor installs these as editor
+    extensions. Codex and Claude Code also have their own plugin systems inside
+    the agents; use those after the extensions are working.
+</div>
+
+<h2>Goal</h2>
+
+<pre>
+Windows Cursor window
+  - opened from WSL, connected to a Linux repo
+  - Codex panel for OpenAI Codex agent threads
+  - Claude Code panel for Claude agent threads
+  - separate chats/tabs for different tasks
+</pre>
+
+<h2>Prerequisites</h2>
+
+<ul>
+    <li>Windows 10/11 with WSL 2 installed.</li>
+    <li>A repo stored under WSL, for example <code>~/code/my-project</code>.</li>
+    <li>Cursor installed on Windows.</li>
+    <li>The WSL extension installed in Cursor.</li>
+    <li>A ChatGPT account for Codex, and a Claude account or Anthropic setup for Claude Code.</li>
+</ul>
+
+<h2>Setup</h2>
+
+<h3><span class="step">1</span> Open Cursor from WSL</h3>
+
+<p>In a WSL terminal, go to your project and launch Cursor:</p>
+
+<pre>cd ~/code/my-project
+cursor .</pre>
+
+<p>
+    If <code>cursor</code> is not available in WSL, open Cursor on Windows,
+    run the command palette with <code>Ctrl+Shift+P</code>, and look for the
+    command that installs the Cursor shell command. You can also open the folder
+    in Cursor and run <code>WSL: Reopen Folder in WSL</code>.
+</p>
+
+<p>Confirm the window is really in WSL:</p>
+
+<pre>echo $WSL_DISTRO_NAME
+pwd</pre>
+
+<p class="cmd-desc">
+    You want Linux paths like <code>/home/...</code>, not <code>C:\...</code>.
+</p>
+
+<h3><span class="step">2</span> Install Codex in Cursor</h3>
+
+<ol>
+    <li>Open Extensions with <code>Ctrl+Shift+X</code>.</li>
+    <li>Search for <strong>Codex</strong> and install the OpenAI Codex extension.</li>
+    <li>Open the Codex sidebar or run <code>Codex: Open Sidebar</code> from <code>Ctrl+Shift+P</code>.</li>
+    <li>Sign in when prompted.</li>
+    <li>Open Cursor settings, search for <code>Codex</code>, and enable running Codex in WSL if your repos live there.</li>
+</ol>
+
+<p>
+    The Codex WSL setting is named
+    <code>chatgpt.runCodexInWindowsSubsystemForLinux</code>. After changing it,
+    reload Cursor so the extension starts in the right environment.
+</p>
+
+<div class="box">
+    Codex uses the same agent as the Codex CLI and shares configuration through
+    <code>~/.codex/config.toml</code>. Use the IDE panel for normal work, and
+    use the CLI when you want terminal-first plugin or configuration management.
+</div>
+
+<h3><span class="step">3</span> Install Claude Code in Cursor</h3>
+
+<ol>
+    <li>Open Extensions with <code>Ctrl+Shift+X</code>.</li>
+    <li>Search for <strong>Claude Code</strong> and install it for Cursor.</li>
+    <li>Open the Claude Code panel from the activity bar, status bar, or command palette.</li>
+    <li>Sign in with your Claude account, or use your configured provider environment.</li>
+    <li>Send a small prompt, then review the proposed diff before accepting edits.</li>
+</ol>
+
+<p>
+    Claude Code can run as a graphical panel or in terminal mode. Start with the
+    panel so you can use tabs, session history, file mentions, and visible diffs.
+</p>
+
+<h3><span class="step">4</span> Manage plugins</h3>
+
+<p>For Codex plugins, open Codex CLI inside WSL:</p>
+
+<pre>codex
+/plugins</pre>
+
+<p>
+    Browse the plugin list, install the plugin you need, then start a new Codex
+    thread. Installed Codex plugins can add skills, app integrations, and MCP
+    servers.
+</p>
+
+<p>For Claude Code plugins, use the Claude prompt box:</p>
+
+<pre>/plugins</pre>
+
+<p>
+    The Claude Code plugin dialog lets you install available plugins, enable or
+    disable installed plugins, and add plugin marketplaces. Restart Claude Code
+    when it asks you to apply marketplace changes.
+</p>
+
+<h3><span class="step">5</span> Use separate chats for separate jobs</h3>
+
+<ul>
+    <li>Use Codex for tasks where you want OpenAI Codex, repo-aware edits, command execution, or Codex plugins.</li>
+    <li>Use Claude Code for tasks where you want Claude's plan review, Claude sessions, or Claude plugins.</li>
+    <li>Open new tabs or panels for unrelated tasks so each agent keeps a clean local context.</li>
+    <li>Name the chats by task, for example <code>fix-login-test</code>, <code>draft-doc-page</code>, or <code>review-pr</code>.</li>
+    <li>Keep the repo under WSL's Linux filesystem for faster file I/O and fewer permission surprises.</li>
+</ul>
+
+<h2>Troubleshooting</h2>
+
+<h3>Cursor opened the Windows copy of the repo</h3>
+<p>
+    Reopen the folder in WSL from the command palette, or close Cursor and
+    launch it again from the WSL terminal with <code>cursor .</code>.
+</p>
+
+<h3>The agent cannot find Linux tools</h3>
+<p>
+    Make sure the integrated terminal is a WSL terminal and that the extension
+    is running in the WSL remote window. Run <code>which node</code>,
+    <code>which git</code>, or your project build command from that terminal.
+</p>
+
+<h3>A plugin installed but does not appear</h3>
+<p>
+    Start a new agent thread. If you changed marketplaces or local plugin
+    files, restart the agent or reload the Cursor window.
+</p>
+
+<h2>References</h2>
+
+<ul>
+    <li><a href="https://developers.openai.com/codex/ide" target="_blank" rel="noopener">Codex IDE extension</a></li>
+    <li><a href="https://developers.openai.com/codex/windows" target="_blank" rel="noopener">Codex on Windows and WSL</a></li>
+    <li><a href="https://developers.openai.com/codex/plugins" target="_blank" rel="noopener">Codex plugins</a></li>
+    <li><a href="https://code.claude.com/docs/en/ide-integrations" target="_blank" rel="noopener">Claude Code in VS Code and Cursor</a></li>
+    <li><a href="https://code.visualstudio.com/docs/remote/wsl-tutorial" target="_blank" rel="noopener">VS Code WSL tutorial</a></li>
+</ul>
+
+<a class="back" href="../index.html">&larr; Back to index</a>
+
+<script type="module">
+    import { get_last_modify } from "/assets/js/common/last_modify.js";
+    get_last_modify(["article/cursor-agents-wsl.html"], "modify_time");
+</script>
+
+</body>
+</html>
