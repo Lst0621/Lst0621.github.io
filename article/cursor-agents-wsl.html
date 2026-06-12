@@ -101,6 +101,16 @@
     tabs, and sidebars while they work on the same project.
 </p>
 
+<div class="box">
+    <strong>Why use Cursor as the UI?</strong> Today, neither Codex nor Claude
+    Code provides a native Ubuntu desktop app UI. Codex has desktop app support
+    for macOS and Windows, and Claude Code's richer local UI is exposed through
+    editor integrations such as VS Code and Cursor. If your day-to-day
+    environment is Ubuntu inside WSL, the Cursor extension route is the
+    workaround: Cursor supplies the graphical chat, tabs, diff review, and
+    sidebars, while the agents still operate on the Linux repo and tools.
+</div>
+
 <div class="box tip">
     <strong>Vocabulary note:</strong> Cursor installs these as editor
     extensions. Codex and Claude Code also have their own plugin systems inside
@@ -112,6 +122,7 @@
 <pre>
 Windows Cursor window
   - opened from WSL, connected to a Linux repo
+  - graphical workaround for missing native Ubuntu desktop UIs
   - Codex panel for OpenAI Codex agent threads
   - Claude Code panel for Claude agent threads
   - separate chats/tabs for different tasks

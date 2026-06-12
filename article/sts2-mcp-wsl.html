@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta charset="UTF-8">
+    <title>Connect STS2 MCP from WSL to the STS2 Game</title>
+    <link rel="icon" href="../img/flame1.png">
+    <link rel="stylesheet" href="../resource/solarized_light.css">
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-9BLVHLETMC"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-9BLVHLETMC');
+    </script>
+    <style>
+        body {
+            max-width: 860px;
+            margin: 0 auto;
+            padding: 24px 20px 60px;
+        }
+
+        h1 { font-size: 28px; margin-top: 32px; }
+        h2 { font-size: 20px; margin-top: 28px; border-bottom: 1px solid var(--border); padding-bottom: 4px; }
+        h3 { font-size: 16px; margin-top: 22px; }
+
+        p, li { line-height: 1.7; }
+        ul, ol { padding-left: 22px; }
+
+        pre {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 14px 18px;
+            overflow-x: auto;
+            font-size: 13px;
+            line-height: 1.55;
+        }
+
+        code {
+            font-family: "Fira Code", "Cascadia Code", "JetBrains Mono", Consolas, "Courier New", monospace;
+            font-size: 13px;
+        }
+
+        :not(pre) > code {
+            background: var(--panel);
+            padding: 1px 5px;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+        }
+
+        .box {
+            border-left: 4px solid var(--accent);
+            background: var(--panel);
+            border-radius: 0 8px 8px 0;
+            padding: 10px 16px;
+            margin: 16px 0;
+        }
+
+        .box.tip { border-left-color: #859900; }
+        .box.warn { border-left-color: #dc322f; }
+
+        .step {
+            display: inline-block;
+            background: var(--accent);
+            color: #fff;
+            width: 26px;
+            height: 26px;
+            line-height: 26px;
+            text-align: center;
+            border-radius: 50%;
+            font-weight: 600;
+            font-size: 14px;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        .back {
+            display: inline-block;
+            margin-top: 40px;
+        }
+
+        .cmd-desc {
+            color: var(--muted);
+            font-size: 13px;
+            margin-top: -8px;
+        }
+    </style>
+</head>
+<body class="solarized">
+
+<h1>Connect STS2 MCP from WSL to the STS2 Game</h1>
+<p id="modify_time"></p>
+
+<p>
+    This is the setup I used to let a Codex session running in WSL control
+    <em>Slay the Spire 2</em> running on Windows through the
+    <a href="https://github.com/Gennadiyev/STS2MCP" target="_blank" rel="noopener"><code>STS2_MCP</code></a>
+    mod. The tricky part is that the game mod listens on Windows loopback,
+    while Codex and the Python MCP bridge run inside WSL.
+</p>
+
+<div class="box warn">
+    <strong>Keep this local.</strong> The MCP endpoint can send actions to the
+    game, so do not expose it through a public tunnel or a broad LAN listener.
+    Bind the proxy to the WSL adapter IP, restrict the firewall rule to that
+    address, and remove the rule when you are done.
+</div>
+
+<div class="box">
+    The final working route was:
+    <pre>Codex in WSL
+  -> Python MCP bridge
+  -> http://&lt;WSL_ADAPTER_IP&gt;:15527
+  -> host portproxy bound to the WSL adapter
+  -> http://127.0.0.1:15526
+  -> STS2_MCP mod inside the game</pre>
+</div>
+
+<h2>One Snippet</h2>
+
+<p>
+    If I only want the operational commands, this is the compact version.
+    Run the Windows part in Administrator PowerShell, then run the WSL part
+    from the Linux shell.
+</p>
+
+<pre># Windows PowerShell, as Administrator
+curl.exe -s http://127.0.0.1:15526/
+$sts2McpHost = Get-NetIPAddress -InterfaceAlias "vEthernet (WSL (Hyper-V firewall))" -AddressFamily IPv4 | Select-Object -ExpandProperty IPAddress
+$sts2WslRemote = (wsl.exe hostname -I).Trim().Split()[0]
+netsh interface portproxy delete v4tov4 listenaddress=$sts2McpHost listenport=15527
+netsh interface portproxy add v4tov4 listenaddress=$sts2McpHost listenport=15527 connectaddress=127.0.0.1 connectport=15526
+New-NetFirewallRule -DisplayName "STS2 MCP from WSL 15527" -Direction Inbound -Action Allow -Protocol TCP -LocalAddress $sts2McpHost -LocalPort 15527 -RemoteAddress $sts2WslRemote
+$sts2McpHost
+
+# WSL. Replace &lt;WSL_ADAPTER_IP&gt; with the value printed by $sts2McpHost.
+export STS2_MCP_HOST=&lt;WSL_ADAPTER_IP&gt;
+curl http://$STS2_MCP_HOST:15527/
+
+# ~/.codex/config.toml
+[mcp_servers.sts2]
+command = "python3"
+args = ["&lt;STS2MCP_REPO&gt;/mcp/server.py", "--base-url", "http://&lt;WSL_ADAPTER_IP&gt;:15527", "--no-trust-env"]
+enabled = true</pre>
+
+<div class="box warn">
+    <strong>The adapter IP is not stable.</strong> In my run it was
+    <code>172.29.224.1</code>, but Windows or WSL can assign a different value
+    after restart. Always use the current value printed by
+    <code>$sts2McpHost</code> when testing from WSL and when editing
+    <code>~/.codex/config.toml</code>.
+</div>
+
+<div class="box warn">
+    <strong>There is no auth token.</strong> Treat anything that can reach this
+    HTTP API as having full game control. That includes Codex, scripts, agents,
+    and dependencies running inside the same WSL VM.
+</div>
+
+<h2>What Was Running</h2>
+
+<ul>
+    <li><code>Slay the Spire 2</code> ran on Windows.</li>
+    <li>The <a href="https://github.com/Gennadiyev/STS2MCP" target="_blank" rel="noopener"><code>STS2_MCP</code></a> mod exposed a local HTTP API on Windows.</li>
+    <li>Codex ran in WSL and used the repo at <code>&lt;STS2MCP_REPO&gt;</code>.</li>
+    <li>The Python MCP bridge was <code>STS2MCP/mcp/server.py</code>.</li>
+</ul>
+
+<p>
+    The mod itself was live on Windows:
+</p>
+
+<pre>curl.exe -s http://127.0.0.1:15526/</pre>
+
+<p>Expected response:</p>
+
+<pre>{
+  "message": "Hello from STS2 MCP v0.4.0",
+  "status": "ok"
+}</pre>
+
+<h2>The Problem</h2>
+
+<p>
+    The default MCP bridge used <code>http://localhost:15526</code>. Inside WSL,
+    <code>localhost</code> means the Linux VM, not Windows. So the MCP bridge
+    returned:
+</p>
+
+<pre>Error: Cannot connect to STS2_MCP mod. Is the game running with the mod enabled?</pre>
+
+<p>
+    Directly trying the WSL DNS proxy address, such as
+    <code>10.255.255.254:15526</code>, also failed in this environment. The
+    stable answer was to create a host port proxy on a separate port and
+    connect to the WSL adapter IP.
+</p>
+
+<h2>Windows Commands</h2>
+
+<h3><span class="step">1</span> Confirm the game mod is alive</h3>
+
+<p>Run this in Windows PowerShell:</p>
+
+<pre>curl.exe -s http://127.0.0.1:15526/</pre>
+
+<p class="cmd-desc">
+    Use <code>curl.exe</code>, not <code>curl</code>, because PowerShell aliases
+    <code>curl</code> to <code>Invoke-WebRequest</code>.
+</p>
+
+<h3><span class="step">2</span> Create a WSL-facing port proxy</h3>
+
+<p>Run PowerShell as Administrator:</p>
+
+<pre>$sts2McpHost = Get-NetIPAddress -InterfaceAlias "vEthernet (WSL (Hyper-V firewall))" -AddressFamily IPv4 | Select-Object -ExpandProperty IPAddress
+$sts2WslRemote = (wsl.exe hostname -I).Trim().Split()[0]
+netsh interface portproxy delete v4tov4 listenaddress=$sts2McpHost listenport=15527
+netsh interface portproxy add v4tov4 listenaddress=$sts2McpHost listenport=15527 connectaddress=127.0.0.1 connectport=15526
+netsh interface portproxy show v4tov4</pre>
+
+<p>
+    I used <code>15527</code> as the WSL-facing port. The game already owns
+    <code>15526</code>, so keeping the proxy on a different port avoids an
+    ambiguous setup. Binding the proxy to the WSL adapter IP is safer than
+    listening on <code>0.0.0.0</code>, which can make the port reachable from
+    interfaces that do not need game control access.
+</p>
+
+<h3><span class="step">3</span> Allow the port through Windows Firewall</h3>
+
+<pre>New-NetFirewallRule -DisplayName "STS2 MCP from WSL 15527" -Direction Inbound -Action Allow -Protocol TCP -LocalAddress $sts2McpHost -LocalPort 15527 -RemoteAddress $sts2WslRemote</pre>
+
+<p>
+    This keeps the rule scoped to the WSL adapter address instead of opening
+    the port on every network interface. It also scopes the source to the
+    current WSL VM IP instead of <code>LocalSubnet</code>, which can include
+    other local networks such as a home LAN.
+</p>
+
+<div class="box warn">
+    Avoid broad Hyper-V firewall changes for the normal setup. A command like
+    the one below changes the default inbound policy for a WSL VM and is wider
+    than this STS2 bridge needs. Use it only as a temporary diagnostic on your
+    own machine, then restore the previous policy.
+</div>
+
+<pre>Set-NetFirewallHyperVVMSetting -Name "{40E0AC32-46A5-438A-A0B2-2B479E8F2E90}" -DefaultInboundAction Allow</pre>
+
+<p>Restore the default policy after the diagnostic:</p>
+
+<pre>Set-NetFirewallHyperVVMSetting -Name "{40E0AC32-46A5-438A-A0B2-2B479E8F2E90}" -DefaultInboundAction NotConfigured</pre>
+
+<h3><span class="step">4</span> Find the Windows WSL adapter IP</h3>
+
+<pre>Get-NetIPAddress -InterfaceAlias "vEthernet (WSL (Hyper-V firewall))" -AddressFamily IPv4 | Select-Object -ExpandProperty IPAddress</pre>
+
+<p>
+    In my run, this printed:
+</p>
+
+<pre>172.29.224.1</pre>
+
+<div class="box tip">
+    Treat this as an example, not a permanent address. This IP can change after
+    WSL or Windows restarts. If the bridge stops working later, run this command
+    again and update every <code>&lt;WSL_ADAPTER_IP&gt;</code> value in the WSL
+    test command and Codex MCP base URL.
+</div>
+
+<h3><span class="step">5</span> Test the proxy from Windows</h3>
+
+<pre>curl.exe -v http://${sts2McpHost}:15527/</pre>
+
+<p>
+    This should return the same JSON as port <code>15526</code>. If this fails,
+    fix the host portproxy before debugging WSL.
+</p>
+
+<h2>WSL Commands</h2>
+
+<h3><span class="step">1</span> Test the Windows-facing URL from WSL</h3>
+
+<pre>curl http://&lt;WSL_ADAPTER_IP&gt;:15527/</pre>
+
+<p>Expected response:</p>
+
+<pre>{
+  "message": "Hello from STS2 MCP v0.4.0",
+  "status": "ok"
+}</pre>
+
+<h3><span class="step">2</span> If it fails, compare these checks</h3>
+
+<p>In Windows PowerShell:</p>
+
+<pre>netsh interface portproxy show v4tov4
+netstat -ano | findstr :1552
+Get-NetIPAddress -InterfaceAlias "vEthernet (WSL (Hyper-V firewall))" -AddressFamily IPv4 | Select-Object -ExpandProperty IPAddress</pre>
+
+<p>In WSL:</p>
+
+<pre>cat /etc/resolv.conf
+curl -v --connect-timeout 3 http://&lt;WSL_ADAPTER_IP&gt;:15527/</pre>
+
+<p>
+    The <code>/etc/resolv.conf</code> nameserver is not always the address you
+    want. In this setup, <code>10.255.255.254</code> was reachable as a DNS
+    proxy, but it refused the STS2 connection. The correct target was the
+    <code>vEthernet (WSL)</code> IP from PowerShell.
+</p>
+
+<h2>Codex MCP Config</h2>
+
+<p>
+    Codex reads MCP servers from <code>~/.codex/config.toml</code>. The working
+    server entry points the STS2 bridge to the WSL-reachable URL. Replace
+    <code>&lt;WSL_ADAPTER_IP&gt;</code> with the current PowerShell value from
+    <code>$sts2McpHost</code>:
+</p>
+
+<pre>[mcp_servers.sts2]
+command = "python3"
+args = ["&lt;STS2MCP_REPO&gt;/mcp/server.py", "--base-url", "http://&lt;WSL_ADAPTER_IP&gt;:15527", "--no-trust-env"]
+enabled = true</pre>
+
+<p>
+    After changing this file, restart Codex so the MCP server process is
+    relaunched with the new arguments.
+</p>
+
+<h2>Code Change I Made</h2>
+
+<p>
+    The original bridge only accepted <code>--host</code> and
+    <code>--port</code>, then built a URL like <code>http://localhost:15526</code>.
+    I changed <code>STS2MCP/mcp/server.py</code> so it can accept a full base URL:
+</p>
+
+<pre>python3 &lt;STS2MCP_REPO&gt;/mcp/server.py --base-url http://&lt;WSL_ADAPTER_IP&gt;:15527 --no-trust-env</pre>
+
+<p>
+    The bridge also reads an environment variable:
+</p>
+
+<pre>STS2_MCP_BASE_URL=http://&lt;WSL_ADAPTER_IP&gt;:15527 python3 &lt;STS2MCP_REPO&gt;/mcp/server.py --no-trust-env</pre>
+
+<p>
+    Conceptually, the change was:
+</p>
+
+<ul>
+    <li>Add <code>--base-url</code> to the CLI.</li>
+    <li>Add <code>STS2_MCP_BASE_URL</code> as an environment override.</li>
+    <li>Use one shared request helper so all singleplayer, multiplayer, profile, compendium, wiki, and profile-list calls use the selected base URL.</li>
+    <li>Keep the default behavior as <code>http://localhost:15526</code> for normal non-WSL setups.</li>
+</ul>
+
+<p>
+    The config edit is intentionally small: the MCP bridge still speaks stdio
+    to Codex, and the game mod still speaks HTTP locally on Windows. Only the
+    bridge-to-game URL changed.
+</p>
+
+<h3>Minimal Patch</h3>
+
+<p>
+    If the upstream bridge does not have <code>--base-url</code> yet, this is
+    the small shape of the local patch. It adds a full URL override without
+    changing the default <code>localhost:15526</code> behavior.
+</p>
+
+<pre>diff --git a/mcp/server.py b/mcp/server.py
+--- a/mcp/server.py
++++ b/mcp/server.py
+@@
+-import json
++import json
++import os
+@@
+-_base_url: str = "http://localhost:15526"
++_base_url: str = os.environ.get("STS2_MCP_BASE_URL", "http://localhost:15526").rstrip("/")
+@@
+ def main():
+     parser = argparse.ArgumentParser(description="STS2 MCP Server")
++    parser.add_argument("--base-url", type=str, default=None, help="Full game HTTP server URL, e.g. http://127.0.0.1:15526")
+     parser.add_argument("--port", type=int, default=15526, help="Game HTTP server port")
+     parser.add_argument("--host", type=str, default="localhost", help="Game HTTP server host")
+@@
+-    global _base_url, _trust_env
+-    _base_url = f"http://{args.host}:{args.port}"
++    global _base_url, _trust_env
++    if args.base_url:
++        _base_url = args.base_url.rstrip("/")
++    elif "STS2_MCP_BASE_URL" not in os.environ:
++        _base_url = f"http://{args.host}:{args.port}"</pre>
+
+<h2>Quick Runbook</h2>
+
+<p>Windows PowerShell as Administrator:</p>
+
+<pre>curl.exe -s http://127.0.0.1:15526/
+$sts2McpHost = Get-NetIPAddress -InterfaceAlias "vEthernet (WSL (Hyper-V firewall))" -AddressFamily IPv4 | Select-Object -ExpandProperty IPAddress
+$sts2WslRemote = (wsl.exe hostname -I).Trim().Split()[0]
+netsh interface portproxy add v4tov4 listenaddress=$sts2McpHost listenport=15527 connectaddress=127.0.0.1 connectport=15526
+New-NetFirewallRule -DisplayName "STS2 MCP from WSL 15527" -Direction Inbound -Action Allow -Protocol TCP -LocalAddress $sts2McpHost -LocalPort 15527 -RemoteAddress $sts2WslRemote
+$sts2McpHost</pre>
+
+<p>WSL:</p>
+
+<pre>curl http://&lt;WSL_ADAPTER_IP&gt;:15527/</pre>
+
+<p>Codex config:</p>
+
+<pre>[mcp_servers.sts2]
+command = "python3"
+args = ["&lt;STS2MCP_REPO&gt;/mcp/server.py", "--base-url", "http://&lt;WSL_ADAPTER_IP&gt;:15527", "--no-trust-env"]
+enabled = true</pre>
+
+<h2>Troubleshooting</h2>
+
+<ul>
+    <li>If Windows <code>curl.exe http://127.0.0.1:15526/</code> fails, the game or mod is not ready.</li>
+    <li>If Windows <code>curl.exe http://${sts2McpHost}:15527/</code> fails, the portproxy is not forwarding.</li>
+    <li>If Windows works but WSL fails, check the <code>vEthernet (WSL)</code> IP and firewall rules.</li>
+    <li>If WSL works but Codex fails, restart Codex so it reloads <code>~/.codex/config.toml</code>.</li>
+    <li>If it breaks after reboot, refresh the adapter IP and update the <code>--base-url</code>.</li>
+    <li>If a fresh shell does not know <code>$sts2McpHost</code>, rerun the <code>Get-NetIPAddress</code> command or inspect <code>netsh interface portproxy show v4tov4</code>.</li>
+</ul>
+
+<h2>Safety Notes</h2>
+
+<ul>
+    <li>The game mod starts on <code>127.0.0.1:15526</code>, which is local to the host machine.</li>
+    <li>The portproxy is the part that makes the API reachable from WSL. Keep it bound to the WSL adapter IP, not <code>0.0.0.0</code>.</li>
+    <li>The firewall rule should be narrow: the WSL adapter local address, port <code>15527</code>, and the current WSL VM remote IP.</li>
+    <li>The API has no authentication token. Treat anything that can reach it as having full game control.</li>
+    <li>The mod is a plain local HTTP server. Browser pages and local processes can attempt localhost requests, so do not copy this pattern to more sensitive APIs without authentication and CSRF protections.</li>
+    <li>Do not expose this endpoint through Cloudflare Tunnel, ngrok, router port forwarding, or a public IP. Anyone who can reach the endpoint can potentially issue game actions.</li>
+</ul>
+
+<p>Cleanup, from a fresh Administrator PowerShell:</p>
+
+<pre>$sts2McpHost = Get-NetIPAddress -InterfaceAlias "vEthernet (WSL (Hyper-V firewall))" -AddressFamily IPv4 | Select-Object -ExpandProperty IPAddress
+Remove-NetFirewallRule -DisplayName "STS2 MCP from WSL 15527"
+netsh interface portproxy delete v4tov4 listenaddress=$sts2McpHost listenport=15527
+netsh interface portproxy show v4tov4</pre>
+
+<a class="back" href="../index.html">Back</a>
+
+<script type="module">
+    import { get_last_modify } from "/assets/js/common/last_modify.js";
+    import { update_theme_color_as_bg_color } from "/assets/js/common/update_color_meta.js";
+    get_last_modify(["article/sts2-mcp-wsl.html"], "modify_time");
+    update_theme_color_as_bg_color();
+</script>
+</body>
+</html>
