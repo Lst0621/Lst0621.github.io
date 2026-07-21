@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<head>
+  <title>Pocket Cube</title>
+  <link rel="icon" href="../img/flame1.png">
+  <link rel="stylesheet" href="../resource/solarized_light.css">
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-9BLVHLETMC"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+    gtag('config', 'G-9BLVHLETMC');
+  </script>
+  <style>
+    .wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 12px 14px;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      margin-top: 6px;
+      line-height: 1.35;
+      font-size: 13px;
+    }
+
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin: 10px 0;
+      padding: 10px 12px;
+    }
+
+    .controls-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .controls .group-label {
+      font-family: ui-monospace, Courier;
+      font-size: 12px;
+      color: var(--muted);
+      min-width: 3.5em;
+    }
+
+    .views {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 12px;
+    }
+
+    @media (max-width: 900px) {
+      .views {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .view-panel h2 {
+      margin: 0 0 8px;
+      font-size: 13px;
+      font-family: ui-monospace, Courier;
+      font-weight: 600;
+    }
+
+    .view-panel canvas {
+      width: 100%;
+      height: auto;
+      border: 12px solid var(--panel);
+    }
+
+    #status {
+      min-height: 1.2em;
+      font-family: ui-monospace, Courier;
+      font-size: 12px;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body class="solarized">
+<div class="wrap">
+  <h1 style="margin:0; font-size:18pt; font-family:ui-monospace,Courier;">Pocket Cube</h1>
+  <div class="subtitle">
+    2×2 facelet model as a permutation of 24 stickers (C++/WASM).
+    Face turns scramble; <code>x</code>/<code>y</code>/<code>z</code> reorient the whole cube.
+    Corner views look from <code>(+1,+1,+1)</code> and <code>(-1,-1,-1)</code>.
+  </div>
+
+  <div class="controls panel">
+    <div class="controls-row">
+      <span class="group-label">faces</span>
+      <button type="button" data-move="U">U</button>
+      <button type="button" data-move="D">D</button>
+      <button type="button" data-move="F">F</button>
+      <button type="button" data-move="B">B</button>
+      <button type="button" data-move="L">L</button>
+      <button type="button" data-move="R">R</button>
+      <span class="group-label">axes</span>
+      <button type="button" data-move="X">x</button>
+      <button type="button" data-move="Y">y</button>
+      <button type="button" data-move="Z">z</button>
+      <button type="button" id="btn-reset">Reset</button>
+      <button type="button" id="btn-scramble">Scramble</button>
+    </div>
+    <div class="controls-row">
+      <span class="group-label">inv</span>
+      <button type="button" data-move="Up">U'</button>
+      <button type="button" data-move="Dp">D'</button>
+      <button type="button" data-move="Fp">F'</button>
+      <button type="button" data-move="Bp">B'</button>
+      <button type="button" data-move="Lp">L'</button>
+      <button type="button" data-move="Rp">R'</button>
+      <span class="group-label">&nbsp;</span>
+      <button type="button" data-move="Xp">x'</button>
+      <button type="button" data-move="Yp">y'</button>
+      <button type="button" data-move="Zp">z'</button>
+    </div>
+  </div>
+
+  <div id="status">Loading WASM…</div>
+
+  <div class="views">
+    <div class="view-panel panel">
+      <h2>URF · from (+1,+1,+1)</h2>
+      <canvas id="canvas-urf" width="320" height="280"></canvas>
+    </div>
+    <div class="view-panel panel">
+      <h2>DLB · from (−1,−1,−1)</h2>
+      <canvas id="canvas-dlb" width="320" height="280"></canvas>
+    </div>
+    <div class="view-panel panel">
+      <h2>Net (1-4-1)</h2>
+      <canvas id="canvas-net" width="420" height="320"></canvas>
+    </div>
+  </div>
+
+  <div style="margin-top:12px;"><a href="../index.html">Back</a></div>
+</div>
+<script type="module" src="/assets/js/page/pocket_cube.js"></script>
+</body>
