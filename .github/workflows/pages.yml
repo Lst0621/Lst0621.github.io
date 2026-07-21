@@ -43,8 +43,7 @@ jobs:
       - name: Setup Emscripten
         uses: emscripten-core/setup-emsdk@v15
         with:
-          # 6.0.2+ drops wasmBinary from default INCOMING_MODULE_JS_API; pin until loader is updated.
-          version: 5.0.6
+          version: latest
           actions-cache-folder: emsdk-cache
 
 
