@@ -30,6 +30,7 @@ const statusEl = document.getElementById("status") as HTMLDivElement;
 const pathPanel = document.getElementById("path-panel") as HTMLDivElement;
 const pathHistoryEl = document.getElementById("path-history") as HTMLSpanElement;
 const pathShortestEl = document.getElementById("path-shortest") as HTMLSpanElement;
+const pathShortestInverseEl = document.getElementById("path-shortest-inverse") as HTMLSpanElement;
 const pathStateOrderEl = document.getElementById("path-state-order") as HTMLSpanElement;
 const togglePaths = document.getElementById("toggle-paths") as HTMLInputElement;
 const canvasUrf = document.getElementById("canvas-urf") as HTMLCanvasElement;
@@ -62,6 +63,15 @@ function formatMoveList(moves: PocketMoveName[]): string {
     return "(none) · length 0";
   }
   return `length ${moves.length}: ${moves.map((m) => MOVE_LABEL[m]).join(" ")}`;
+}
+
+/** Reverse a shortest face-path to solve (invert each move). */
+function inverseFacePath(moveIds: number[]): PocketMoveName[] {
+  const out: PocketMoveName[] = [];
+  for (let i = moveIds.length - 1; i >= 0; --i) {
+    out.push(pocketMoveNameFromId(moveIds[i] ^ 1));
+  }
+  return out;
 }
 
 function faceOfSticker(sticker: number): number {
@@ -351,26 +361,52 @@ function redraw(): void {
   updatePathPanel();
 }
 
+function isIdentityState(): boolean {
+  const id = wasmPocketCubeIdentity();
+  return state.every((v, i) => v === id[i]);
+}
+
+function updateSolveHint(nextMove: PocketMoveName | null): void {
+  document.querySelectorAll<HTMLButtonElement>("button[data-move]").forEach((btn) => {
+    btn.classList.toggle("solve-next", nextMove !== null && btn.dataset.move === nextMove);
+  });
+}
+
 function updatePathPanel(): void {
   const show = togglePaths.checked;
   pathPanel.classList.toggle("hidden", !show);
-  if (!show) {
-    return;
+  let solveNext: PocketMoveName | null = null;
+  if (!isIdentityState()) {
+    try {
+      const ids = wasmPocketCubeShortestFacePath(state);
+      const inv = inverseFacePath(ids);
+      if (inv.length > 0) {
+        solveNext = inv[0];
+      }
+      if (show) {
+        const names = ids.map((id) => pocketMoveNameFromId(id));
+        pathShortestEl.textContent = formatMoveList(names);
+        pathShortestInverseEl.textContent = formatMoveList(inv);
+      }
+    } catch {
+      if (show) {
+        pathShortestEl.textContent = "(shortest path not found)";
+        pathShortestInverseEl.textContent = "(unavailable)";
+      }
+    }
+  } else if (show) {
+    pathShortestEl.textContent = formatMoveList([]);
+    pathShortestInverseEl.textContent = formatMoveList([]);
   }
-  pathHistoryEl.textContent = formatMoveList(moveHistory);
-  try {
-    pathStateOrderEl.textContent = String(wasmPocketCubeStateOrder(state));
-  } catch {
-    pathStateOrderEl.textContent = "?";
+  if (show) {
+    pathHistoryEl.textContent = formatMoveList(moveHistory);
+    try {
+      pathStateOrderEl.textContent = String(wasmPocketCubeStateOrder(state));
+    } catch {
+      pathStateOrderEl.textContent = "?";
+    }
   }
-  try {
-    const ids = wasmPocketCubeShortestFacePath(state);
-    const names = ids.map((id) => pocketMoveNameFromId(id));
-    pathShortestEl.textContent = formatMoveList(names);
-  } catch (err) {
-    pathShortestEl.textContent =
-      `(not found within search budget; history length ${moveHistory.length})`;
-  }
+  updateSolveHint(show ? solveNext : null);
 }
 
 function setStatus(msg: string): void {

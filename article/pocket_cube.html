@@ -108,6 +108,18 @@
       font-family: ui-monospace, Courier;
       font-size: 12px;
     }
+
+    .solarized button.solve-next {
+      background: #2aa198;
+      color: #fdf6e3;
+      border-color: #073642;
+      font-weight: 600;
+    }
+
+    .solarized button.solve-next:hover {
+      background: #268bd2;
+      color: #fdf6e3;
+    }
   </style>
 </head>
 <body class="solarized">
@@ -160,6 +172,7 @@
   <div id="path-panel" class="path-panel panel">
     <div class="path-line"><span class="path-label">History</span> (button presses, no cancel): <span id="path-history">(none) · length 0</span></div>
     <div class="path-line"><span class="path-label">Shortest</span> (bidirectional BFS, face turns, QTM): <span id="path-shortest">(none) · length 0</span></div>
+    <div class="path-line"><span class="path-label">Inverse</span> (solve: apply in order): <span id="path-shortest-inverse">(none) · length 0</span></div>
     <div class="path-line"><span class="path-label">State order</span> (TSL <code>get_order</code>: min n&gt;0 with s<sup>n</sup> = id): <span id="path-state-order">1</span></div>
   </div>
 
