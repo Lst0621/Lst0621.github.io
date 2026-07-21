@@ -1,8 +1,11 @@
 import {
   PocketMoveId,
   type PocketMoveName,
+  pocketMoveNameFromId,
   wasmPocketCubeApplyNamed,
   wasmPocketCubeIdentity,
+  wasmPocketCubeShortestFacePath,
+  wasmPocketCubeStateOrder,
   modulePromise,
 } from "../tsl/wasm/ts/wasm_api_pocket_cube";
 
@@ -22,10 +25,44 @@ type Pt = { x: number; y: number };
 type Vec3 = [number, number, number];
 
 let state: number[] = [];
+let moveHistory: PocketMoveName[] = [];
 const statusEl = document.getElementById("status") as HTMLDivElement;
+const pathPanel = document.getElementById("path-panel") as HTMLDivElement;
+const pathHistoryEl = document.getElementById("path-history") as HTMLSpanElement;
+const pathShortestEl = document.getElementById("path-shortest") as HTMLSpanElement;
+const pathStateOrderEl = document.getElementById("path-state-order") as HTMLSpanElement;
+const togglePaths = document.getElementById("toggle-paths") as HTMLInputElement;
 const canvasUrf = document.getElementById("canvas-urf") as HTMLCanvasElement;
 const canvasDlb = document.getElementById("canvas-dlb") as HTMLCanvasElement;
 const canvasNet = document.getElementById("canvas-net") as HTMLCanvasElement;
+
+const MOVE_LABEL: Record<PocketMoveName, string> = {
+  U: "U",
+  Up: "U'",
+  R: "R",
+  Rp: "R'",
+  F: "F",
+  Fp: "F'",
+  D: "D",
+  Dp: "D'",
+  L: "L",
+  Lp: "L'",
+  B: "B",
+  Bp: "B'",
+  X: "x",
+  Xp: "x'",
+  Y: "y",
+  Yp: "y'",
+  Z: "z",
+  Zp: "z'",
+};
+
+function formatMoveList(moves: PocketMoveName[]): string {
+  if (moves.length === 0) {
+    return "(none) · length 0";
+  }
+  return `length ${moves.length}: ${moves.map((m) => MOVE_LABEL[m]).join(" ")}`;
+}
 
 function faceOfSticker(sticker: number): number {
   return Math.floor(sticker / 4);
@@ -311,6 +348,29 @@ function redraw(): void {
   drawCornerView(canvasUrf, [1, 1, 1]);
   drawCornerView(canvasDlb, [-1, -1, -1]);
   drawNet(canvasNet);
+  updatePathPanel();
+}
+
+function updatePathPanel(): void {
+  const show = togglePaths.checked;
+  pathPanel.classList.toggle("hidden", !show);
+  if (!show) {
+    return;
+  }
+  pathHistoryEl.textContent = formatMoveList(moveHistory);
+  try {
+    pathStateOrderEl.textContent = String(wasmPocketCubeStateOrder(state));
+  } catch {
+    pathStateOrderEl.textContent = "?";
+  }
+  try {
+    const ids = wasmPocketCubeShortestFacePath(state);
+    const names = ids.map((id) => pocketMoveNameFromId(id));
+    pathShortestEl.textContent = formatMoveList(names);
+  } catch (err) {
+    pathShortestEl.textContent =
+      `(not found within search budget; history length ${moveHistory.length})`;
+  }
 }
 
 function setStatus(msg: string): void {
@@ -319,12 +379,14 @@ function setStatus(msg: string): void {
 
 function applyMove(name: PocketMoveName): void {
   state = wasmPocketCubeApplyNamed(state, name);
+  moveHistory.push(name);
   redraw();
-  setStatus(`move ${name}`);
+  setStatus(`move ${MOVE_LABEL[name]}`);
 }
 
 function reset(): void {
   state = wasmPocketCubeIdentity();
+  moveHistory = [];
   redraw();
   setStatus("solved");
 }
@@ -342,7 +404,9 @@ function scramble(): void {
       pick = (pick + 2) % faceMoves.length;
     }
     lastAxis = Math.floor(PocketMoveId[faceMoves[pick]] / 2);
-    state = wasmPocketCubeApplyNamed(state, faceMoves[pick]);
+    const name = faceMoves[pick];
+    state = wasmPocketCubeApplyNamed(state, name);
+    moveHistory.push(name);
   }
   redraw();
   setStatus(`scrambled (${n} face turns)`);
@@ -357,6 +421,7 @@ document.querySelectorAll<HTMLButtonElement>("button[data-move]").forEach((btn) 
 
 document.getElementById("btn-reset")!.addEventListener("click", reset);
 document.getElementById("btn-scramble")!.addEventListener("click", scramble);
+togglePaths.addEventListener("change", updatePathPanel);
 
 await modulePromise;
 reset();
