@@ -5,6 +5,7 @@ import {
   wasmPocketCubeApplyNamed,
   wasmPocketCubeIdentity,
   wasmPocketCubeIsOrientedSolved,
+  wasmPocketCubeMovesProduct,
   wasmPocketCubeShortestFacePath,
   wasmPocketCubeShortestFacePathAnyOrientation,
   wasmPocketCubeStateOrder,
@@ -163,13 +164,19 @@ function lerp3(a: Vec3, b: Vec3, t: number): Vec3 {
  * Cube centered at origin, extent [-1, +1].
  * +X = R, +Y = F, +Z = U.
  * Camera on the ray t·eyeDir looking at the origin.
+ * mirrorX: flip horizontal so URF shows F left / R right (usual diagram).
  */
-function makeCameraProjector(canvas: HTMLCanvasElement, eyeDir: Vec3) {
+function makeCameraProjector(
+  canvas: HTMLCanvasElement,
+  eyeDir: Vec3,
+  mirrorX = false,
+) {
   const eye = norm3(eyeDir);
   const forward = scale3(eye, -1); // toward origin
   const worldUp: Vec3 = Math.abs(eye[2]) > 0.9 ? [0, 1, 0] : [0, 0, 1];
   const right = norm3(cross3(forward, worldUp));
   const up = norm3(cross3(right, forward));
+  const sx = mirrorX ? -1 : 1;
 
   const scale = Math.min(canvas.width, canvas.height) * 0.28;
   const ox = canvas.width * 0.5;
@@ -179,7 +186,7 @@ function makeCameraProjector(canvas: HTMLCanvasElement, eyeDir: Vec3) {
     eye,
     project(p: Vec3): Pt {
       return {
-        x: ox + dot3(p, right) * scale,
+        x: ox + sx * dot3(p, right) * scale,
         y: oy - dot3(p, up) * scale,
       };
     },
@@ -303,9 +310,13 @@ function drawFaceStickers(
   }
 }
 
-function drawCornerView(canvas: HTMLCanvasElement, eyeDir: Vec3): void {
+function drawCornerView(
+  canvas: HTMLCanvasElement,
+  eyeDir: Vec3,
+  mirrorX = false,
+): void {
   const ctx = clearCanvas(canvas);
-  const cam = makeCameraProjector(canvas, eyeDir);
+  const cam = makeCameraProjector(canvas, eyeDir, mirrorX);
   const faces = cubeFaces()
     .filter((f) => dot3(f.normal, cam.eye) > 1e-6)
     .sort((a, b) => {
@@ -364,8 +375,10 @@ function drawNet(canvas: HTMLCanvasElement): void {
 }
 
 function redraw(): void {
-  drawCornerView(canvasUrf, [1, 1, 1]);
-  drawCornerView(canvasDlb, [-1, -1, -1]);
+  // URF: mirror X so F is left, R is right (standard diagram).
+  drawCornerView(canvasUrf, [1, 1, 1], true);
+  // DLB: L left, B right, D toward bottom of the panel.
+  drawCornerView(canvasDlb, [-1, -1, -1], false);
   drawNet(canvasNet);
   updatePathPanel();
 }
@@ -471,6 +484,69 @@ function applyMove(name: PocketMoveName): void {
   }
 }
 
+/** QiYi F1 + anti-sune / sune (F3 = inverse of F2). */
+const FORMULA1: PocketMoveName[] = [
+  "R", "Bp", "R", "F", "F", "Rp", "B", "R", "F", "F", "R", "R",
+];
+/** R U U R' U' R U' R' */
+const FORMULA2: PocketMoveName[] = ["R", "U", "U", "Rp", "Up", "R", "Up", "Rp"];
+/** Inverse of F2: R U R' U R U U R' */
+const FORMULA3: PocketMoveName[] = ["R", "U", "Rp", "U", "R", "U", "U", "Rp"];
+
+type FormulaSpec = {
+  moves: PocketMoveName[];
+  /** Position map p from moves product: next[p[i]] = state[i]. */
+  product: number[];
+};
+
+const FORMULA_SPECS: Record<string, { moves: PocketMoveName[] }> = {
+  "1": { moves: FORMULA1 },
+  "2": { moves: FORMULA2 },
+  "3": { moves: FORMULA3 },
+  "2+2": { moves: [...FORMULA2, ...FORMULA2] },
+  "2+Up+2": { moves: [...FORMULA2, "Up", ...FORMULA2] },
+  "2+U+U+3": { moves: [...FORMULA2, "U", "U", ...FORMULA3] },
+  "2+U+3": { moves: [...FORMULA2, "U", ...FORMULA3] },
+  "2+Up+3": { moves: [...FORMULA2, "Up", ...FORMULA3] },
+};
+
+const formulaCache: Record<string, FormulaSpec> = {};
+
+function ensureFormulaCache(): void {
+  for (const [key, spec] of Object.entries(FORMULA_SPECS)) {
+    if (!formulaCache[key]) {
+      const moveIds = spec.moves.map((name) => PocketMoveId[name]);
+      formulaCache[key] = {
+        moves: spec.moves,
+        product: wasmPocketCubeMovesProduct(moveIds),
+      };
+    }
+  }
+}
+
+function applyFormula(key: string, label: string): void {
+  const spec = formulaCache[key];
+  if (!spec) {
+    return;
+  }
+  const next = new Array<number>(state.length);
+  for (let i = 0; i < state.length; i++) {
+    next[spec.product[i]] = state[i];
+  }
+  state = next;
+  moveHistory.push(...spec.moves);
+  redraw();
+  if (wasmPocketCubeIsOrientedSolved(state)) {
+    setStatus(
+      isIdentityState()
+        ? `solved (identity) · ${label}`
+        : `solved (oriented) · ${label}`,
+    );
+  } else {
+    setStatus(`${label} · ${formatMoveList(spec.moves)}`);
+  }
+}
+
 function reset(): void {
   state = wasmPocketCubeIdentity();
   moveHistory = [];
@@ -508,9 +584,25 @@ document.querySelectorAll<HTMLButtonElement>("button[data-move]").forEach((btn) 
 
 document.getElementById("btn-reset")!.addEventListener("click", reset);
 document.getElementById("btn-scramble")!.addEventListener("click", scramble);
+document.getElementById("btn-formula1")!.addEventListener("click", () => {
+  applyFormula("1", "F1");
+});
+document.getElementById("btn-formula2")!.addEventListener("click", () => {
+  applyFormula("2", "F2");
+});
+document.getElementById("btn-formula3")!.addEventListener("click", () => {
+  applyFormula("3", "F3");
+});
+document.querySelectorAll<HTMLButtonElement>("button[data-formula-combo]").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const key = btn.dataset.formulaCombo!;
+    applyFormula(key, `combo ${key}`);
+  });
+});
 togglePaths.addEventListener("change", updatePathPanel);
 toggleHighlightOrientation.addEventListener("change", updatePathPanel);
 
 await modulePromise;
+ensureFormulaCache();
 reset();
 setStatus("ready");

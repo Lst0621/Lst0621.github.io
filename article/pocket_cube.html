@@ -121,6 +121,33 @@
       background: #268bd2;
       color: #fdf6e3;
     }
+
+    .formula-panel {
+      margin: 10px 0;
+      padding: 10px 12px;
+      font-family: ui-monospace, Courier;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .formula-panel .formula-line {
+      margin: 4px 0;
+      word-break: break-word;
+    }
+
+    .formula-panel .formula-label {
+      color: var(--muted);
+    }
+
+    .formula-panel .combo-list {
+      margin: 6px 0 0;
+      padding-left: 1.2em;
+      color: var(--muted);
+    }
+
+    .formula-panel .combo-list li {
+      margin: 2px 0;
+    }
   </style>
 </head>
 <body class="solarized">
@@ -162,6 +189,27 @@
       <button type="button" data-move="Yp">y'</button>
       <button type="button" data-move="Zp">z'</button>
     </div>
+    <div class="controls-row">
+      <span class="group-label">algs</span>
+      <button type="button" id="btn-formula1" title="R B' R F2 R' B R F2 R2">F1</button>
+      <button type="button" id="btn-formula2" title="R U2 R' U' R U' R'">F2</button>
+      <button type="button" id="btn-formula3" title="R U R' U R U2 R' (inv F2)">F3</button>
+      <button type="button" data-formula-combo="2+2" title="F2 then F2">F2+F2</button>
+      <button type="button" data-formula-combo="2+Up+2" title="F2, U', F2">F2+U'+F2</button>
+      <button type="button" data-formula-combo="2+U+U+3" title="F2, U2, F3">F2+U2+F3</button>
+      <button type="button" data-formula-combo="2+U+3" title="F2, U, F3">F2+U+F3</button>
+      <button type="button" data-formula-combo="2+Up+3" title="F2, U', F3">F2+U'+F3</button>
+    </div>
+  </div>
+
+  <div class="formula-panel panel">
+    <div class="formula-line"><span class="formula-label">F1</span> (layer corner perm · QiYi 公式一): <code>R B' R F F R' B R F F R R</code></div>
+    <div class="formula-line"><span class="formula-label">F2</span> (OLL · anti-sune): <code>R U U R' U' R U' R'</code></div>
+    <div class="formula-line"><span class="formula-label">F3</span> (OLL · sune = inv F2): <code>R U R' U R U U R'</code></div>
+    <ul class="combo-list">
+      <li>Step 2: matching side in front → F1 once; else F1, then matching side front → F1 again</li>
+      <li>Step 3 OLL: F2 · F3 · F2+F2 · F2+U'+F2 · F2+U2+F3 · F2+U+F3 · F2+U'+F3</li>
+    </ul>
   </div>
 
   <div class="toggle-row">
@@ -188,11 +236,11 @@
 
   <div class="views">
     <div class="view-panel panel">
-      <h2>URF · from (+1,+1,+1)</h2>
+      <h2>URF · F left, R right · from (+1,+1,+1)</h2>
       <canvas id="canvas-urf" width="320" height="280"></canvas>
     </div>
     <div class="view-panel panel">
-      <h2>DLB · from (−1,−1,−1)</h2>
+      <h2>DLB · L left, B right · from (−1,−1,−1)</h2>
       <canvas id="canvas-dlb" width="320" height="280"></canvas>
     </div>
     <div class="view-panel panel">
