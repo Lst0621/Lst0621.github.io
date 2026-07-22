@@ -3,11 +3,14 @@ import {
   type PocketMoveName,
   pocketMoveNameFromId,
   wasmPocketCubeApplyNamed,
+  wasmPocketCubeFacePathTablesPump,
+  wasmPocketCubeFacePathTablesReady,
+  wasmPocketCubeFacePathTablesStartBuild,
   wasmPocketCubeIdentity,
   wasmPocketCubeIsOrientedSolved,
   wasmPocketCubeMovesProduct,
-  wasmPocketCubeShortestFacePath,
-  wasmPocketCubeShortestFacePathAnyOrientation,
+  wasmPocketCubeShortestFacePathAnyOrientationAuto,
+  wasmPocketCubeShortestFacePathAuto,
   wasmPocketCubeStateOrder,
   modulePromise,
 } from "../tsl/wasm/ts/wasm_api_pocket_cube";
@@ -594,12 +597,12 @@ function updatePathPanel(): void {
   const orientedSolved = wasmPocketCubeIsOrientedSolved(state);
   if (!orientedSolved || !isIdentityState()) {
     try {
-      idsIdentity = isIdentityState() ? [] : wasmPocketCubeShortestFacePath(state);
+      idsIdentity = isIdentityState() ? [] : wasmPocketCubeShortestFacePathAuto(state);
     } catch {
       idsIdentity = null;
     }
     try {
-      idsAny = orientedSolved ? [] : wasmPocketCubeShortestFacePathAnyOrientation(state);
+      idsAny = orientedSolved ? [] : wasmPocketCubeShortestFacePathAnyOrientationAuto(state);
     } catch {
       idsAny = null;
     }
@@ -775,4 +778,20 @@ toggleHighlightOrientation.addEventListener("change", updatePathPanel);
 await modulePromise;
 ensureFormulaCache();
 reset();
-setStatus("ready");
+setStatus("ready (tables building…)");
+
+wasmPocketCubeFacePathTablesStartBuild();
+const pumpTables = (): void => {
+  // Yield often enough that clicks stay responsive while tables fill.
+  if (wasmPocketCubeFacePathTablesPump(80_000)) {
+    setStatus(
+      wasmPocketCubeFacePathTablesReady()
+        ? "ready (tables loaded)"
+        : "ready",
+    );
+    updatePathPanel();
+    return;
+  }
+  setTimeout(pumpTables, 0);
+};
+pumpTables();
