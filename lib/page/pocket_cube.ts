@@ -4,7 +4,9 @@ import {
   pocketMoveNameFromId,
   wasmPocketCubeApplyNamed,
   wasmPocketCubeIdentity,
+  wasmPocketCubeIsOrientedSolved,
   wasmPocketCubeShortestFacePath,
+  wasmPocketCubeShortestFacePathAnyOrientation,
   wasmPocketCubeStateOrder,
   modulePromise,
 } from "../tsl/wasm/ts/wasm_api_pocket_cube";
@@ -31,8 +33,15 @@ const pathPanel = document.getElementById("path-panel") as HTMLDivElement;
 const pathHistoryEl = document.getElementById("path-history") as HTMLSpanElement;
 const pathShortestEl = document.getElementById("path-shortest") as HTMLSpanElement;
 const pathShortestInverseEl = document.getElementById("path-shortest-inverse") as HTMLSpanElement;
+const pathShortestAnyEl = document.getElementById("path-shortest-any") as HTMLSpanElement;
+const pathShortestAnyInverseEl = document.getElementById(
+  "path-shortest-any-inverse",
+) as HTMLSpanElement;
 const pathStateOrderEl = document.getElementById("path-state-order") as HTMLSpanElement;
 const togglePaths = document.getElementById("toggle-paths") as HTMLInputElement;
+const toggleHighlightOrientation = document.getElementById(
+  "toggle-highlight-orientation",
+) as HTMLInputElement;
 const canvasUrf = document.getElementById("canvas-urf") as HTMLCanvasElement;
 const canvasDlb = document.getElementById("canvas-dlb") as HTMLCanvasElement;
 const canvasNet = document.getElementById("canvas-net") as HTMLCanvasElement;
@@ -366,6 +375,24 @@ function isIdentityState(): boolean {
   return state.every((v, i) => v === id[i]);
 }
 
+function formatPathOrError(
+  el: HTMLSpanElement,
+  invEl: HTMLSpanElement,
+  ids: number[] | null,
+  errLabel: string,
+): PocketMoveName[] {
+  if (ids === null) {
+    el.textContent = errLabel;
+    invEl.textContent = "(unavailable)";
+    return [];
+  }
+  const names = ids.map((id) => pocketMoveNameFromId(id));
+  const inv = inverseFacePath(ids);
+  el.textContent = formatMoveList(names);
+  invEl.textContent = formatMoveList(inv);
+  return inv;
+}
+
 function updateSolveHint(nextMove: PocketMoveName | null): void {
   document.querySelectorAll<HTMLButtonElement>("button[data-move]").forEach((btn) => {
     btn.classList.toggle("solve-next", nextMove !== null && btn.dataset.move === nextMove);
@@ -375,37 +402,57 @@ function updateSolveHint(nextMove: PocketMoveName | null): void {
 function updatePathPanel(): void {
   const show = togglePaths.checked;
   pathPanel.classList.toggle("hidden", !show);
-  let solveNext: PocketMoveName | null = null;
-  if (!isIdentityState()) {
+
+  let invIdentity: PocketMoveName[] = [];
+  let invAny: PocketMoveName[] = [];
+  let idsIdentity: number[] | null = [];
+  let idsAny: number[] | null = [];
+
+  const orientedSolved = wasmPocketCubeIsOrientedSolved(state);
+  if (!orientedSolved || !isIdentityState()) {
     try {
-      const ids = wasmPocketCubeShortestFacePath(state);
-      const inv = inverseFacePath(ids);
-      if (inv.length > 0) {
-        solveNext = inv[0];
-      }
-      if (show) {
-        const names = ids.map((id) => pocketMoveNameFromId(id));
-        pathShortestEl.textContent = formatMoveList(names);
-        pathShortestInverseEl.textContent = formatMoveList(inv);
-      }
+      idsIdentity = isIdentityState() ? [] : wasmPocketCubeShortestFacePath(state);
     } catch {
-      if (show) {
-        pathShortestEl.textContent = "(shortest path not found)";
-        pathShortestInverseEl.textContent = "(unavailable)";
-      }
+      idsIdentity = null;
     }
-  } else if (show) {
-    pathShortestEl.textContent = formatMoveList([]);
-    pathShortestInverseEl.textContent = formatMoveList([]);
+    try {
+      idsAny = orientedSolved ? [] : wasmPocketCubeShortestFacePathAnyOrientation(state);
+    } catch {
+      idsAny = null;
+    }
   }
+
   if (show) {
+    invIdentity = formatPathOrError(
+      pathShortestEl,
+      pathShortestInverseEl,
+      idsIdentity,
+      "(shortest path not found)",
+    );
+    invAny = formatPathOrError(
+      pathShortestAnyEl,
+      pathShortestAnyInverseEl,
+      idsAny,
+      "(shortest path not found)",
+    );
     pathHistoryEl.textContent = formatMoveList(moveHistory);
     try {
       pathStateOrderEl.textContent = String(wasmPocketCubeStateOrder(state));
     } catch {
       pathStateOrderEl.textContent = "?";
     }
+  } else {
+    if (idsIdentity !== null) {
+      invIdentity = inverseFacePath(idsIdentity);
+    }
+    if (idsAny !== null) {
+      invAny = inverseFacePath(idsAny);
+    }
   }
+
+  const useAny = toggleHighlightOrientation.checked;
+  const inv = useAny ? invAny : invIdentity;
+  const solveNext = inv.length > 0 ? inv[0] : null;
   updateSolveHint(show ? solveNext : null);
 }
 
@@ -417,14 +464,18 @@ function applyMove(name: PocketMoveName): void {
   state = wasmPocketCubeApplyNamed(state, name);
   moveHistory.push(name);
   redraw();
-  setStatus(`move ${MOVE_LABEL[name]}`);
+  if (wasmPocketCubeIsOrientedSolved(state)) {
+    setStatus(isIdentityState() ? "solved (identity)" : "solved (oriented)");
+  } else {
+    setStatus(`move ${MOVE_LABEL[name]}`);
+  }
 }
 
 function reset(): void {
   state = wasmPocketCubeIdentity();
   moveHistory = [];
   redraw();
-  setStatus("solved");
+  setStatus("solved (identity)");
 }
 
 function scramble(): void {
@@ -458,6 +509,7 @@ document.querySelectorAll<HTMLButtonElement>("button[data-move]").forEach((btn) 
 document.getElementById("btn-reset")!.addEventListener("click", reset);
 document.getElementById("btn-scramble")!.addEventListener("click", scramble);
 togglePaths.addEventListener("change", updatePathPanel);
+toggleHighlightOrientation.addEventListener("change", updatePathPanel);
 
 await modulePromise;
 reset();

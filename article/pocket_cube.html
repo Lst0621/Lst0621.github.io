@@ -102,8 +102,9 @@
 
     .toggle-row {
       display: flex;
+      flex-wrap: wrap;
       align-items: center;
-      gap: 8px;
+      gap: 8px 16px;
       margin: 8px 0;
       font-family: ui-monospace, Courier;
       font-size: 12px;
@@ -128,6 +129,7 @@
   <div class="subtitle">
     2×2 facelet model as a permutation of 24 stickers (C++/WASM).
     Face turns scramble; <code>x</code>/<code>y</code>/<code>z</code> reorient the whole cube.
+    Solved means every face is solid (any orientation); identity is the fixed color placement.
     Corner views look from <code>(+1,+1,+1)</code> and <code>(-1,-1,-1)</code>.
   </div>
 
@@ -167,12 +169,18 @@
       <input type="checkbox" id="toggle-paths" checked>
       Show move paths
     </label>
+    <label>
+      <input type="checkbox" id="toggle-highlight-orientation" checked>
+      Highlight solve to any orientation (else fixed identity)
+    </label>
   </div>
 
   <div id="path-panel" class="path-panel panel">
     <div class="path-line"><span class="path-label">History</span> (button presses, no cancel): <span id="path-history">(none) · length 0</span></div>
-    <div class="path-line"><span class="path-label">Shortest</span> (bidirectional BFS, face turns, QTM): <span id="path-shortest">(none) · length 0</span></div>
-    <div class="path-line"><span class="path-label">Inverse</span> (solve: apply in order): <span id="path-shortest-inverse">(none) · length 0</span></div>
+    <div class="path-line"><span class="path-label">Shortest → any orientation</span> (solid faces / xyz orbit, QTM): <span id="path-shortest-any">(none) · length 0</span></div>
+    <div class="path-line"><span class="path-label">Inverse (any)</span> (solve to solid faces): <span id="path-shortest-any-inverse">(none) · length 0</span></div>
+    <div class="path-line"><span class="path-label">Shortest → identity</span> (fixed orientation, QTM): <span id="path-shortest">(none) · length 0</span></div>
+    <div class="path-line"><span class="path-label">Inverse (identity)</span> (solve to identity): <span id="path-shortest-inverse">(none) · length 0</span></div>
     <div class="path-line"><span class="path-label">State order</span> (TSL <code>get_order</code>: min n&gt;0 with s<sup>n</sup> = id): <span id="path-state-order">1</span></div>
   </div>
 
