@@ -15,13 +15,13 @@ import {
   modulePromise,
 } from "../tsl/wasm/ts/wasm_api_pocket_cube";
 
-/** Solarized-mapped face colors: U R F D L B */
+/** Solarized-mapped face colors: U R F D L B (L orange pushed off red). */
 const FACE_COLORS = [
   "#eee8d5", // U
   "#dc322f", // R
   "#859900", // F
   "#b58900", // D
-  "#cb4b16", // L
+  "#ff8c1a", // L
   "#268bd2", // B
 ];
 
