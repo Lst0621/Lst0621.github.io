@@ -46,6 +46,7 @@ const toggleHighlightOrientation = document.getElementById(
 const canvasUrf = document.getElementById("canvas-urf") as HTMLCanvasElement;
 const canvasDlb = document.getElementById("canvas-dlb") as HTMLCanvasElement;
 const canvasNet = document.getElementById("canvas-net") as HTMLCanvasElement;
+const canvasGraph = document.getElementById("canvas-graph") as HTMLCanvasElement;
 
 const MOVE_LABEL: Record<PocketMoveName, string> = {
   U: "U",
@@ -374,12 +375,181 @@ function drawNet(canvas: HTMLCanvasElement): void {
   drawFaceAt(3, 1, 2); // D
 }
 
+/** Undirected sticker adjacencies on the cube surface (2×2). */
+function faceletAdjacency(): Array<[number, number]> {
+  const edges: Array<[number, number]> = [];
+  for (let f = 0; f < 6; f++) {
+    const b = f * 4;
+    edges.push([b, b + 1], [b + 1, b + 2], [b + 2, b + 3], [b + 3, b]);
+  }
+  // From cross-net neighbors (and B wrap).
+  edges.push(
+    [3, 8], [2, 9], // UF
+    [2, 4], [1, 5], // UR
+    [0, 16], [3, 17], // UL
+    [1, 20], [0, 21], // UB
+    [12, 11], [13, 10], // DF
+    [13, 7], [14, 6], // DR
+    [12, 18], [15, 19], // DL
+    [14, 23], [15, 22], // DB
+    [9, 4], [10, 7], // FR
+    [8, 17], [11, 18], // FL
+    [20, 5], [23, 6], // BR
+    [21, 16], [22, 19], // BL
+  );
+  return edges;
+}
+
+/**
+ * Facelet graph from orthogonal projection along the URF–DLB axis (1,1,1).
+ * Radius encodes height along that axis (URF inside, DLB outside); angle is
+ * the polar angle in the plane ⟂ axis. Exact C3 symmetry for nodes and edges.
+ */
+function faceletGraphPositions(canvas: HTMLCanvasElement): Pt[] {
+  const pos: Pt[] = new Array(24);
+  const cx = canvas.width * 0.5;
+  const cy = canvas.height * 0.5;
+  const s = Math.min(canvas.width, canvas.height);
+  const rIn = s * 0.1;
+  const rOut = s * 0.46;
+
+  // Corner vertex of each sticker (2×2: one cubie corner per sticker).
+  const faceVerts: Array<Array<Vec3>> = [
+    [[-1, -1, 1], [1, -1, 1], [1, 1, 1], [-1, 1, 1]], // U
+    [[1, 1, 1], [1, -1, 1], [1, -1, -1], [1, 1, -1]], // R
+    [[-1, 1, 1], [1, 1, 1], [1, 1, -1], [-1, 1, -1]], // F
+    [[-1, 1, -1], [1, 1, -1], [1, -1, -1], [-1, -1, -1]], // D
+    [[-1, -1, 1], [-1, 1, 1], [-1, 1, -1], [-1, -1, -1]], // L
+    [[1, -1, 1], [-1, -1, 1], [-1, -1, -1], [1, -1, -1]], // B
+  ];
+  const faceNormal: Vec3[] = [
+    [0, 0, 1],
+    [1, 0, 0],
+    [0, 1, 0],
+    [0, 0, -1],
+    [-1, 0, 0],
+    [0, -1, 0],
+  ];
+
+  const u = norm3([1, 1, 1]);
+  // Orthonormal basis of the plane ⟂ u (stable, not parallel to u).
+  const e1 = norm3(cross3(u, Math.abs(u[2]) < 0.9 ? [0, 0, 1] : [0, 1, 0]));
+  const e2 = cross3(u, e1);
+
+  function stickerCenter(f: number, i: number): Vec3 {
+    const v = faceVerts[f][i];
+    const n = faceNormal[f];
+    // Quadrant center on the face plane.
+    return [
+      n[0] !== 0 ? n[0] : v[0] * 0.5,
+      n[1] !== 0 ? n[1] : v[1] * 0.5,
+      n[2] !== 0 ? n[2] : v[2] * 0.5,
+    ];
+  }
+
+  const heights: number[] = [];
+  const angles: number[] = [];
+  for (let f = 0; f < 6; f++) {
+    for (let i = 0; i < 4; i++) {
+      const c = stickerCenter(f, i);
+      const h = dot3(c, u);
+      const perp: Vec3 = [
+        c[0] - h * u[0],
+        c[1] - h * u[1],
+        c[2] - h * u[2],
+      ];
+      heights.push(h);
+      angles.push(Math.atan2(dot3(perp, e2), dot3(perp, e1)));
+    }
+  }
+  const hMin = Math.min(...heights);
+  const hMax = Math.max(...heights);
+  const hSpan = hMax - hMin || 1;
+
+  // Rotate drawing so URF sector points up (-π/2 in canvas y-down space).
+  const urfAng = angles[2]; // U2 at URF
+  const angShift = -Math.PI / 2 - urfAng;
+
+  for (let sIdx = 0; sIdx < 24; sIdx++) {
+    const t = (hMax - heights[sIdx]) / hSpan; // 0 at URF, 1 at DLB
+    const radius = rIn + (rOut - rIn) * t;
+    const ang = angles[sIdx] + angShift;
+    pos[sIdx] = {
+      x: cx + Math.cos(ang) * radius,
+      y: cy + Math.sin(ang) * radius,
+    };
+  }
+  return pos;
+}
+
+function drawFaceletGraph(canvas: HTMLCanvasElement): void {
+  const ctx = clearCanvas(canvas);
+  const pos = faceletGraphPositions(canvas);
+  const cx = canvas.width * 0.5;
+  const cy = canvas.height * 0.5;
+  const edges = faceletAdjacency();
+  const s = Math.min(canvas.width, canvas.height);
+
+  // Guide rings at the discrete heights that appear in the projection.
+  const guideT = [0, 0.25, 0.5, 0.75, 1];
+  const rIn = s * 0.1;
+  const rOut = s * 0.46;
+  ctx.strokeStyle = "#eee0c8";
+  ctx.lineWidth = 1;
+  for (const t of guideT) {
+    const r = rIn + (rOut - rIn) * t;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  ctx.strokeStyle = "#93a1a1";
+  ctx.lineWidth = 1.1;
+  ctx.lineCap = "round";
+
+  for (const [i, j] of edges) {
+    const a = pos[i];
+    const b = pos[j];
+    const ra = Math.hypot(a.x - cx, a.y - cy);
+    const rb = Math.hypot(b.x - cx, b.y - cy);
+    const sameRing = Math.abs(ra - rb) < s * 0.03;
+    let d =
+      Math.atan2(b.y - cy, b.x - cx) - Math.atan2(a.y - cy, a.x - cx);
+    while (d > Math.PI) d -= 2 * Math.PI;
+    while (d < -Math.PI) d += 2 * Math.PI;
+    ctx.beginPath();
+    if (sameRing && Math.abs(d) > 0.12 && Math.abs(d) < Math.PI * 0.7) {
+      const r = (ra + rb) * 0.5;
+      const ang0 = Math.atan2(a.y - cy, a.x - cx);
+      ctx.moveTo(a.x, a.y);
+      ctx.arc(cx, cy, r, ang0, ang0 + d, d < 0);
+    } else {
+      ctx.moveTo(a.x, a.y);
+      ctx.lineTo(b.x, b.y);
+    }
+    ctx.stroke();
+  }
+
+  const nodeR = Math.max(5, s * 0.02);
+  for (let i = 0; i < 24; i++) {
+    const p = pos[i];
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, nodeR, 0, Math.PI * 2);
+    ctx.fillStyle = colorAt(i);
+    ctx.fill();
+    ctx.strokeStyle = STROKE;
+    ctx.lineWidth = 1.1;
+    ctx.stroke();
+  }
+}
+
 function redraw(): void {
   // URF: mirror X so F is left, R is right (standard diagram).
   drawCornerView(canvasUrf, [1, 1, 1], true);
   // DLB: L left, B right, D toward bottom of the panel.
   drawCornerView(canvasDlb, [-1, -1, -1], false);
   drawNet(canvasNet);
+  drawFaceletGraph(canvasGraph);
   updatePathPanel();
 }
 

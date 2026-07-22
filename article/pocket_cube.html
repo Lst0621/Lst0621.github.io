@@ -12,30 +12,30 @@
   </script>
   <style>
     .wrap {
-      max-width: 1100px;
+      max-width: 1180px;
       margin: 0 auto;
-      padding: 12px 14px;
+      padding: 8px 12px 12px;
     }
 
     .subtitle {
       color: var(--muted);
-      margin-top: 6px;
-      line-height: 1.35;
-      font-size: 13px;
+      margin-top: 4px;
+      line-height: 1.3;
+      font-size: 12px;
     }
 
     .controls {
       display: flex;
       flex-direction: column;
-      gap: 8px;
-      margin: 10px 0;
-      padding: 10px 12px;
+      gap: 6px;
+      margin: 8px 0;
+      padding: 8px 10px;
     }
 
     .controls-row {
       display: flex;
       flex-wrap: wrap;
-      gap: 8px;
+      gap: 6px;
       align-items: center;
     }
 
@@ -48,28 +48,37 @@
 
     .views {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 14px;
-      margin-top: 12px;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 8px;
     }
 
-    @media (max-width: 900px) {
+    @media (max-width: 720px) {
       .views {
         grid-template-columns: 1fr;
       }
     }
 
     .view-panel h2 {
-      margin: 0 0 8px;
-      font-size: 13px;
+      margin: 0 0 4px;
+      font-size: 12px;
       font-family: ui-monospace, Courier;
       font-weight: 600;
+    }
+
+    /* Square frames (override theme rounded panels/canvas). */
+    .solarized .view-panel.panel {
+      border-radius: 0;
+      padding: 6px 8px;
     }
 
     .view-panel canvas {
       width: 100%;
       height: auto;
-      border: 12px solid var(--panel);
+      display: block;
+      border: 2px solid var(--border);
+      border-radius: 0;
+      background: #f7f0dc;
     }
 
     #status {
@@ -203,18 +212,14 @@
   </div>
 
   <div class="formula-panel panel">
-    <div class="formula-line"><span class="formula-label">F1</span> (layer corner perm · QiYi 公式一): <code>R B' R F F R' B R F F R R</code></div>
-    <div class="formula-line"><span class="formula-label">F2</span> (OLL · anti-sune): <code>R U U R' U' R U' R'</code></div>
-    <div class="formula-line"><span class="formula-label">F3</span> (OLL · sune = inv F2): <code>R U R' U R U U R'</code></div>
-    <ul class="combo-list">
-      <li>Step 2: matching side in front → F1 once; else F1, then matching side front → F1 again</li>
-      <li>Step 3 OLL: F2 · F3 · F2+F2 · F2+U'+F2 · F2+U2+F3 · F2+U+F3 · F2+U'+F3</li>
-    </ul>
+    <div class="formula-line"><span class="formula-label">F1</span> <code>R B' R F F R' B R F F R R</code>
+      · <span class="formula-label">F2</span> <code>R U U R' U' R U' R'</code>
+      · <span class="formula-label">F3</span> <code>R U R' U R U U R'</code> (inv F2)</div>
   </div>
 
   <div class="toggle-row">
     <label>
-      <input type="checkbox" id="toggle-paths" checked>
+      <input type="checkbox" id="toggle-paths">
       Show move paths
     </label>
     <label>
@@ -223,7 +228,7 @@
     </label>
   </div>
 
-  <div id="path-panel" class="path-panel panel">
+  <div id="path-panel" class="path-panel panel hidden">
     <div class="path-line"><span class="path-label">History</span> (button presses, no cancel): <span id="path-history">(none) · length 0</span></div>
     <div class="path-line"><span class="path-label">Shortest → any orientation</span> (solid faces / xyz orbit, QTM): <span id="path-shortest-any">(none) · length 0</span></div>
     <div class="path-line"><span class="path-label">Inverse (any)</span> (solve to solid faces): <span id="path-shortest-any-inverse">(none) · length 0</span></div>
@@ -236,20 +241,24 @@
 
   <div class="views">
     <div class="view-panel panel">
-      <h2>URF · F left, R right · from (+1,+1,+1)</h2>
-      <canvas id="canvas-urf" width="320" height="280"></canvas>
+      <h2>URF · F left, R right</h2>
+      <canvas id="canvas-urf" width="400" height="300"></canvas>
     </div>
     <div class="view-panel panel">
-      <h2>DLB · L left, B right · from (−1,−1,−1)</h2>
-      <canvas id="canvas-dlb" width="320" height="280"></canvas>
+      <h2>DLB · L left, B right</h2>
+      <canvas id="canvas-dlb" width="400" height="300"></canvas>
     </div>
     <div class="view-panel panel">
       <h2>Net (1-4-1)</h2>
-      <canvas id="canvas-net" width="420" height="320"></canvas>
+      <canvas id="canvas-net" width="400" height="300"></canvas>
+    </div>
+    <div class="view-panel panel">
+      <h2>Facelet graph · URF center (3-fold)</h2>
+      <canvas id="canvas-graph" width="400" height="400"></canvas>
     </div>
   </div>
 
-  <div style="margin-top:12px;"><a href="../index.html">Back</a></div>
+  <div style="margin-top:8px;"><a href="../index.html">Back</a></div>
 </div>
 <script type="module" src="/assets/js/page/pocket_cube.js"></script>
 </body>
