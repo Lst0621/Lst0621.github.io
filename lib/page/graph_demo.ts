@@ -4,7 +4,9 @@ import {
     wasmGraphPdimAllModes,
     wasmGraphRandomizeUndirectedAdj01,
     wasmGraphResolvingSubsetsCacheCreate,
+    wasmGraphSpectrumPolynomialCoeffs,
 } from "../tsl/wasm/ts/wasm_api_graph_demo";
+import { poly_to_latex_signed_terms_high_to_low } from "../tsl/ts/math/polynomial";
 import {
     edgeListFromAdj01Based,
     parseEdgeListJson,
@@ -16,6 +18,7 @@ void wasmGraphPdimAllModes;
 
 
 let n = 8;
+const MAX_VERTICES = 25;
 const PAGE_SIZE = 50;
 type HighlightMode = "node" | "edge" | "mixed";
 let highlightMode: HighlightMode = "node";
@@ -101,6 +104,7 @@ let cachedGraphAdj01: number[] = [];
 let cachedGraphEdges: Array<{ a: number; b: number }> = [];
 let cachedGraphBasicInfo: { edgeCount: number; diameter: number } | null = null;
 let cachedGraphDistFlat: number[] | null = null;
+let cachedGraphSpectrumCoeffs: number[] = [];
 let wasmResolveCache: ReturnType<typeof wasmGraphResolvingSubsetsCacheCreate> | null = null;
 let wasmResolveCacheGraphVersion = -1;
 
@@ -162,6 +166,7 @@ function getGraphSnapshot(): {
     basicInfo: { edgeCount: number; diameter: number };
     distFlat: number[];
     edges: Array<{ a: number; b: number }>;
+    spectrumCoeffs: number[];
 } {
     if (cachedGraphSnapshotVersion !== graphVersion) {
         cachedGraphAdj01 = adj.flat().map(v => v ? 1 : 0);
@@ -172,6 +177,12 @@ function getGraphSnapshot(): {
                 if (adj[i][j]) cachedGraphEdges.push({ a: i, b: j });
             }
         }
+        // Beyond MAX_VERTICES the exact integer coefficients can outgrow what a
+        // double represents without rounding, so report nothing rather than
+        // silently rounded values.
+        cachedGraphSpectrumCoeffs = n <= MAX_VERTICES
+            ? wasmGraphSpectrumPolynomialCoeffs(cachedGraphAdj01, n)
+            : [];
         cachedGraphDistFlat = null;
         cachedGraphSnapshotVersion = graphVersion;
     }
@@ -185,6 +196,7 @@ function getGraphSnapshot(): {
         basicInfo: cachedGraphBasicInfo || { edgeCount: 0, diameter: -1 },
         distFlat: cachedGraphDistFlat,
         edges: cachedGraphEdges,
+        spectrumCoeffs: cachedGraphSpectrumCoeffs,
     };
 }
 
@@ -673,7 +685,7 @@ function renderControls(
     const incBtn = document.createElement("button");
     incBtn.innerText = "+";
     incBtn.onclick = () => {
-        if (n >= 25) {
+        if (n >= MAX_VERTICES) {
             return;
         }
         n++;
@@ -1765,31 +1777,64 @@ function resolvingPolynomialTerms(coeffs: readonly number[]): string[] {
     return terms.length > 0 ? terms : ["0"];
 }
 
-function formatResolvingPolynomial(coeffs: readonly number[]): string {
-    const terms = resolvingPolynomialTerms(coeffs);
+/**
+ * Inline math when the polynomial is short, otherwise a collapsed preview whose
+ * body wraps the full term list over several lines.
+ *
+ * `joinChunk` receives a slice of consecutive terms plus whether that slice ends
+ * the polynomial, so callers control both the separator and any continuation
+ * marker at a line break.
+ */
+function foldLongPolynomialHtml(
+    terms: readonly string[],
+    ellipsis: string,
+    joinChunk: (chunk: readonly string[], isLastChunk: boolean) => string,
+    stateId?: string,
+): string {
     if (terms.length <= POLYNOMIAL_FOLD_TERM_COUNT) {
-        return `$${terms.join(" + ")}$`;
+        return `$${joinChunk(terms, true)}$`;
     }
     const previewTerms = [
         ...terms.slice(0, 4),
-        "\\cdots",
+        ellipsis,
         ...terms.slice(-3),
     ];
-    const preview = `$${previewTerms.join(" + ")}$`;
+    const preview = `$${joinChunk(previewTerms, true)}$`;
     const lines: string[] = [];
     for (let i = 0; i < terms.length; i += POLYNOMIAL_TERMS_PER_LINE) {
-        const chunk = terms.slice(i, i + POLYNOMIAL_TERMS_PER_LINE).join(" + ");
-        const suffix = i + POLYNOMIAL_TERMS_PER_LINE < terms.length ? " +" : "";
+        const isLastChunk = i + POLYNOMIAL_TERMS_PER_LINE >= terms.length;
+        const chunk = joinChunk(terms.slice(i, i + POLYNOMIAL_TERMS_PER_LINE), isLastChunk);
         lines.push(
-            `<div style="max-width:100%; overflow-wrap:anywhere;">$${chunk}${suffix}$</div>`,
+            `<div style="max-width:100%; overflow-wrap:anywhere;">$${chunk}$</div>`,
         );
     }
+    const stateAttr = stateId ? ` data-state-id="${stateId}"` : "";
     return (
-        `<details style="display:inline-block; vertical-align:top; max-width:100%;">` +
+        `<details${stateAttr} style="display:inline-block; vertical-align:top; max-width:100%;">` +
         `<summary style="cursor:pointer;">${preview}</summary>` +
         `<div style="margin-top:4px; max-width:100%;">${lines.join("")}</div>` +
         `</details>`
     );
+}
+
+function formatResolvingPolynomial(coeffs: readonly number[]): string {
+    return foldLongPolynomialHtml(
+        resolvingPolynomialTerms(coeffs),
+        "\\cdots",
+        (chunk, isLastChunk) => chunk.join(" + ") + (isLastChunk ? "" : " +"),
+    );
+}
+
+/** Terms already carry their sign, so chunks concatenate without a separator. */
+function formatSpectrumPolynomial(coeffs: readonly number[]): string {
+    if (coeffs.length === 0) {
+        return `<span style="color:var(--muted);">not shown above n=${MAX_VERTICES}</span>`;
+    }
+    const terms = poly_to_latex_signed_terms_high_to_low([...coeffs]);
+    if (terms.length === 0) {
+        return "$0$";
+    }
+    return foldLongPolynomialHtml(terms, "+\\cdots", (chunk) => chunk.join(""), "spectrum-poly");
 }
 
 function formatPolynomialHtml(polynomial: ModePolynomialResult, isLoading: boolean): string {
@@ -2032,6 +2077,7 @@ function buildGraphSummaryHtml(args: {
     mixedNonRes: NonResolveResult;
     pdimRes: PdimResult;
     polynomialRes: PolynomialResult;
+    spectrumCoeffs: number[];
 }): string {
     const diameter = args.distFlat.reduce((max, d) => Math.max(max, d), -1);
     const selectedByMode = {
@@ -2096,6 +2142,8 @@ function buildGraphSummaryHtml(args: {
         `Selected basis (${highlightMode}): ${selectedBasisDisplay}<br>` +
         collisionLine +
         `Diameter: ${formatDiameter(diameter)}<br>` +
+        `<div style="font-family:ui-monospace, Courier; font-size:12px; overflow-wrap:anywhere;">` +
+        `Spectrum polynomial $\\det(xI-A)$: ${formatSpectrumPolynomial(args.spectrumCoeffs)}</div>` +
         nodeBlock +
         edgeBlock +
         mixedBlock;
@@ -2165,6 +2213,7 @@ function renderSummaryOnly(): void {
         mixedNonRes,
         pdimRes,
         polynomialRes,
+        spectrumCoeffs: snapshot.spectrumCoeffs,
     }));
     restoreDetailsState(graphSummary);
     graphSummary.onclick = graphTextPageClick;
@@ -2288,6 +2337,7 @@ function renderAll(): void {
         mixedNonRes,
         pdimRes,
         polynomialRes,
+        spectrumCoeffs: snapshot.spectrumCoeffs,
     }));
     restoreDetailsState(graphSummary);
     graphSummary.onclick = graphTextPageClick;
