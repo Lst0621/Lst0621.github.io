@@ -17,8 +17,10 @@ import {
     voronoiFindSiteIndex,
     exactRationalToNumber,
     modulePromise,
-    VoronoiCellBoundary,
-    VoronoiCellBoundaryExact,
+    type VoronoiCellBoundary,
+    type VoronoiCellBoundaryExact,
+    type VoronoiBoundaryPointExact,
+    type VoronoiPoint,
     type VoronoiMetric,
     type VoronoiTopology,
 } from "../tsl/wasm/ts/wasm_api_voronoi";
@@ -119,25 +121,35 @@ const colors: RgbColor[] = [
 ];
 let nextSiteId = 1;
 let siteIds: number[] = [];
+let sitePoints: VoronoiPoint[] = [];
 let siteColors = new Map<number, number>();
 let latestBoundaries: VoronoiCellBoundary[] = [];
 let latestInternalBoundaries: VoronoiCellBoundary[] = [];
+type CanvasCellPath = { site: number; path: Path2D };
+let latestCellPaths: CanvasCellPath[] = [];
+let latestInternalCellPaths: CanvasCellPath[] = [];
 
 type CachedGeometry = {
     boundaries: VoronoiCellBoundary[];
-    internalBoundaries: VoronoiCellBoundary[];
-    /** Populated only when debug mode is active. */
-    exactBoundaries?: VoronoiCellBoundaryExact[];
+    /** Prebuilt canvas paths for the merged cell outlines. */
+    cellPaths: CanvasCellPath[];
+    /** Undefined until clip-piece edges are requested for this cache entry. */
+    internalBoundaries?: VoronoiCellBoundary[];
+    /** Prebuilt paths matching `internalBoundaries`, once requested. */
+    internalCellPaths?: CanvasCellPath[];
     siteColors: Map<number, number>;
 };
 
 // Per (metric, topology, tie) cache — invalidated when seeds change.
 const geometryByCacheKey: Record<string, CachedGeometry> = {};
+// Which cache entry is currently materialized in the native diagram.  Cached
+// JS paths can be drawn without it, but serialising lazy clip pieces cannot.
+let nativeComputedCacheKey: string | null = null;
 
 function emptyGeometry(): CachedGeometry {
     return {
         boundaries: [],
-        internalBoundaries: [],
+        cellPaths: [],
         siteColors: new Map<number, number>(),
     };
 }
@@ -150,6 +162,7 @@ function invalidateGeometryCache(): void {
     for (const key of Object.keys(geometryByCacheKey)) {
         delete geometryByCacheKey[key];
     }
+    nativeComputedCacheKey = null;
 }
 
 function hslToRgb(h: number, s: number, l: number): RgbColor {
@@ -204,9 +217,12 @@ function getColor(idx: number): RgbColor {
 
 function resetSiteState(): void {
     siteIds = [];
+    sitePoints = [];
     siteColors = new Map<number, number>();
     latestBoundaries = [];
     latestInternalBoundaries = [];
+    latestCellPaths = [];
+    latestInternalCellPaths = [];
     invalidateGeometryCache();
 }
 
@@ -240,6 +256,9 @@ function modeLabel(): string {
 }
 
 function logEdgeDataSummary(label: string): void {
+    if (!isVoronoiDebugMode()) {
+        return;
+    }
     const outlineLoops = countBoundaryLoops(latestBoundaries);
     const pieceLoops = countBoundaryLoops(latestInternalBoundaries);
     console.debug(
@@ -278,11 +297,13 @@ function logVoronoiGeometryDebug(
     const rows: Record<string, unknown>[] = [];
     const fullRows: Record<string, unknown>[] = [];
     for (let i = 0; i < n; i++) {
-        const { x, y } = voronoiGetSite(i);
+        const { x, y } = sitePoints[i] ?? voronoiGetSite(i);
         const sid = siteIds[i];
         const cidx = sid !== undefined ? (colorsByStableId.get(sid) ?? 0) : 0;
         const cellBoundary = boundaries.find((c) => c.site === i);
         const polys = (cellBoundary?.polygons ?? []).map((loop) => loop.map((p) => ({ x: p.x, y: p.y })));
+        const exactCellBoundary = exactBoundaries.find((c) => c.site === i);
+        const exactPolys = exactCellBoundary?.polygons ?? [];
         const polyCount = polys.length;
         const areas = polys.map((loop) => Math.abs(polygonAreaDouble(loop)).toFixed(0));
         const polySummary = polys
@@ -311,6 +332,7 @@ function logVoronoiGeometryDebug(
             n: polyCount,
             area: areas.join(" "),
             polys,
+            exactPolys,
         });
     }
     console.table(rows);
@@ -345,10 +367,47 @@ function normalizeVertices(vertices: { x: number; y: number }[]): { x: number; y
     return deduped;
 }
 
-function addPoint(x: number, y: number): void {
-    voronoiAddPoint(x, y);
+/**
+ * Build canvas paths once per cached geometry entry.  Drawing a 3×3 layout
+ * reuses the same model-space paths under different canvas transforms, rather
+ * than re-normalising every loop and rebuilding every path for each tile.
+ */
+function buildCanvasCellPaths(boundaries: VoronoiCellBoundary[]): CanvasCellPath[] {
+    return boundaries.map((cell) => {
+        const path = new Path2D();
+        for (const loop of cell.polygons) {
+            const polygon = normalizeVertices(loop);
+            if (polygon.length === 0) {
+                continue;
+            }
+            path.moveTo(polygon[0]!.x, polygon[0]!.y);
+            for (let i = 1; i < polygon.length; i++) {
+                path.lineTo(polygon[i]!.x, polygon[i]!.y);
+            }
+            path.closePath();
+        }
+        return { site: cell.site, path };
+    });
+}
+
+function clampSiteCoordinate(value: number, size: number): number {
+    return Math.min(size - 1, Math.max(0, Math.floor(value)));
+}
+
+/** Add one canonical, non-duplicate integer site. */
+function addPoint(x: number, y: number): boolean {
+    const siteX = clampSiteCoordinate(x, CANVAS_WIDTH);
+    const siteY = clampSiteCoordinate(y, CANVAS_HEIGHT);
+    for (const site of sitePoints) {
+        if (site.x === siteX && site.y === siteY) {
+            return false;
+        }
+    }
+    voronoiAddPoint(siteX, siteY);
     siteIds.push(nextSiteId++);
+    sitePoints.push({ x: siteX, y: siteY });
     invalidateGeometryCache();
+    return true;
 }
 
 function setDebugCoordStatus(message: string): void {
@@ -397,7 +456,10 @@ function addSiteFromCoordInputs(): void {
         );
         return;
     }
-    addPoint(x, y);
+    if (!addPoint(x, y)) {
+        setDebugCoordStatus(`site (${x}, ${y}) already exists`);
+        return;
+    }
     refreshGeometry();
     updateUI();
     draw();
@@ -409,6 +471,7 @@ function removePoint(idx: number): void {
     voronoiRemovePoint(idx);
     const removedId = siteIds[idx];
     siteIds.splice(idx, 1);
+    sitePoints.splice(idx, 1);
     siteColors.delete(removedId);
     invalidateGeometryCache();
 }
@@ -484,14 +547,14 @@ function buildGeometry(
     topology: VoronoiTopology,
     previousColors: Map<number, number>,
 ): CachedGeometry {
-    voronoiSetMode(metric, topology);
-    voronoiSetChebyshevNoTie(!chebyshevTieBreak);
+    configureVoronoiMode(metric, topology);
     const nSites = voronoiNumSites();
     const tCompute0 =
         typeof performance !== "undefined" && typeof performance.now === "function"
             ? performance.now()
             : 0;
     voronoiCompute();
+    nativeComputedCacheKey = activeCacheKey();
     const tCompute1 =
         tCompute0 !== 0 ? performance.now() : 0;
 
@@ -513,10 +576,10 @@ function buildGeometry(
     }
 
     const internalBoundaries =
-        edgeDisplay === "pieces" ? voronoiGetCellBoundariesInternal() : [];
+        edgeDisplay === "pieces" ? voronoiGetCellBoundariesInternal() : undefined;
 
     const tFetch1 = tCompute1 !== 0 ? performance.now() : 0;
-    if (tCompute0 !== 0) {
+    if (isVoronoiDebugMode() && tCompute0 !== 0) {
         console.debug(
             `voronoi: ${pairKey(metric, topology)} compute=${(tCompute1 - tCompute0).toFixed(1)} ms fetch=${(tFetch1 - tCompute1).toFixed(1)} ms`,
         );
@@ -538,21 +601,58 @@ function buildGeometry(
         }
     }
 
-    logVoronoiGeometryDebug(
-        pairKey(metric, topology),
-        boundaries,
-        exactBoundaries ?? [],
-        recolored,
-    );
+    if (isVoronoiDebugMode()) {
+        logVoronoiGeometryDebug(
+            pairKey(metric, topology),
+            boundaries,
+            exactBoundaries ?? [],
+            recolored,
+        );
+    }
 
-    return { boundaries, internalBoundaries, exactBoundaries, siteColors: recolored };
+    return {
+        boundaries,
+        cellPaths: buildCanvasCellPaths(boundaries),
+        internalBoundaries,
+        internalCellPaths:
+            internalBoundaries === undefined ? undefined : buildCanvasCellPaths(internalBoundaries),
+        siteColors: recolored,
+    };
 }
 
 function syncActiveGeometry(): void {
     const active = geometryByCacheKey[activeCacheKey()] ?? emptyGeometry();
     latestBoundaries = active.boundaries;
-    latestInternalBoundaries = active.internalBoundaries;
+    latestInternalBoundaries = active.internalBoundaries ?? [];
+    latestCellPaths = active.cellPaths;
+    latestInternalCellPaths = active.internalCellPaths ?? [];
     siteColors = new Map(active.siteColors);
+}
+
+/** Keep WASM queries (hover/right-click) in sync with the visible cache entry. */
+function configureVoronoiMode(metric: VoronoiMetric, topology: VoronoiTopology): void {
+    voronoiSetMode(metric, topology);
+    voronoiSetChebyshevNoTie(!chebyshevTieBreak);
+}
+
+/**
+ * Clip pieces are intentionally lazy: serialising them is expensive for L1/L∞
+ * diagrams. A cache hit may belong to a mode whose native cells are no longer
+ * loaded, so recompute only when that cached mode is not still materialized.
+ */
+function ensureActiveInternalBoundaries(): void {
+    const key = activeCacheKey();
+    const active = geometryByCacheKey[key];
+    if (!active || active.internalBoundaries !== undefined) {
+        return;
+    }
+    configureVoronoiMode(voronoiMetric, voronoiTopology);
+    if (nativeComputedCacheKey !== key) {
+        voronoiCompute();
+        nativeComputedCacheKey = key;
+    }
+    active.internalBoundaries = voronoiGetCellBoundariesInternal();
+    active.internalCellPaths = buildCanvasCellPaths(active.internalBoundaries);
 }
 
 // Compute geometry for the active distance mode only.
@@ -574,12 +674,19 @@ function refreshGeometry(): void {
                 ? performance.now()
                 : 0;
         geometryByCacheKey[key] = buildGeometry(voronoiMetric, voronoiTopology, previousColors);
-        if (t0 !== 0) {
+        if (isVoronoiDebugMode() && t0 !== 0) {
             const elapsed = performance.now() - t0;
             console.debug(
                 `voronoi: ${key} compute+fetch took ${elapsed.toFixed(1)} ms (sites=${voronoiNumSites()})`,
             );
         }
+    } else {
+        // Geometry is cached in JS, but native hover/hit-test queries still
+        // use the most recently computed metric/topology.
+        configureVoronoiMode(voronoiMetric, voronoiTopology);
+    }
+    if (edgeDisplay === "pieces") {
+        ensureActiveInternalBoundaries();
     }
     syncActiveGeometry();
     if (voronoiNumSites() > 0) {
@@ -596,10 +703,13 @@ function recomputeAndDraw(): void {
 function generateRandomPoints(count: number): void {
     voronoiClear();
     resetSiteState();
-    for (let i = 0; i < count; i++) {
-        const x = Math.random() * CANVAS_WIDTH;
-        const y = Math.random() * CANVAS_HEIGHT;
-        addPoint(Math.round(x), Math.round(y));
+    let added = 0;
+    while (added < count) {
+        const x = Math.floor(Math.random() * CANVAS_WIDTH);
+        const y = Math.floor(Math.random() * CANVAS_HEIGHT);
+        if (addPoint(x, y)) {
+            added++;
+        }
     }
     recomputeAndDraw();
 }
@@ -636,23 +746,11 @@ function fallbackCellBoundariesExact(nSites: number): VoronoiCellBoundaryExact[]
     return Array.from({ length: nSites }, (_, site) => ({ site, polygons: [] as VoronoiBoundaryPointExact[][] }));
 }
 
-function fillCellsFromPolygons(): void {
-    for (const cell of latestBoundaries) {
+function fillCellsFromPaths(): void {
+    for (const cell of latestCellPaths) {
         const colorIdx = siteColors.get(siteIds[cell.site]) ?? 0;
         ctx.fillStyle = rgbToCss(getColor(colorIdx));
-        ctx.beginPath();
-        for (const loop of cell.polygons) {
-            const polygon = normalizeVertices(loop);
-            if (polygon.length === 0) {
-                continue;
-            }
-            ctx.moveTo(polygon[0].x, polygon[0].y);
-            for (let i = 1; i < polygon.length; i++) {
-                ctx.lineTo(polygon[i].x, polygon[i].y);
-            }
-            ctx.closePath();
-        }
-        ctx.fill("nonzero");
+        ctx.fill(cell.path, "nonzero");
     }
 }
 
@@ -662,39 +760,29 @@ function fillCellsFromPolygons(): void {
  * compensate when the tile is scaled down (3×3 view).
  */
 function drawOneTile(modelLineWidth: number, modelSeedR: number): void {
-    // Fill cells from exported polygons (exact rational, all topologies).
-    if (latestBoundaries.length > 0) {
-        fillCellsFromPolygons();
+    // Fill from the native diagram's double-precision rendering polygons.
+    if (latestCellPaths.length > 0) {
+        fillCellsFromPaths();
     }
 
     if (edgeDisplay !== "none") {
         const usePieces = edgeDisplay === "pieces";
-        const strokeBoundaries = usePieces ? latestInternalBoundaries : latestBoundaries;
+        const strokePaths = usePieces ? latestInternalCellPaths : latestCellPaths;
         ctx.lineWidth = modelLineWidth;
         ctx.strokeStyle = usePieces ? "rgba(0, 0, 0, 0.28)" : "rgba(0, 0, 0, 0.18)";
         ctx.setLineDash(usePieces ? [5, 4] : []);
-        if (strokeBoundaries.length > 0) {
-            for (const cell of strokeBoundaries) {
-                ctx.beginPath();
-                for (const loop of cell.polygons) {
-                    const poly = normalizeVertices(loop);
-                    if (poly.length < 2) continue;
-                    ctx.moveTo(poly[0].x, poly[0].y);
-                    for (let i = 1; i < poly.length; i++) {
-                        ctx.lineTo(poly[i].x, poly[i].y);
-                    }
-                    ctx.closePath();
-                }
-                ctx.stroke();
+        if (strokePaths.length > 0) {
+            for (const cell of strokePaths) {
+                ctx.stroke(cell.path);
             }
         }
         ctx.setLineDash([]);
     }
 
-    const n = voronoiNumSites();
+    const n = sitePoints.length;
     if (n > 0 && modelSeedR > 0) {
         for (let i = 0; i < n; i++) {
-            const { x, y } = voronoiGetSite(i);
+            const { x, y } = sitePoints[i]!;
             const colorIdx = siteColors.get(siteIds[i]) ?? 0;
             ctx.beginPath();
             ctx.arc(x, y, modelSeedR, 0, Math.PI * 2);
@@ -816,22 +904,37 @@ function updateViewLayoutButton(): void {
     }
 }
 
-canvas.addEventListener("click", (e) => {
+/** Convert browser client coordinates to clipped, unscaled canvas space. */
+function clientToCanvas({ clientX, clientY }: Pick<MouseEvent, "clientX" | "clientY">): {
+    x: number;
+    y: number;
+} {
     const rect = canvas.getBoundingClientRect();
-    const px = Math.round(e.clientX - rect.left);
-    const py = Math.round(e.clientY - rect.top);
+    const cssWidth = canvas.clientWidth || rect.width;
+    const cssHeight = canvas.clientHeight || rect.height;
+    const x = ((clientX - rect.left - canvas.clientLeft) * CANVAS_WIDTH) / cssWidth;
+    const y = ((clientY - rect.top - canvas.clientTop) * CANVAS_HEIGHT) / cssHeight;
+    // Event coordinates at the far border must remain in the half-open
+    // fundamental domain [0,W)×[0,H), just like debug-entered sites.
+    return {
+        x: Math.min(CANVAS_WIDTH - Number.EPSILON * CANVAS_WIDTH, Math.max(0, x)),
+        y: Math.min(CANVAS_HEIGHT - Number.EPSILON * CANVAS_HEIGHT, Math.max(0, y)),
+    };
+}
+
+canvas.addEventListener("click", (e) => {
+    const { x: px, y: py } = clientToCanvas(e);
     const { x, y } = canvasToModel(px, py);
-    addPoint(Math.round(x), Math.round(y));
-    refreshGeometry();
-    updateUI();
-    draw();
+    if (addPoint(x, y)) {
+        refreshGeometry();
+        updateUI();
+        draw();
+    }
 });
 
 canvas.addEventListener("contextmenu", (e) => {
     e.preventDefault();
-    const rect = canvas.getBoundingClientRect();
-    const px = Math.round(e.clientX - rect.left);
-    const py = Math.round(e.clientY - rect.top);
+    const { x: px, y: py } = clientToCanvas(e);
     const { x, y } = canvasToModel(px, py);
 
     const nearestIdx = voronoiFindSiteIndex(x, y);
@@ -845,7 +948,7 @@ canvas.addEventListener("contextmenu", (e) => {
 
 function buildHoverText(px: number, py: number): string {
     const { x, y } = canvasToModel(px, py);
-    const n = voronoiNumSites();
+    const n = sitePoints.length;
     if (n === 0) {
         return `pos: (${x.toFixed(1)}, ${y.toFixed(1)})\n\nno sites`;
     }
@@ -855,39 +958,45 @@ function buildHoverText(px: number, py: number): string {
         return `pos: (${x.toFixed(1)}, ${y.toFixed(1)})\n\nno sites`;
     }
 
-    const entries: { idx: number; sx: number; sy: number; d: number }[] = [];
     let bestD = Infinity;
     for (let i = 0; i < n; i++) {
-        const s = voronoiGetSite(i);
-        let rawD = dists[i]!;
+        const rawD = dists[i]!;
         let d: number;
-        if (voronoiMetric === "linf") {
-            // C++ returns Chebyshev in half-pixel units; convert to pixel distance
-            d = rawD / 2;
-        } else if (voronoiMetric === "l1") {
+        if (voronoiMetric === "linf" || voronoiMetric === "l1") {
             d = rawD;
         } else {
             // L2: C++ returns squared Euclidean; take sqrt for display
             d = Math.sqrt(rawD);
         }
+        // `dists` is a fresh result from the wrapper, so it can also serve as
+        // the display-distance buffer without allocating one object per site.
+        dists[i] = d;
         if (d < bestD) bestD = d;
-        entries.push({ idx: i, sx: s.x, sy: s.y, d });
     }
 
     let text = `pos: (${x.toFixed(0)}, ${y.toFixed(0)})\n\n`;
-    for (const e of entries) {
-        const tied = Math.abs(e.d - bestD) < 1e-9;
+    let tieCount = 0;
+    let firstTieIdx = -1;
+    for (let i = 0; i < n; i++) {
+        const s = sitePoints[i]!;
+        const d = dists[i]!;
+        const tied = Math.abs(d - bestD) < 1e-9;
+        if (tied) {
+            tieCount++;
+            if (firstTieIdx < 0) {
+                firstTieIdx = i;
+            }
+        }
         const marker = tied ? " ← closest" : "";
-        const dDisplay = e.d.toFixed(2);
-        text += `site ${e.idx} (${e.sx},${e.sy}): d=${dDisplay}${marker}\n`;
+        const dDisplay = d.toFixed(2);
+        text += `site ${i} (${s.x},${s.y}): d=${dDisplay}${marker}\n`;
     }
-    if (entries.filter(e => Math.abs(e.d - bestD) < 1e-9).length > 1) {
+    if (tieCount > 1) {
         if (
             (voronoiMetric === "linf" || voronoiMetric === "l1") &&
             chebyshevTieBreak
         ) {
-            const firstTie = entries.filter(e => Math.abs(e.d - bestD) < 1e-9)[0]!;
-            text += `\n(tie → site ${firstTie.idx})`;
+            text += `\n(tie → site ${firstTieIdx})`;
         } else if (voronoiMetric === "linf" || voronoiMetric === "l1") {
             text += "\n(tie → white)";
         }
@@ -897,17 +1006,37 @@ function buildHoverText(px: number, py: number): string {
 
 // DEBUG: hover info showing cursor position and distance to all sites (mode-aware)
 const hoverInfo = document.getElementById("hover-info");
+let hoverFrame: number | null = null;
+let pendingHoverClientPoint: Pick<MouseEvent, "clientX" | "clientY"> | null = null;
+
 canvas.addEventListener("mousemove", (e) => {
     if (!hoverInfo) {
         return;
     }
-    const rect = canvas.getBoundingClientRect();
-    const px = Math.round(e.clientX - rect.left);
-    const py = Math.round(e.clientY - rect.top);
-    hoverInfo.textContent = buildHoverText(px, py);
+    // Pointer events can arrive much faster than frames.  Deferring the
+    // layout-dependent canvas conversion keeps getBoundingClientRect() to at
+    // most one call per rendered hover update.
+    pendingHoverClientPoint = { clientX: e.clientX, clientY: e.clientY };
+    if (hoverFrame !== null) {
+        return;
+    }
+    hoverFrame = requestAnimationFrame(() => {
+        hoverFrame = null;
+        const clientPoint = pendingHoverClientPoint;
+        pendingHoverClientPoint = null;
+        if (clientPoint && hoverInfo) {
+            const point = clientToCanvas(clientPoint);
+            hoverInfo.textContent = buildHoverText(point.x, point.y);
+        }
+    });
 });
 
 canvas.addEventListener("mouseleave", () => {
+    if (hoverFrame !== null) {
+        cancelAnimationFrame(hoverFrame);
+        hoverFrame = null;
+    }
+    pendingHoverClientPoint = null;
     if (hoverInfo) {
         hoverInfo.textContent = "";
     }
@@ -917,9 +1046,7 @@ canvas.addEventListener("mouseleave", () => {
 canvas.addEventListener("mousedown", (e) => {
     if (e.button !== 1) return;  // middle button only
     e.preventDefault();
-    const rect = canvas.getBoundingClientRect();
-    const px = Math.round(e.clientX - rect.left);
-    const py = Math.round(e.clientY - rect.top);
+    const { x: px, y: py } = clientToCanvas(e);
     console.log(buildHoverText(px, py));
 });
 
@@ -967,6 +1094,9 @@ for (const radio of edgeDisplayRadios) {
         const v = radio.value;
         if (v === "none" || v === "outline" || v === "pieces") {
             applyEdgeDisplay(v);
+            if (edgeDisplay === "pieces") {
+                refreshGeometry();
+            }
             logEdgeDataSummary(modeLabel());
             draw();
         }
@@ -1087,6 +1217,9 @@ export function toggleBoundaries(): void {
 /** @deprecated Use edge display select in the page UI. */
 export function toggleInternalBoundaries(): void {
     applyEdgeDisplay(edgeDisplay === "pieces" ? "outline" : "pieces");
+    if (edgeDisplay === "pieces") {
+        refreshGeometry();
+    }
     logEdgeDataSummary(modeLabel());
     draw();
 }
