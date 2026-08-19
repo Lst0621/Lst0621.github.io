@@ -13,6 +13,7 @@ import {
     writeClipboardText,
     type EdgeList,
 } from "../common/graph_io";
+import { createDelayedTicker, type DelayedTickerController } from "../tsl/ts/loading_indicator";
 
 void wasmGraphPdimAllModes;
 
@@ -137,28 +138,32 @@ function formatSelectedBasisPlaceholder(isComputing: boolean, basis: readonly nu
     return subsetToString1Based(basis);
 }
 
-let animationRefreshInterval: number | null = null;
-let loadingAnimationDelayTimer: number | null = null;
 let loadingAnimationVisible = false;
+let loadingAnimationTicker: DelayedTickerController | null = null;
 
 function startLoadingAnimationDelay(): void {
-    if (loadingAnimationDelayTimer !== null) {
-        clearTimeout(loadingAnimationDelayTimer);
+    if (loadingAnimationTicker === null) {
+        loadingAnimationTicker = createDelayedTicker({
+            delayMs: 150,
+            tickMs: 100,
+            onDelayedStart: () => {
+                loadingAnimationVisible = true;
+                renderSummaryOnly();
+            },
+            onTick: () => {
+                updateSummaryAnimationOnly();
+            },
+            onStop: () => {
+                loadingAnimationVisible = false;
+            },
+        });
     }
     loadingAnimationVisible = false;
-    loadingAnimationDelayTimer = setTimeout(() => {
-        loadingAnimationVisible = true;
-        loadingAnimationDelayTimer = null;
-        renderSummaryOnly();
-    }, 150) as unknown as number;
+    loadingAnimationTicker.start();
 }
 
 function stopLoadingAnimationDelay(): void {
-    if (loadingAnimationDelayTimer !== null) {
-        clearTimeout(loadingAnimationDelayTimer);
-        loadingAnimationDelayTimer = null;
-    }
-    loadingAnimationVisible = false;
+    loadingAnimationTicker?.stop();
 }
 
 function getGraphSnapshot(): {
@@ -244,8 +249,6 @@ function startMetricWorker(
 
     // Start animation refresh while computing - only update animation frames, not full page
     startLoadingAnimationDelay();
-    if (animationRefreshInterval) clearInterval(animationRefreshInterval);
-    animationRefreshInterval = setInterval(() => updateSummaryAnimationOnly(), 100) as unknown as number;
     
     // Spawn 3 workers, one for each mode
     for (let mode = 0; mode < 3; mode++) {
@@ -269,10 +272,6 @@ function startMetricWorker(
                     }
                 }
                 stopLoadingAnimationDelay();
-                if (animationRefreshInterval) {
-                    clearInterval(animationRefreshInterval);
-                    animationRefreshInterval = null;
-                }
                 renderAll();
                 return;
             }
@@ -346,10 +345,6 @@ function startMetricWorker(
                         }
                     }
                     stopLoadingAnimationDelay();
-                    if (animationRefreshInterval) {
-                        clearInterval(animationRefreshInterval);
-                        animationRefreshInterval = null;
-                    }
                     console.timeEnd("[ParallelWorkers] TotalTime");
                     graphIoStatus = '';
                 }

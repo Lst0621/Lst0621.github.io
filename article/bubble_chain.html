@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Bubble Chain &mdash; Canvas Puzzle</title>
+    <link rel="icon" href="../img/flame1.png">
+    <style>
+        :root {
+            color-scheme: light;
+            --ink: #15213d;
+            --muted: #5f6d83;
+            --aqua: #098c9f;
+            --aqua-dark: #056e83;
+            --paper: rgba(255, 255, 255, 0.82);
+            --line: rgba(27, 48, 84, 0.13);
+            --shadow: 0 24px 68px rgba(24, 41, 75, 0.15);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            min-height: 100vh;
+            margin: 0;
+            color: var(--ink);
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background:
+                radial-gradient(circle at 7% 6%, rgba(72, 200, 213, 0.26), transparent 27rem),
+                radial-gradient(circle at 100% 5%, rgba(119, 139, 238, 0.2), transparent 28rem),
+                linear-gradient(142deg, #edf7f6 0%, #f6f4eb 47%, #e9eff9 100%);
+        }
+
+        .page {
+            width: min(1120px, 100%);
+            margin: 0 auto;
+            padding: clamp(22px, 4vw, 52px) clamp(15px, 3vw, 32px) 46px;
+        }
+
+        .hero {
+            max-width: 720px;
+            margin: 0 auto 25px;
+            text-align: center;
+        }
+
+        .eyebrow {
+            margin: 0 0 8px;
+            color: var(--aqua-dark);
+            font-size: 0.76rem;
+            font-weight: 850;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+        }
+
+        h1, h2, p { margin-top: 0; }
+
+        h1 {
+            margin-bottom: 10px;
+            font-size: clamp(2.4rem, 6vw, 4.4rem);
+            letter-spacing: -0.068em;
+            line-height: 0.91;
+        }
+
+        .hero-copy {
+            margin: 0 auto;
+            color: var(--muted);
+            font-size: clamp(0.98rem, 1.9vw, 1.1rem);
+            line-height: 1.6;
+        }
+
+        .shell {
+            display: grid;
+            grid-template-columns: minmax(0, 1.2fr) minmax(260px, 0.8fr);
+            gap: 20px;
+            align-items: start;
+        }
+
+        .board-card, .side-card {
+            border: 1px solid rgba(255, 255, 255, 0.84);
+            border-radius: 25px;
+            background: var(--paper);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(10px);
+        }
+
+        .board-card { padding: 18px; }
+
+        .canvas-wrap {
+            border-radius: 18px;
+            overflow: hidden;
+            border: 1px solid var(--line);
+            background: #f8fbfc;
+        }
+
+        #bubble-chain-canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+            aspect-ratio: 800 / 560;
+            touch-action: none;
+        }
+
+        #bubble-chain-canvas:focus-visible, button:focus-visible, a:focus-visible {
+            outline: 3px solid rgba(9, 140, 159, 0.45);
+            outline-offset: 3px;
+        }
+
+        .canvas-note {
+            margin: 12px 4px 0;
+            color: var(--muted);
+            font-size: 0.92rem;
+            line-height: 1.5;
+        }
+
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        button {
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            padding: 0.62rem 1.15rem;
+            background: rgba(255, 255, 255, 0.92);
+            color: var(--ink);
+            font: inherit;
+            font-weight: 650;
+            cursor: pointer;
+        }
+
+        button:hover { border-color: rgba(9, 140, 159, 0.35); }
+
+        button.primary {
+            background: linear-gradient(135deg, #0ea5b3, #098c9f);
+            border-color: transparent;
+            color: #fff;
+        }
+
+        button.primary:hover { filter: brightness(1.05); }
+
+        button.selected {
+            border-color: rgba(9, 140, 159, 0.55);
+            background: rgba(9, 140, 159, 0.12);
+            color: var(--aqua-dark);
+        }
+
+        button.primary.selected {
+            background: linear-gradient(135deg, #0c96a7, #067a8a);
+            color: #fff;
+        }
+
+        .field-label {
+            display: block;
+            margin-bottom: 6px;
+            color: var(--muted);
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .level-select {
+            width: 100%;
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: 0.68rem 0.85rem;
+            background: rgba(255, 255, 255, 0.92);
+            color: var(--ink);
+            font: inherit;
+            font-weight: 600;
+        }
+
+        .level-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .level-buttons button {
+            flex: 1 1 calc(50% - 4px);
+            min-width: 7.5rem;
+            padding: 0.58rem 0.85rem;
+            font-size: 0.92rem;
+        }
+
+        .level-buttons button.primary {
+            flex-basis: 100%;
+        }
+
+        #bubble-chain-status {
+            margin: 14px 4px 0;
+            min-height: 1.4em;
+            color: var(--ink);
+            font-weight: 600;
+        }
+
+        .side-card { padding: 22px 22px 18px; }
+
+        .side-section + .side-section {
+            margin-top: 22px;
+            padding-top: 18px;
+            border-top: 1px solid var(--line);
+        }
+
+        h2 {
+            margin-bottom: 10px;
+            font-size: 1.05rem;
+        }
+
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .metric {
+            padding: 12px 14px;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.72);
+            border: 1px solid var(--line);
+        }
+
+        .metric-label {
+            display: block;
+            margin-bottom: 4px;
+            color: var(--muted);
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .metric strong {
+            font-size: 1.35rem;
+            letter-spacing: -0.03em;
+        }
+
+        .help {
+            margin: 0;
+            color: var(--muted);
+            font-size: 0.92rem;
+            line-height: 1.55;
+        }
+
+        .back {
+            display: inline-block;
+            margin-top: 28px;
+            color: var(--aqua-dark);
+            font-weight: 650;
+            text-decoration: none;
+        }
+
+        @media (max-width: 900px) {
+            .shell { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <main class="page">
+        <header class="hero">
+            <p class="eyebrow">Directional chain puzzle</p>
+            <h1>Bubble Chain</h1>
+            <p class="hero-copy">Pick one bubble to start a chain reaction. Each moving bubble pops on contact and hands motion to the bubble it hits. Clear every bubble in a single reaction to win.</p>
+        </header>
+
+        <div class="shell">
+            <section class="board-card" aria-label="Bubble Chain board">
+                <div class="canvas-wrap">
+                    <canvas id="bubble-chain-canvas" width="800" height="560" tabindex="0" aria-label="Bubble Chain puzzle board" aria-describedby="bubble-chain-help"></canvas>
+                </div>
+                <p class="canvas-note">Tap or click a bubble while the board is idle (one starter per attempt). Failed attempts do not auto-reset: press Reset attempt or Restart level.</p>
+                <div class="actions" aria-label="Game controls">
+                    <button type="button" id="bubble-chain-reset">Reset attempt</button>
+                    <button type="button" id="bubble-chain-restart">Restart level</button>
+                </div>
+                <p id="bubble-chain-status" role="status" aria-live="polite">Loading&hellip;</p>
+            </section>
+
+            <aside class="side-card" aria-label="Puzzle details">
+                <section class="side-section">
+                    <h2>Topology</h2>
+                    <div id="bubble-chain-topology-buttons" class="level-buttons" role="group" aria-label="Topology selection" style="margin-bottom: 16px;">
+                        <button type="button" data-topology="bounded" aria-pressed="true">Bounded</button>
+                        <button type="button" data-topology="wrap" aria-pressed="false">Torus (wrap)</button>
+                        <button type="button" data-topology="mobius" aria-pressed="false">Mobius</button>
+                        <button type="button" data-topology="klein" aria-pressed="false">Klein bottle</button>
+                    </div>
+
+                    <h2>Starter</h2>
+                    <div id="bubble-chain-level-buttons" class="level-buttons" role="group" aria-label="Starter level selection">
+                        <button type="button" data-level-id="spiral-relay" aria-pressed="false">Spiral Relay</button>
+                        <button type="button" data-level-id="ping-pong" aria-pressed="false">Ping Pong</button>
+                        <button type="button" id="bubble-chain-random" class="primary" aria-pressed="true">Random level</button>
+                    </div>
+
+                    <div class="metric-grid" style="margin-top: 14px;">
+                        <div class="metric">
+                            <span class="metric-label">Topology</span>
+                            <strong id="bubble-chain-topology-name">Bounded</strong>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Starter</span>
+                            <strong id="bubble-chain-level-name">Random</strong>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Attempts</span>
+                            <strong id="bubble-chain-attempts">0</strong>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Bubbles</span>
+                            <strong id="bubble-chain-bubble-count">10</strong>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Seed</span>
+                            <strong id="bubble-chain-seed">&mdash;</strong>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="side-section">
+                    <h2>How to play</h2>
+                    <p id="bubble-chain-help" class="help">Choose a topology and a starter layout, then click a bubble to begin. <strong>Bounded</strong>: bubbles that leave the canvas are removed. <strong>Torus (wrap)</strong>: bubbles re-enter from the opposite edge; if nothing collides after one full lap, that moving bubble disappears. One click per attempt; use Reset attempt or Restart level manually.</p>
+                </section>
+            </aside>
+        </div>
+
+        <a class="back" href="../index.html">&larr; Back</a>
+    </main>
+
+    <script type="module" src="/assets/js/page/bubble_chain.js"></script>
+</body>
+</html>
