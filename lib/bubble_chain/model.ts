@@ -14,6 +14,7 @@ import type {
     LevelDefinition,
     LossReason,
     PuzzleState,
+    Topology,
 } from "./types.js";
 
 export const DEFAULT_SPEED = 280;
@@ -61,32 +62,95 @@ function wrapCoordinate(value: number, limit: number): number {
     return mod(value, limit);
 }
 
-function torusDelta(a: number, b: number, length: number): number {
-    const raw = Math.abs(a - b);
-    return Math.min(raw, length - raw);
+export interface TopologyCopy {
+    x: number;
+    y: number;
+    /** Odd x-identification (Möbius): vertical axis is reversed. */
+    flipY: boolean;
+    /** Odd y-identification (Klein): horizontal axis is reversed. */
+    flipX: boolean;
 }
 
-function circlesOverlapInTopology(state: PuzzleState, ax: number, ay: number, ar: number, bx: number, by: number, br: number): boolean {
-    if (state.topology === "wrap") {
-        const dx = torusDelta(ax, bx, state.width);
-        const dy = torusDelta(ay, by, state.height);
-        return Math.hypot(dx, dy) <= ar + br;
+/**
+ * Nearby identified copies of a point, including the fundamental-domain copy.
+ * Möbius: (x, y) ~ (x + kW, k odd ? H - y : y).
+ * Klein: (x, y) ~ (x + aW, y + 2bH) and (W - x + aW, y + (2b+1)H).
+ */
+export function topologyCopies(
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    topology: Topology,
+): TopologyCopy[] {
+    if (topology === "bounded") {
+        return [{ x, y, flipX: false, flipY: false }];
     }
-    if (state.topology === "mobius") {
-        // Möbius: identify x-edges with y mirrored; y itself is not periodic.
-        const dx = torusDelta(ax, bx, state.width);
-        const dyDirect = ay - by;
-        const dyMirrored = ay - (state.height - by);
-        return Math.min(Math.hypot(dx, dyDirect), Math.hypot(dx, dyMirrored)) <= ar + br;
+    if (topology === "wrap") {
+        const copies: TopologyCopy[] = [];
+        for (const ox of [-width, 0, width]) {
+            for (const oy of [-height, 0, height]) {
+                copies.push({ x: x + ox, y: y + oy, flipX: false, flipY: false });
+            }
+        }
+        return copies;
     }
-    if (state.topology === "klein") {
-        // Klein: identify y-edges with x mirrored.
-        const dx0 = torusDelta(ax, bx, state.width);
-        const dy = torusDelta(ay, by, state.height);
-        const dx1 = torusDelta(ax, state.width - bx, state.width);
-        return Math.min(Math.hypot(dx0, dy), Math.hypot(dx1, dy)) <= ar + br;
+    if (topology === "mobius") {
+        return [
+            { x, y, flipX: false, flipY: false },
+            { x: x + width, y: height - y, flipX: false, flipY: true },
+            { x: x - width, y: height - y, flipX: false, flipY: true },
+        ];
     }
-    return circlesOverlap(ax, ay, ar, bx, by, br);
+    // Klein bottle: x is periodic; odd y-wraps reverse x.
+    const copies: TopologyCopy[] = [];
+    for (const ox of [-width, 0, width]) {
+        copies.push({ x: x + ox, y, flipX: false, flipY: false });
+        copies.push({ x: width - x + ox, y: y + height, flipX: true, flipY: false });
+        copies.push({ x: width - x + ox, y: y - height, flipX: true, flipY: false });
+    }
+    return copies;
+}
+
+function copyMayOverlapRect(
+    copy: TopologyCopy,
+    radius: number,
+    width: number,
+    height: number,
+): boolean {
+    return copy.x + radius > 0 && copy.x - radius < width
+        && copy.y + radius > 0 && copy.y - radius < height;
+}
+
+/** Identified copies whose disc can overlap the visible board. */
+export function visibleTopologyCopies(
+    x: number,
+    y: number,
+    radius: number,
+    width: number,
+    height: number,
+    topology: Topology,
+): TopologyCopy[] {
+    return topologyCopies(x, y, width, height, topology)
+        .filter((copy) => copyMayOverlapRect(copy, radius, width, height));
+}
+
+function circlesOverlapInTopology(
+    state: PuzzleState,
+    ax: number,
+    ay: number,
+    ar: number,
+    bx: number,
+    by: number,
+    br: number,
+): boolean {
+    const needed = ar + br;
+    for (const copy of topologyCopies(bx, by, state.width, state.height, state.topology)) {
+        if (distance(ax, ay, copy.x, copy.y) <= needed) {
+            return true;
+        }
+    }
+    return false;
 }
 
 export function isOffBoard(
@@ -245,19 +309,17 @@ function moveActiveBubbles(state: PuzzleState, dt: number): void {
             bubble.x = wrapCoordinate(bubble.x, state.width);
             bubble.y = wrapCoordinate(bubble.y, state.height);
         } else if (state.topology === "mobius") {
-            // Wrap x with mirrored y.
-            if (bubble.x < 0 || bubble.x > state.width) {
-                bubble.x = wrapCoordinate(bubble.x, state.width);
+            // (x, y) ~ (x + kW, k odd ? H - y : y). Count wrap parity, not just "outside".
+            const wrapsX = Math.floor(bubble.x / state.width);
+            bubble.x -= wrapsX * state.width;
+            if (Math.abs(wrapsX) % 2 === 1) {
                 bubble.y = state.height - bubble.y;
             }
-            // y is otherwise bounded (no wrap).
         } else if (state.topology === "klein") {
-            // x is periodic; y is periodic but flips x when crossing.
-            if (bubble.y < 0) {
-                bubble.y = wrapCoordinate(bubble.y, state.height);
-                bubble.x = state.width - bubble.x;
-            } else if (bubble.y > state.height) {
-                bubble.y = wrapCoordinate(bubble.y, state.height);
+            // (x, y) ~ (x + aW, y + 2bH) and (W - x + aW, y + (2b+1)H).
+            const wrapsY = Math.floor(bubble.y / state.height);
+            bubble.y -= wrapsY * state.height;
+            if (Math.abs(wrapsY) % 2 === 1) {
                 bubble.x = state.width - bubble.x;
             }
             bubble.x = wrapCoordinate(bubble.x, state.width);
@@ -414,10 +476,19 @@ export function hitTest(state: PuzzleState, x: number, y: number): BubbleState |
         if (bubble.removed) {
             continue;
         }
-        const d = distance(x, y, bubble.x, bubble.y);
-        if (d <= bubble.radius && bubble.radius <= bestRadius) {
-            hit = bubble;
-            bestRadius = bubble.radius;
+        for (const copy of visibleTopologyCopies(
+            bubble.x,
+            bubble.y,
+            bubble.radius,
+            state.width,
+            state.height,
+            state.topology,
+        )) {
+            const d = distance(x, y, copy.x, copy.y);
+            if (d <= bubble.radius && bubble.radius <= bestRadius) {
+                hit = bubble;
+                bestRadius = bubble.radius;
+            }
         }
     }
 

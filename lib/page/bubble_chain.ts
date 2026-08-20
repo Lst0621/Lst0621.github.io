@@ -17,6 +17,7 @@ import {
     resetState,
     startBubble,
     step,
+    visibleTopologyCopies,
     type PuzzleState,
 } from "../bubble_chain/model.js";
 import type { BubbleState, Direction, Topology } from "../bubble_chain/types.js";
@@ -332,17 +333,27 @@ function drawDirectionArrow(
     bubble: BubbleState,
     color: string,
     scale: number,
+    drawX: number,
+    drawY: number,
+    flipX: boolean,
+    flipY: boolean,
 ): void {
     if (!bubble.movable) {
         return;
     }
-    const { vx, vy } = directionVector(bubble.direction);
+    let { vx, vy } = directionVector(bubble.direction);
+    if (flipX) {
+        vx = -vx;
+    }
+    if (flipY) {
+        vy = -vy;
+    }
     const shaft = bubble.radius * 0.72 * scale;
     const head = bubble.radius * 0.34 * scale;
-    const tipX = bubble.x + vx * shaft;
-    const tipY = bubble.y + vy * shaft;
-    const baseX = bubble.x - vx * bubble.radius * 0.12;
-    const baseY = bubble.y - vy * bubble.radius * 0.12;
+    const tipX = drawX + vx * shaft;
+    const tipY = drawY + vy * shaft;
+    const baseX = drawX - vx * bubble.radius * 0.12;
+    const baseY = drawY - vy * bubble.radius * 0.12;
 
     context.strokeStyle = color;
     context.fillStyle = color;
@@ -369,12 +380,34 @@ function drawBubble(bubble: BubbleState, now: number): void {
     if (bubble.removed) {
         return;
     }
+    const copies = visibleTopologyCopies(
+        bubble.x,
+        bubble.y,
+        bubble.radius,
+        state.width,
+        state.height,
+        state.topology,
+    );
+    for (const copy of copies) {
+        drawBubbleCopy(bubble, now, copy.x, copy.y, copy.flipX, copy.flipY);
+    }
+}
 
+function drawBubbleCopy(
+    bubble: BubbleState,
+    now: number,
+    drawX: number,
+    drawY: number,
+    flipX: boolean,
+    flipY: boolean,
+): void {
     const palette = paletteFor(bubble.id);
     const hovered = hoverBubbleId === bubble.id && isIdle(state);
     const moving = bubble.active;
     const scale = hovered ? 1.04 : 1;
     const lost = isLost(state);
+    const shineX = drawX + (flipX ? 1 : -1) * bubble.radius * 0.28;
+    const shineY = drawY + (flipY ? 1 : -1) * bubble.radius * 0.32;
 
     if (lost) {
         context.save();
@@ -388,11 +421,11 @@ function drawBubble(bubble: BubbleState, now: number): void {
     }
 
     const gradient = context.createRadialGradient(
-        bubble.x - bubble.radius * 0.28,
-        bubble.y - bubble.radius * 0.32,
+        shineX,
+        shineY,
         bubble.radius * 0.15,
-        bubble.x,
-        bubble.y,
+        drawX,
+        drawY,
         bubble.radius * scale,
     );
     gradient.addColorStop(0, "rgba(255,255,255,0.72)");
@@ -400,23 +433,17 @@ function drawBubble(bubble: BubbleState, now: number): void {
     gradient.addColorStop(1, palette.fill);
 
     context.beginPath();
-    context.arc(bubble.x, bubble.y, bubble.radius * scale, 0, Math.PI * 2);
+    context.arc(drawX, drawY, bubble.radius * scale, 0, Math.PI * 2);
     context.fillStyle = gradient;
     context.fill();
     context.lineWidth = moving ? 3 : 2;
     context.strokeStyle = moving ? palette.arrow : palette.stroke;
     context.stroke();
 
-    drawDirectionArrow(bubble, palette.arrow, scale);
+    drawDirectionArrow(bubble, palette.arrow, scale, drawX, drawY, flipX, flipY);
 
     context.beginPath();
-    context.arc(
-        bubble.x - bubble.radius * 0.28,
-        bubble.y - bubble.radius * 0.32,
-        bubble.radius * 0.16,
-        0,
-        Math.PI * 2,
-    );
+    context.arc(shineX, shineY, bubble.radius * 0.16, 0, Math.PI * 2);
     context.fillStyle = "rgba(255,255,255,0.45)";
     context.fill();
 
@@ -427,7 +454,7 @@ function drawBubble(bubble: BubbleState, now: number): void {
     if (moving) {
         const pulse = 0.5 + 0.5 * Math.sin(now / 120);
         context.beginPath();
-        context.arc(bubble.x, bubble.y, bubble.radius * (1.12 + pulse * 0.06), 0, Math.PI * 2);
+        context.arc(drawX, drawY, bubble.radius * (1.12 + pulse * 0.06), 0, Math.PI * 2);
         context.strokeStyle = palette.activeGlow;
         context.lineWidth = 2;
         context.stroke();

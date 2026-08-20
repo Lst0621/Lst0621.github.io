@@ -82,25 +82,69 @@ function cellKey(cell: Cell): string {
     return `${cell.c},${cell.r}`;
 }
 
-function directionFrom(a: Cell, b: Cell, cols: number, rows: number, topology: Topology): Direction | null {
-    if (topology === "wrap" || topology === "klein" || topology === "mobius") {
-        if (a.r === b.r) {
-            if ((a.c + 1) % cols === b.c) return "right";
-            if ((a.c - 1 + cols) % cols === b.c) return "left";
-            if ((a.c + 2) % cols === b.c) return "right";
-            if ((a.c - 2 + cols) % cols === b.c) return "left";
+function applyGridStep(
+    cell: Cell,
+    dc: number,
+    dr: number,
+    cols: number,
+    rows: number,
+    topology: Topology,
+): Cell | null {
+    let c = cell.c + dc;
+    let r = cell.r + dr;
+    if (topology === "bounded") {
+        if (c < 0 || c >= cols || r < 0 || r >= rows) {
+            return null;
         }
-        if (a.c === b.c && topology !== "mobius") {
-            if ((a.r + 1) % rows === b.r) return "down";
-            if ((a.r - 1 + rows) % rows === b.r) return "up";
-            if ((a.r + 2) % rows === b.r) return "down";
-            if ((a.r - 2 + rows) % rows === b.r) return "up";
+        return { c, r };
+    }
+    if (topology === "wrap") {
+        return { c: ((c % cols) + cols) % cols, r: ((r % rows) + rows) % rows };
+    }
+    if (topology === "mobius") {
+        const wrapsX = Math.floor(c / cols);
+        c -= wrapsX * cols;
+        if (Math.abs(wrapsX) % 2 === 1) {
+            r = rows - 1 - r;
+        }
+        if (r < 0 || r >= rows) {
+            return null;
+        }
+        return { c, r };
+    }
+    const wrapsY = Math.floor(r / rows);
+    r -= wrapsY * rows;
+    if (Math.abs(wrapsY) % 2 === 1) {
+        c = cols - 1 - c;
+    }
+    c = ((c % cols) + cols) % cols;
+    return { c, r };
+}
+
+function directionFrom(a: Cell, b: Cell, cols: number, rows: number, topology: Topology): Direction | null {
+    const steps: Array<{ dc: number; dr: number; direction: Direction }> = [
+        { dc: 1, dr: 0, direction: "right" },
+        { dc: -1, dr: 0, direction: "left" },
+        { dc: 0, dr: 1, direction: "down" },
+        { dc: 0, dr: -1, direction: "up" },
+        { dc: 2, dr: 0, direction: "right" },
+        { dc: -2, dr: 0, direction: "left" },
+        { dc: 0, dr: 2, direction: "down" },
+        { dc: 0, dr: -2, direction: "up" },
+    ];
+    const allowed = topology === "bounded" ? steps.slice(0, 4) : steps;
+    for (const step of allowed) {
+        const next = applyGridStep(a, step.dc, step.dr, cols, rows, topology);
+        if (next !== null && next.c === b.c && next.r === b.r) {
+            return step.direction;
         }
     }
-    if (b.c > a.c && b.r === a.r) return "right";
-    if (b.c < a.c && b.r === a.r) return "left";
-    if (b.r > a.r && b.c === a.c) return "down";
-    if (b.r < a.r && b.c === a.c) return "up";
+    if (a.r === b.r && a.c !== b.c) {
+        return b.c > a.c ? "right" : "left";
+    }
+    if (a.c === b.c && a.r !== b.r) {
+        return b.r > a.r ? "down" : "up";
+    }
     return null;
 }
 
@@ -143,16 +187,20 @@ function pathUsesTopologyBoundary(
         const b = cells[i + 1]!;
         const dcRaw = Math.abs(a.c - b.c);
         const drRaw = Math.abs(a.r - b.r);
-        const crossesXEdge = dcRaw > 2;
-        const crossesYEdge = drRaw > 2;
-        if (topology === "wrap" && (crossesXEdge || crossesYEdge)) {
+        if (topology === "wrap" && (dcRaw > 2 || drRaw > 2)) {
             return true;
         }
-        if (topology === "mobius" && crossesXEdge) {
-            return true;
+        if (topology === "mobius") {
+            const flipped = a.r + b.r === rows - 1;
+            if (flipped && dcRaw > 2) {
+                return true;
+            }
         }
-        if (topology === "klein" && crossesYEdge) {
-            return true;
+        if (topology === "klein") {
+            const flipped = a.c + b.c === cols - 1;
+            if (flipped && drRaw > 2) {
+                return true;
+            }
         }
     }
     return false;
@@ -432,17 +480,9 @@ function buildPathCells(
             return true;
         }
         const current = path[path.length - 1]!;
-        const candidates = steps.map((s) => {
-            let nextC = current.c + s.c;
-            let nextR = current.r + s.r;
-            if (topology === "wrap" || topology === "klein" || topology === "mobius") {
-                nextC = (nextC + cols) % cols;
-            }
-            if (topology === "wrap" || topology === "klein") {
-                nextR = (nextR + rows) % rows;
-            }
-            return { c: nextC, r: nextR };
-        });
+        const candidates = steps
+            .map((s) => applyGridStep(current, s.c, s.r, cols, rows, topology))
+            .filter((next): next is Cell => next !== null);
         shuffleInPlace(candidates, rng);
         if (preferSelfIntersecting && path.length >= 4) {
             candidates.sort((a, b) => {
