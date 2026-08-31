@@ -5,11 +5,13 @@
  * is a single closed cycle (the last bubble wraps back to the first).
  */
 
-import { distance } from "./model.js";
+import { directionVector, distance, topologyCopies } from "./model.js";
 import type { BubbleDefinition, Direction, LevelDefinition } from "./types.js";
 
 export const MIN_BUBBLE_GAP = 10;
+const LANE_ALIGNMENT_EPSILON = 1e-7;
 
+/** Grid pitch exceeds a diameter, so adjacent lanes cannot collide. */
 export function bubbleGridSpacing(radius: number): number {
     return radius * 2 + MIN_BUBBLE_GAP;
 }
@@ -63,9 +65,105 @@ export function bubblesFullyOnCanvas(
     return bubbles.every((bubble) => bubbleDiscOnCanvas(bubble, width, height));
 }
 
+/**
+ * True when every moving bubble's lane either goes through another bubble's
+ * center or stays beyond their combined radii. This prevents accidental
+ * near-miss collisions while preserving ordinary circle-overlap gameplay.
+ */
+export function bubbleTrajectoriesAvoidNearMisses(
+    level: Pick<LevelDefinition, "width" | "height" | "bubbles" | "topology">,
+): boolean {
+    const topology = level.topology ?? "bounded";
+
+    for (let i = 0; i < level.bubbles.length; i++) {
+        const a = level.bubbles[i]!;
+        for (let j = i + 1; j < level.bubbles.length; j++) {
+            const b = level.bubbles[j]!;
+            const requiredDistance = a.radius + b.radius + MIN_BUBBLE_GAP;
+            for (const copy of topologyCopies(
+                b.x,
+                b.y,
+                level.width,
+                level.height,
+                topology,
+            )) {
+                if (distance(a.x, a.y, copy.x, copy.y) < requiredDistance) {
+                    return false;
+                }
+            }
+        }
+    }
+
+    for (const mover of level.bubbles) {
+        if (mover.movable === false) {
+            continue;
+        }
+        const { vx, vy } = directionVector(mover.direction);
+        let travelLimit: number;
+        if (topology === "wrap" || topology === "klein") {
+            travelLimit = mover.direction === "left" || mover.direction === "right"
+                ? level.width
+                : level.height;
+        } else if (
+            topology === "mobius"
+            && (mover.direction === "left" || mover.direction === "right")
+        ) {
+            travelLimit = level.width;
+        } else {
+            switch (mover.direction) {
+                case "right":
+                    travelLimit = level.width + mover.radius - mover.x;
+                    break;
+                case "left":
+                    travelLimit = mover.x + mover.radius;
+                    break;
+                case "down":
+                    travelLimit = level.height + mover.radius - mover.y;
+                    break;
+                case "up":
+                    travelLimit = mover.y + mover.radius;
+                    break;
+            }
+        }
+
+        for (const target of level.bubbles) {
+            if (target.id === mover.id) {
+                continue;
+            }
+            for (const copy of topologyCopies(
+                target.x,
+                target.y,
+                level.width,
+                level.height,
+                topology,
+            )) {
+                const dx = copy.x - mover.x;
+                const dy = copy.y - mover.y;
+                const advance = dx * vx + dy * vy;
+                // Cardinal direction vectors have unit length, so this signed
+                // cross product is the perpendicular distance to the lane.
+                const lateralOffset = Math.abs(dx * vy - dy * vx);
+                const nearestAdvance = Math.max(0, Math.min(advance, travelLimit));
+                const alongOffset = advance - nearestAdvance;
+                const collisionDistance = mover.radius + target.radius;
+                const overlapsPath = lateralOffset * lateralOffset + alongOffset * alongOffset
+                    <= collisionDistance * collisionDistance;
+                if (overlapsPath && lateralOffset > LANE_ALIGNMENT_EPSILON) {
+                    return false;
+                }
+            }
+        }
+    }
+
+    return true;
+}
+
 export function assertLevelLayout(level: LevelDefinition): void {
     if (!bubblesAreSeparated(level.bubbles)) {
         throw new Error("Bubble Chain level has overlapping or touching bubbles");
+    }
+    if (!bubbleTrajectoriesAvoidNearMisses(level)) {
+        throw new Error("Bubble Chain level has a near-miss collision lane");
     }
     if (!bubblesFullyOnCanvas(level.bubbles, level.width, level.height)) {
         throw new Error("Bubble Chain level has bubbles outside the canvas");

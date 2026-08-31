@@ -6,7 +6,12 @@
  * chain starter exists; other starters are typically failures.
  */
 
-import { bubbleGridSpacing, bubblesAreSeparated, bubblesFullyOnCanvas } from "./layout.js";
+import {
+    bubbleGridSpacing,
+    bubbleTrajectoriesAvoidNearMisses,
+    bubblesAreSeparated,
+    bubblesFullyOnCanvas,
+} from "./layout.js";
 import { DEFAULT_SPEED } from "./model.js";
 import { solveLevel } from "./solver.js";
 import type { BubbleDefinition, Direction, LevelDefinition, Topology } from "./types.js";
@@ -558,9 +563,18 @@ function buildPathLevel(
         return null;
     }
 
+    // The runtime identifications use H - y (Möbius) and W - x (Klein), so
+    // center the reflected grid axis.  This makes a reflected grid cell land
+    // exactly on its partner's center rather than merely inside its radius.
+    const xOrigin = topology === "klein"
+        ? (width - (cols - 1) * spacing) / 2
+        : margin;
+    const yOrigin = topology === "mobius"
+        ? (height - (rows - 1) * spacing) / 2
+        : margin;
     const points: Point[] = cells.map((cell) => ({
-        x: Math.round(margin + cell.c * spacing),
-        y: Math.round(margin + cell.r * spacing),
+        x: xOrigin + cell.c * spacing,
+        y: yOrigin + cell.r * spacing,
     }));
 
     const bubbles: BubbleDefinition[] = [];
@@ -587,6 +601,9 @@ function buildPathLevel(
     }
 
     if (!bubblesAreSeparated(bubbles)) {
+        return null;
+    }
+    if (!bubbleTrajectoriesAvoidNearMisses({ width, height, bubbles, topology })) {
         return null;
     }
     if (!bubblesFullyOnCanvas(bubbles, width, height)) {
@@ -666,4 +683,3 @@ export function tryGenerateLevel(options: GeneratorOptions): GeneratedLevel | nu
         return null;
     }
 }
-

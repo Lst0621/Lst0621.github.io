@@ -93,9 +93,18 @@ function logBubbleLocations(context: string, level: LevelDefinition): void {
     const radius = level.bubbles[0]?.radius ?? 26;
     const spacing = bubbleGridSpacing(radius);
     const margin = radius + 40;
+    const topology = level.topology ?? "bounded";
+    const cols = Math.floor((level.width - margin * 2) / spacing) + 1;
+    const gridRows = Math.floor((level.height - margin * 2) / spacing) + 1;
+    const xOrigin = topology === "klein"
+        ? (level.width - (cols - 1) * spacing) / 2
+        : margin;
+    const yOrigin = topology === "mobius"
+        ? (level.height - (gridRows - 1) * spacing) / 2
+        : margin;
     const cells = level.bubbles.map((bubble) => ({
-        c: Math.round((bubble.x - margin) / spacing),
-        r: Math.round((bubble.y - margin) / spacing),
+        c: Math.round((bubble.x - xOrigin) / spacing),
+        r: Math.round((bubble.y - yOrigin) / spacing),
     }));
     const rows = level.bubbles.map((bubble) => ({
         id: bubble.id,
@@ -111,7 +120,7 @@ function logBubbleLocations(context: string, level: LevelDefinition): void {
     console.log(`[bubble-chain] ${context}`, {
         width: level.width,
         height: level.height,
-        topology: level.topology ?? "bounded",
+        topology,
         count: level.bubbles.length,
         selfIntersects: pathSelfIntersects(cells),
         bubbles: rows,
