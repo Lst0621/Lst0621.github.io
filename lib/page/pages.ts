@@ -74,6 +74,7 @@ export const sections: Section[] = [
       { name: "Continued Fractions", url: "article/continued_fractions.html" },
       { name: "Lamp Lighter", url: "article/lamp_lighter.html" },
       { name: "Layered DAG", url: "article/dag.html" },
+      { name: "Skill Forest Demo", url: "article/skill_demo.html" },
     ],
   },
   {

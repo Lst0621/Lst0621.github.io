@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Skill Forest Demo</title>
+  <link rel="icon" href="../img/flame1.png">
+  <link rel="stylesheet" href="../resource/solarized_light.css">
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-9BLVHLETMC"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+    gtag('config', 'G-9BLVHLETMC');
+  </script>
+  <style>
+    .skill-demo-wrap {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 18px 14px 30px;
+    }
+
+    .skill-demo-title {
+      margin: 0;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", Courier, monospace;
+      font-size: clamp(1.55rem, 4vw, 2.25rem);
+      font-weight: 600;
+      letter-spacing: -0.045em;
+    }
+
+    .skill-demo-subtitle {
+      max-width: 760px;
+      margin: 8px 0 0;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .skill-demo {
+      margin-top: 18px;
+    }
+
+    .skill-bank {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px 18px;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      padding: 14px;
+    }
+
+    .skill-bank-copy {
+      min-width: 175px;
+    }
+
+    .skill-bank-kicker,
+    .tree-kicker {
+      display: block;
+      color: var(--muted);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", Courier, monospace;
+      font-size: 0.73rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .skill-bank-count {
+      display: block;
+      margin-top: 2px;
+      color: var(--text);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", Courier, monospace;
+      font-size: 1.45rem;
+      font-weight: 700;
+      letter-spacing: -0.045em;
+    }
+
+    .skill-bank-controls,
+    .skill-bank-budget {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .skill-bank-budget {
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+
+    .skill-bank-budget input {
+      width: 5.5rem;
+      padding: 5px 8px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", Courier, monospace;
+    }
+
+    .forest-tabs {
+      display: flex;
+      gap: 8px;
+      margin: 0 0 12px;
+      overflow-x: auto;
+      padding: 2px;
+    }
+
+    .forest-tab {
+      flex: 0 0 auto;
+      border-radius: 999px !important;
+      font-size: 0.9rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .forest-tab[aria-selected="true"] {
+      color: #fdf6e3;
+      border-color: var(--tree-accent) !important;
+      background: var(--tree-accent) !important;
+    }
+
+    .skill-tree-panel {
+      padding: 14px;
+    }
+
+    .skill-tree-panel[hidden] {
+      display: none;
+    }
+
+    .tree-heading {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 20px;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .tree-heading h2 {
+      margin: 2px 0 0;
+      font-size: 1.2rem;
+    }
+
+    .tree-description {
+      max-width: 590px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.45;
+    }
+
+    .tree-scroll {
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--canvasBg);
+    }
+
+    .skill-tree {
+      position: relative;
+      width: var(--tree-width);
+      height: var(--tree-height);
+      overflow: hidden;
+      background-image:
+        linear-gradient(rgba(147, 161, 161, 0.18) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(147, 161, 161, 0.18) 1px, transparent 1px);
+      background-size: 28px 28px;
+    }
+
+    .skill-tree-svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+      pointer-events: none;
+    }
+
+    .skill-edge-line {
+      stroke: var(--tree-accent);
+      stroke-width: 3;
+      stroke-linecap: round;
+      opacity: 0.82;
+    }
+
+    .requirement-pill rect {
+      fill: #fdf6e3;
+      stroke: var(--tree-accent);
+      stroke-width: 1.3;
+    }
+
+    .requirement-pill text {
+      fill: #073642;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", Courier, monospace;
+      font-size: 11px;
+      font-weight: 700;
+      text-anchor: middle;
+      dominant-baseline: middle;
+    }
+
+    .skill-card {
+      position: absolute;
+      z-index: 1;
+      display: flex;
+      box-sizing: border-box;
+      width: var(--skill-card-size);
+      height: var(--skill-card-size);
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 10px;
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      color: var(--text);
+      background: var(--panel);
+      box-shadow: 0 7px 16px rgba(7, 54, 66, 0.09);
+      transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease, background 160ms ease;
+    }
+
+    .skill-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(7, 54, 66, 0.14);
+    }
+
+    .skill-card[data-state="locked"] {
+      border-style: dashed;
+      color: var(--muted);
+      background: #e4ddc8;
+    }
+
+    .skill-card[data-state="available"] {
+      border-color: #b58900;
+      background: #fff8df;
+    }
+
+    .skill-card[data-state="learned"] {
+      border-color: #268bd2;
+      background: #e8f2f5;
+    }
+
+    .skill-card[data-state="max"] {
+      border-color: #2aa198;
+      background: #e1f2ed;
+    }
+
+    .skill-state {
+      color: inherit;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", Courier, monospace;
+      font-size: 0.67rem;
+      font-weight: 800;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+    }
+
+    .skill-name {
+      display: block;
+      min-height: 2.1em;
+      margin-top: 3px;
+      font-size: 1.02rem;
+      font-weight: 700;
+      line-height: 1.1;
+    }
+
+    .skill-level {
+      display: block;
+      margin-top: 3px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", Courier, monospace;
+      font-size: 0.79rem;
+      font-weight: 700;
+    }
+
+    .level-track {
+      display: flex;
+      gap: 4px;
+      min-height: 8px;
+      margin-top: 5px;
+    }
+
+    .level-pip {
+      width: 100%;
+      height: 7px;
+      border-radius: 999px;
+      background: rgba(88, 110, 117, 0.22);
+    }
+
+    .level-pip.is-filled {
+      background: var(--tree-accent);
+    }
+
+    .skill-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .skill-actions button {
+      min-height: 29px;
+      padding: 4px 7px;
+      border-radius: 7px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", Courier, monospace;
+      font-size: 0.78rem;
+      font-weight: 800;
+    }
+
+    .skill-actions .learn-button:not(:disabled) {
+      color: #fdf6e3;
+      border-color: var(--tree-accent);
+      background: var(--tree-accent);
+    }
+
+    .skill-actions .unlearn-button:not(:disabled) {
+      color: #dc322f;
+      border-color: rgba(220, 50, 47, 0.54);
+      background: #fff3ec;
+    }
+
+    .skill-actions button:disabled {
+      cursor: not-allowed;
+      opacity: 0.48;
+    }
+
+    .tree-key {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px 12px;
+      align-items: center;
+      margin: 11px 2px 0;
+      color: var(--muted);
+      font-size: 0.79rem;
+    }
+
+    .tree-key-item {
+      display: inline-flex;
+      gap: 5px;
+      align-items: center;
+    }
+
+    .tree-key-swatch {
+      width: 12px;
+      height: 12px;
+      border: 2px solid var(--border);
+      border-radius: 3px;
+      background: #e4ddc8;
+    }
+
+    .tree-key-swatch.available { border-color: #b58900; background: #fff8df; }
+    .tree-key-swatch.learned { border-color: #268bd2; background: #e8f2f5; }
+    .tree-key-swatch.max { border-color: #2aa198; background: #e1f2ed; }
+
+    .unlearn-panel {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px 18px;
+      align-items: center;
+      margin-top: 14px;
+      padding: 13px 14px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--panel);
+    }
+
+    .unlearn-panel.is-warning {
+      border-color: rgba(220, 50, 47, 0.64);
+      background: #fff3ec;
+    }
+
+    .unlearn-panel h3 {
+      margin: 0;
+      font-size: 0.93rem;
+    }
+
+    .unlearn-panel p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 0.86rem;
+      line-height: 1.45;
+    }
+
+    .unlearn-panel.is-warning p strong {
+      color: #b0201d;
+    }
+
+    .cascade-list {
+      margin: 7px 0 0;
+      padding-left: 19px;
+      color: #7d2926;
+      font-size: 0.83rem;
+      line-height: 1.42;
+    }
+
+    .unlearn-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      justify-content: flex-end;
+    }
+
+    .unlearn-actions .cascade-button:not(:disabled) {
+      color: #fff;
+      border-color: #dc322f;
+      background: #dc322f;
+    }
+
+    .unlearn-actions button:disabled {
+      cursor: not-allowed;
+      opacity: 0.55;
+    }
+
+    .skill-demo-status {
+      min-height: 1.35em;
+      margin: 11px 2px 0;
+      color: var(--muted);
+      font-size: 0.88rem;
+      line-height: 1.42;
+    }
+
+    @media (max-width: 680px) {
+      .skill-bank { align-items: flex-start; }
+      .unlearn-panel { grid-template-columns: 1fr; }
+      .unlearn-actions { justify-content: flex-start; }
+    }
+  </style>
+</head>
+<body class="solarized">
+  <main class="skill-demo-wrap">
+    <h1 class="skill-demo-title">Skill Forest Demo</h1>
+    <p class="skill-demo-subtitle">
+      Three local mock trees share one point bank. Follow direct arrow requirements to learn a skill;
+      use the inline −1 control for an immediate safe refund or a dependency warning before a cascade.
+    </p>
+
+    <div id="skill-demo" class="skill-demo"></div>
+
+    <p style="margin-top: 16px;"><a href="../index.html">Back</a></p>
+  </main>
+
+  <script type="module" src="/assets/js/page/skill_demo.js"></script>
+</body>
+</html>
