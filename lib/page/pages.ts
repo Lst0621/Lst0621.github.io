@@ -49,6 +49,7 @@ export const sections: Section[] = [
     title: "Widgets",
     pages: [
       { name: "Fractal tree", url: "article/tree.html" },
+      { name: "Fractal Tree (C++/WASM)", url: "article/tree_cpp.html" },
       { name: "Number of Scoring Sequences", url: "article/number_of_sequences.html" },
       { name: "Linear Recurrence", url: "article/linear_recur.html" },
       { name: "Linear Recurrence Convolution", url: "article/linear_recur_convolution.html" },

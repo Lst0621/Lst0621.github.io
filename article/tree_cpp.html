@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<head>
+    <meta charset="utf-8">
+    <title>Fractal Tree (C++)</title>
+    <link rel="icon" href="../img/flame1.png">
+    <link rel="stylesheet" href="../resource/solarized_light.css">
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-9BLVHLETMC"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-9BLVHLETMC');
+    </script>
+    <style>
+        .ft-shell {
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
+            justify-content: center;
+            margin: 0 12px;
+        }
+
+        #ft-canvas {
+            display: block;
+            max-width: 100%;
+            height: auto;
+            box-sizing: border-box;
+        }
+
+        .ft-panel {
+            width: 340px;
+            padding: 10px;
+            text-align: left;
+            box-sizing: border-box;
+        }
+
+        .ft-row {
+            display: grid;
+            grid-template-columns: 130px 1fr;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .ft-row input,
+        .ft-row select {
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .ft-row.ft-disabled {
+            opacity: 0.5;
+        }
+
+        .ft-buttons {
+            display: flex;
+            gap: 8px;
+            margin: 10px 0;
+        }
+
+        .ft-buttons button {
+            flex: 1;
+        }
+
+        #ft-status {
+            min-height: 22px;
+            margin-bottom: 10px;
+            font-variant-numeric: tabular-nums;
+            white-space: pre-line;
+        }
+
+        .ft-section {
+            margin: 10px 0 6px;
+            font-weight: 600;
+            color: var(--muted);
+        }
+
+        #ft-advanced summary {
+            cursor: pointer;
+            color: var(--muted);
+            font-weight: 600;
+            margin: 10px 0 6px;
+        }
+
+        #ft-branch-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-variant-numeric: tabular-nums;
+        }
+
+        #ft-branch-table th,
+        #ft-branch-table td {
+            padding: 3px 4px;
+            text-align: left;
+        }
+
+        #ft-branch-table input {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 4px 6px;
+        }
+
+        .ft-swatch {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+            border: 1px solid var(--border);
+            vertical-align: middle;
+        }
+
+        @media (max-width: 1200px) {
+            .ft-shell {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .ft-panel {
+                width: min(800px, 100%);
+            }
+        }
+    </style>
+</head>
+
+<body class="solarized">
+<h1 style="margin-top: 10px;" align="center">
+    <span style="font-size: 24pt;">Fractal Tree (C++/WASM)</span>
+</h1>
+
+<div class="ft-shell">
+    <canvas id="ft-canvas" width="800" height="500"></canvas>
+    <div class="panel ft-panel">
+        <div id="ft-status">loading</div>
+
+        <div class="ft-row">
+            <label for="ft-preset">Preset</label>
+            <select id="ft-preset">
+                <option value="classic">classic (legacy 2 branches)</option>
+                <option value="symmetric">symmetric fan</option>
+                <option value="custom">custom (branch table)</option>
+            </select>
+        </div>
+        <div class="ft-row">
+            <label for="ft-branches">Branches</label>
+            <input id="ft-branches" type="number" min="1" max="8" step="1" value="2">
+        </div>
+        <div class="ft-row">
+            <label for="ft-level">Level</label>
+            <input id="ft-level" type="number" min="1" max="16" step="1" value="16">
+        </div>
+        <div class="ft-row">
+            <label for="ft-budget">Quad budget</label>
+            <input id="ft-budget" type="number" min="1" max="1000000" step="1000" value="250000">
+        </div>
+        <div class="ft-row">
+            <label for="ft-aspect">Aspect ratio</label>
+            <input id="ft-aspect" type="number" min="0" max="1" step="0.01" value="0.15">
+        </div>
+
+        <div class="ft-section">Generator</div>
+        <div class="ft-row ft-generator">
+            <label for="ft-spread">Spread (deg)</label>
+            <input id="ft-spread" type="number" min="0" max="360" step="1" value="60">
+        </div>
+        <div class="ft-row ft-generator">
+            <label for="ft-shrink">Shrink</label>
+            <input id="ft-shrink" type="number" min="0.2" max="0.98" step="0.01" value="0.8">
+        </div>
+        <div class="ft-row ft-generator">
+            <label for="ft-asymmetry">Asymmetry</label>
+            <input id="ft-asymmetry" type="number" min="0" max="1" step="0.05" value="0">
+        </div>
+        <div class="ft-row ft-generator">
+            <label for="ft-seed">Seed</label>
+            <input id="ft-seed" type="number" min="0" max="4294967295" step="1" value="1">
+        </div>
+
+        <details id="ft-advanced">
+            <summary>Advanced: per-branch table</summary>
+            <table id="ft-branch-table">
+                <thead>
+                    <tr><th></th><th>#</th><th>Angle (deg)</th><th>Scale</th></tr>
+                </thead>
+                <tbody id="ft-branch-rows"></tbody>
+            </table>
+        </details>
+
+        <div class="ft-section">Animation</div>
+        <div class="ft-row">
+            <label for="ft-speed">ms per level</label>
+            <input id="ft-speed" type="number" min="50" max="5000" step="50" value="800">
+        </div>
+        <div class="ft-buttons">
+            <button type="button" id="ft-play">Pause</button>
+            <button type="button" id="ft-reset">Reset</button>
+        </div>
+    </div>
+</div>
+
+<p style="white-space:pre-wrap; margin: 12px;">
+The geometry is precomputed once in C++/WASM whenever a parameter changes: all quads are stored depth-major, so each animation tick only draws the quads of one more depth layer. The level control is clamped so that the total quad count stays within the budget. The legacy TypeScript version is <a href="tree.html">here</a>.
+</p>
+
+<script type="module" src="/assets/js/page/tree_cpp.js"></script>
+
+<a href="../index.html">Back</a>
+
+</body>
