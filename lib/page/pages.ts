@@ -101,6 +101,7 @@ export const sections: Section[] = [
       { name: "Frog & Toad", url: "article/frog_toad.html" },
       { name: "走不完的路/Routes", url: "article/routes.html" },
       { name: "My Wishlists", url: "article/wish.html" },
+      { name: "Refer", url: "article/refer.html" },
     ],
   },
   {
